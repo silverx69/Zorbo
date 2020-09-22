@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Zorbo.Test</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Server Plugins\cb0tProtocol.Shared\cb0tProtocol.Shared.csproj" />
+    <ProjectReference Include="..\Zorbo.Ares\Zorbo.Ares.csproj" />
+    <ProjectReference Include="..\Zorbo.Core\Zorbo.Core.csproj" />
+  </ItemGroup>
+
+</Project>

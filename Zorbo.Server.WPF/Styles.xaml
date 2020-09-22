@@ -1,0 +1,177 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:Zorbo.Server.WPF"
+                    xmlns:convert="clr-namespace:Zorbo.Server.WPF.Converters">
+
+    <PathGeometry x:Key="BezierGeometry">
+        <PathGeometry.Figures>
+            <PathFigure StartPoint="10,50" IsClosed="True">
+                <PathFigure.Segments>
+                    <BezierSegment
+	                Point1="100,50"
+	                Point2="200,150"
+	                Point3="300,60"/>
+                    <LineSegment Point="300,30" />
+                    <LineSegment Point="10,30" />
+                </PathFigure.Segments>
+            </PathFigure>
+        </PathGeometry.Figures>
+    </PathGeometry>
+
+    <convert:StopGoBrushConverter x:Key="NetworkOKConverter"/>
+    <convert:AvatarToSizeConverter x:Key="AvatarToSizeConverter"/>
+    <convert:AvatarToSourceConverter x:Key="AvatarToSourceConverter"/>
+    <convert:LanguageToInt32Converter x:Key="LanguageToInt32Converter"/>
+    <convert:ClientIdToUsernameConverter x:Key="ClientIdToUsernameConverter"/>
+
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
+
+    <DropShadowEffect x:Key="PopupShadow" BlurRadius="5" ShadowDepth="1" Opacity=".7" />
+
+    <LinearGradientBrush x:Key="BezierBrush" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#FF474747" Offset="0"/>
+        <GradientStop Color="White" Offset="1"/>
+    </LinearGradientBrush>
+
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="Background" Value="WhiteSmoke"/>
+    </Style>
+
+    <Style TargetType="{x:Type ListView}">
+        <Setter Property="Background" Value="{x:Null}"/>
+    </Style>
+
+    <Style x:Key="TreeViewItemToggleStyle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Width="16" Height="16" Background="#00FFFFFF" Padding="5,5,5,5">
+                        <Path Name="ExpandPath" Fill="#00FFFFFF" Stroke="#FF989898">
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0L0,6L6,0z" />
+                            </Path.Data>
+                            <Path.RenderTransform>
+                                <RotateTransform Angle="135" CenterX="3" CenterY="3" />
+                            </Path.RenderTransform>
+                        </Path>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ExpandPath" Property="Stroke" Value="#FF1BBBFA" />
+                            <Setter TargetName="ExpandPath" Property="Fill" Value="#00FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="ExpandPath" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="180" CenterX="3" CenterY="3" />
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="ExpandPath" Property="Fill" Value="#FF595959" />
+                            <Setter TargetName="ExpandPath" Property="Stroke" Value="#FF262626" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type TreeViewItem}">
+        <Setter Property="Margin" Value="0,2,0,0"/>
+        <Setter Property="Padding" Value="2,0,2,0"/>
+        <Setter Property="BorderBrush" Value="{x:Null}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="2,0,0,2">
+                            <ToggleButton
+                                x:Name="PART_Toggle"
+                                ClickMode="Release"
+                                IsChecked="{TemplateBinding IsExpanded}"
+                                Style="{StaticResource TreeViewItemToggleStyle}"/>
+                        </Border>
+                        <Border
+                            Grid.Column="1"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="0,2,2,0">
+                            <ContentPresenter 
+                                x:Name="PART_Content"
+                                Content="{TemplateBinding Header}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                        </Border>
+                        <ItemsPresenter 
+                            x:Name="PART_ItemsHost" 
+                            Grid.Row="1"
+                            Grid.Column="1"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="LightBlue"/>
+                        </Trigger>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter Property="Visibility" Value="Hidden" TargetName="PART_Toggle"/>
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="PART_ItemsHost"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="False" SourceName="PART_Toggle">
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="PART_ItemsHost"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" SourceName="PART_Toggle" />
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter Property="Background" Value="LightGray"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" SourceName="PART_Content" />
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <MultiTrigger.Setters>
+                                <Setter Property="Background" Value="LightGray"/>
+                            </MultiTrigger.Setters>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- BorderBrush="#FFDBDBDB" BorderThickness="0,0,1,0" -->
+    <Style TargetType="{x:Type TreeView}">
+        <Setter Property="Background" Value="{x:Null}"/>
+        <Setter Property="BorderBrush" Value="#FFDBDBDB"/>
+        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+    </Style>
+
+    <Style x:Key="HelpLinkStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="Blue"/>
+        <Setter Property="TextDecorations" Value="Underline"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+
+</ResourceDictionary>

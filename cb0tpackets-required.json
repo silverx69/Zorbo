@@ -1,0 +1,166 @@
+﻿"MSG_CHAT_ADVANCED_FEATURES_PROTOCOL": {
+  "id": 250,
+  "payload": null
+}
+
+/* ADVANCED_FEATURES "payload" can be any of the objects below
+ *
+ * Example: MSG_CHAT_SERVER_SUPPORTS_CUSTOM_EMOTES
+ * 
+ * { "id": 250, "payload": { "id": 220 }}
+*/
+
+"MSG_CHAT_CLIENT_CUSTOM_ADD_TAGS": {
+  "id": 202,
+  "tag": null
+}
+
+"MSG_CHAT_SERVER_CUSTOM_EMOTE_DELETE": {
+  "id": 222,
+  "shortcut": null
+}
+
+"MSG_CHAT_SERVER_CUSTOM_EMOTES_ITEM": {
+  "id": 221,
+  "shortcut": null,
+  "size": 0,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_SUPPORTS_CUSTOM_EMOTES": {
+  "id": 220
+}
+
+"MSG_CHAT_CLIENT_CUSTOM_FONT": {
+  "id": 204,
+  "size": 11,
+  "name": null,
+  "name_color": 255,
+  "text_color": 255
+}
+
+"MSG_CHAT_CLIENT_CUSTOM_REM_TAGS": {
+  "id": 203,
+  "tag": null
+}
+
+"MSG_CHAT_CLIENT_ROOM_SCRIBBLE_CHUNK": {
+  "id": 241,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_ROOM_SCRIBBLE_FIRST": {
+  "id": 240,
+  "size": 0,
+  "chunks": 0,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_VC_CHUNK": {
+  "id": 208,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_VC_CHUNK_FROM": {
+  "id": 209,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_VC_FIRST": {
+  "id": 206,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_VC_FIRST_TO": {
+  "id": 207,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_VC_IGNORE": {
+  "id": 210,
+  "username": null
+}
+
+"MSG_CHAT_CLIENT_VC_SUPPORTED": {
+  "id": 205,
+  "public": false,
+  "private": false
+}
+
+"MSG_CHAT_SERVER_CUSTOM_EMOTE_DELETE": {
+  "id": 222,
+  "username": null,
+  "shortcut": null
+}
+
+"MSG_CHAT_SERVER_CUSTOM_EMOTES_ITEM": {
+  "id": 221,
+  "username": null,
+  "shortcut": null,
+  "size": 0,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_SUPPORTS_CUSTOM_EMOTES": {
+  "id": 220,
+  "flag": 0
+}
+
+"MSG_CHAT_CLIENT_CUSTOM_FONT": {
+  "id": 204,
+  "username": null,
+  "size": 11,
+  "name": null,
+  "name_color": 255,
+  "text_color": 255
+}
+
+"MSG_CHAT_CLIENT_VC_CHUNK": {
+  "id": 208,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_VC_CHUNK_FROM": {
+  "id": 209,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_VC_FIRST": {
+  "id": 206,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_VC_FIRST_TO": {
+  "id": 207,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_VC_IGNORE": {
+  "id": 210,
+  "username": null
+}
+
+"MSG_CHAT_SERVER_VC_NOPVT": {
+  "id": 211,
+  "username": null
+}
+
+"MSG_CHAT_CLIENT_VC_SUPPORTED": {
+  "id": 205,
+  "enabled": false,
+  "high_quality": false
+}
+
+"MSG_CHAT_SERVER_VC_USER_SUPPORTED": {
+  "id": 212,
+  "username": null,
+  "public": false,
+  "private": false
+}
+

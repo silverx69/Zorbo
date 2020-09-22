@@ -1,0 +1,20 @@
+﻿<UserControl x:Class="Zorbo.Server.WPF.Views.Advanced"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Zorbo.Server.WPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="250" d:DesignWidth="350">
+    <Grid>
+        <Label Content="Max clones:" Height="28" HorizontalAlignment="Left" Margin="10,39,0,0" VerticalAlignment="Top" />
+        <TextBox Text="{Binding Path=MaxClones}" Height="23" Margin="127,41,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="125" />
+        <Label Content="Max clients:" Height="28" HorizontalAlignment="Left" Margin="10,68,0,0" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left" Margin="127,70,0,0" Text="{Binding Path=MaxClients}" VerticalAlignment="Top" Width="125" />
+        <Label Content="Ban length:" Height="28" HorizontalAlignment="Left" Margin="10,11,0,0" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left" Margin="127,13,0,0" Text="{Binding Path=BanLength}" VerticalAlignment="Top" Width="55" />
+        <Label Content="days (0 for unlimited)" Height="28" HorizontalAlignment="Left" Margin="188,10,0,0" VerticalAlignment="Top" />
+        <TextBlock Name="ClientHelp" Style="{StaticResource HelpLinkStyle}" Margin="82,73,0,0" Text="?" MouseUp="Help_MouseUp" local:Help.HelpText="Maximum number of users that can be connected at once" />
+        <TextBlock Name="CloneHelp" Style="{StaticResource HelpLinkStyle}" Margin="82,44,0,0" Text="?" MouseUp="Help_MouseUp" local:Help.HelpText="Maximum number of clients that can be connected from the same computer" />
+    </Grid>
+</UserControl>

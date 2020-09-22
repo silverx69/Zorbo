@@ -1,0 +1,62 @@
+﻿<Window x:Class="Zorbo.Server.WPF.Views.LoginWin"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Zorbo - Add New Login" 
+        Height="266" 
+        Width="450" 
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Grid Background="WhiteSmoke">
+
+        <Path Data="{StaticResource BezierGeometry}"
+	          Fill="{StaticResource BezierBrush}"
+	          Opacity="0.2" 
+	          Stroke="Black"
+	          StrokeThickness="1"
+	          Height="66" 
+	          Stretch="Fill" 
+	          VerticalAlignment="Top" >
+            <Path.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="1" Opacity="0.55" Direction="270"/>
+            </Path.Effect>
+        </Path>
+
+        <ListBox ItemsSource="{Binding Path=Records}" Margin="12,51,0,12" x:Name="listBox1" HorizontalAlignment="Left" Width="211">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock>
+                        <Run Text="{Binding Path=Name}"/>
+                        <Run Text=": "/>
+                        <TextBlock Text="{Binding Path=ClientId.ExternalIp}"/>
+                    </TextBlock>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Height="23" Margin="0,62,15,0" x:Name="textBlock1" VerticalAlignment="Top" HorizontalAlignment="Right" Width="185">
+            <Run Text="Name:      "/> 
+            <Run Text="{Binding Path=SelectedItem.Name, ElementName=listBox1}"/>
+        </TextBlock>
+
+        <TextBlock Height="23" HorizontalAlignment="Right" Margin="0,96,15,0" x:Name="textBlock2" VerticalAlignment="Top">
+            <Run Text="Password:" BaselineAlignment="Center"/> 
+            <PasswordBox Name="passBox" Width="130" FontSize="14" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
+        </TextBlock>
+
+        <TextBlock Height="23" HorizontalAlignment="Right" Margin="0,128,14,0" x:Name="textBlock3" VerticalAlignment="Top">
+            <Run BaselineAlignment="Center" Text="Level:       " /> 
+            <ComboBox Name="cbLevel" VerticalAlignment="Stretch" Width="130" HorizontalAlignment="Left">
+                <ComboBoxItem Content="Moderator"/>
+                <ComboBoxItem Content="Administrator"/>
+                <ComboBoxItem Content="Host"/>
+            </ComboBox>
+        </TextBlock>
+
+        <Button Content="OK" Height="23" HorizontalAlignment="Right" Margin="0,0,116,13" x:Name="button1" VerticalAlignment="Bottom" Width="75" Click="Button1_Click" />
+        <Button Content="Cancel" Height="23" HorizontalAlignment="Right" Margin="0,0,15,13" x:Name="button2" VerticalAlignment="Bottom" Width="75" Click="Button2_Click" />
+
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="19,20,0,0" x:Name="textBlock4" VerticalAlignment="Top">
+            <Run Text="Find: " BaselineAlignment="Center"/> 
+            <TextBox Name="txtSearch" Width="130" TextChanged="TextBox_TextChanged" />
+        </TextBlock>
+    </Grid>
+</Window>

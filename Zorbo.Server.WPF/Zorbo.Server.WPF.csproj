@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>App.manifest</ApplicationManifest>
+    <ApplicationIcon>Zorbo.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\app.jpg" />
+    <None Remove="Images\app.png" />
+    <None Remove="Images\banner.png" />
+    <None Remove="Zorbo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zorbo.Ares.Server\Zorbo.Ares.Server.csproj" />
+    <ProjectReference Include="..\Zorbo.Ares\Zorbo.Ares.csproj" />
+    <ProjectReference Include="..\Zorbo.Core\Zorbo.Core.csproj" />
+    <ProjectReference Include="..\Zorbo.Server.WPF.Plugins\Zorbo.Server.WPF.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\app.jpg" />
+    <Resource Include="Images\app.png" />
+    <Resource Include="Images\banner.png" />
+    <Resource Include="Zorbo.ico" />
+  </ItemGroup>
+
+</Project>
