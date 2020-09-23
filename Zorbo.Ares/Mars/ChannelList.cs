@@ -130,7 +130,7 @@ namespace Zorbo.Ares.Mars
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Name, Topic);
+            return HashCode.Combine(ExternalIP, Port);
         }
     }
 }

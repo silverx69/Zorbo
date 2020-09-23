@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y" />
+    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y /c" />
   </Target>
 
 </Project>

@@ -117,11 +117,13 @@ namespace Zorbo.Ares.Server
             }
         }
 
+
         public AresServerStats Stats { get; }
 
         IServerStats IServer.Stats {
             get { return Stats; }
         }
+
 
         public AresServerConfig Config { get; }
 
@@ -129,11 +131,13 @@ namespace Zorbo.Ares.Server
             get { return Config; }
         }
 
+
         public AresChannels Channels { get; }
 
         IChannelList IServer.Channels {
             get { return Channels; }
         }
+
 
         public AresUserHistory History { get; }
 
@@ -141,17 +145,20 @@ namespace Zorbo.Ares.Server
             get { return History; }
         }
 
+
         public ServerPluginHost PluginHost { get; }
 
         IServerPluginHost IServer.PluginHost {
             get { return PluginHost; }
         }
 
-        public AresClientList Users { get; }
+
+        public ModelList<IClient> Users { get; }
 
         IObservableCollection<IClient> IServer.Users {
-            get { return Users.Cast<IClient>(); }
+            get { return Users; }
         }
+
 
         public IList<IFloodRule> FloodRules {
             get { return flood_rules; }
@@ -164,7 +171,7 @@ namespace Zorbo.Ares.Server
             ticklength = TimeSpan.FromSeconds(1);
 
             Stats = new AresServerStats();
-            Users = new AresClientList();
+            Users = new ModelList<IClient>();
 
             Channels = new AresChannels {
                 Server = this,
@@ -476,7 +483,7 @@ namespace Zorbo.Ares.Server
         {
             if (!(sender is ISocket socket)) return;
 
-            AresClient user = Users.Find(s => s.Socket == sender);
+            IClient user = Users.Find(s => s.Socket == sender);
 
             if (user == null) {
                 Socket.Disconnect();
@@ -498,8 +505,10 @@ namespace Zorbo.Ares.Server
             if (e.Packet is PingPongPacket)
                 return;
 
-            AresClient user = Users.Find(s => s.Socket == sender);
-            if (user != null) PluginHost.OnPacketSent(user, e.Packet);
+            IClient user = Users.Find(s => s.Socket == sender);
+
+            if (user != null) 
+                PluginHost.OnPacketSent(user, e.Packet);
         }
 
         protected virtual void ClientPacketReceived(object sender, PacketEventArgs e) 
@@ -517,7 +526,7 @@ namespace Zorbo.Ares.Server
 
             if ((AresId)e.Packet.Id == AresId.MSG_CHAT_CLIENT_LOGIN) {
 
-                AresClient user = Users.Find(s => s.Socket == socket);
+                IClient user = Users.Find(s => s.Socket == socket);
 
                 if (user == null) {
                     if (HandlePending(socket)) {
@@ -618,7 +627,7 @@ namespace Zorbo.Ares.Server
             }
             else {
                 //Http request is not from a pending connection
-                AresClient user = Users.Find(s => s.Socket == sender);
+                IClient user = Users.Find(s => s.Socket == sender);
 
                 //if not pending, they have at least sent a login packet but are processing, 
                 if (user != null && user.LoggedIn) {
@@ -644,7 +653,7 @@ namespace Zorbo.Ares.Server
         {
             if (!(sender is ISocket socket)) return;
 
-            AresClient user = null;
+            IClient user = null;
 
             lock (pending) pending.RemoveAll((s) => s.Equals(sender));
 

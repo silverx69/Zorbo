@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-
+using Zorbo.Core;
 using Zorbo.Core.Data;
 
 namespace Zorbo.Ares.Sockets
@@ -110,7 +110,7 @@ namespace Zorbo.Ares.Sockets
                         int recvd = await SslStream.ReadAsync(buffer.Buffer, buffer.Offset, count);
 
                         if (recvd == 0)
-                            Exception = new SocketException((int)SocketError.NotConnected);
+                            throw new SocketException((int)SocketError.NotConnected);
 
                         Transferred += recvd;
                     }
@@ -135,12 +135,18 @@ namespace Zorbo.Ares.Sockets
                 else
                     count = Socket.EndReceiveFrom(ar, ref remoteEp);
 
-                if (count == 0)
+                if (count == 0) {
+                    Logging.Warning(
+                        "SocketReceiveTask",
+                        "Received nothing from Socket with Error: {0}", err);
                     Exception = new SocketException((int)SocketError.NotConnected);
-
-                else if (err != SocketError.Success)
+                }
+                else if (err != SocketError.Success) {
+                    Logging.Warning(
+                        "SocketReceiveTask",
+                        "Receive operation failed with Error: {0}", err);
                     Exception = new SocketException((int)err);
-
+                }
                 else {
                     Transferred += count;
                     stream.Write(args.Buffer, args.Offset, count);

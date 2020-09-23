@@ -175,6 +175,10 @@ namespace Javascript.Objects
             get { return DateTime.MinValue; }
         }
 
+        public DateTime CaptchaTime {
+            get { return DateTime.MinValue; }
+        }
+
         public DateTime LastUpdate {
             get { return DateTime.MinValue; }
             set { }
@@ -208,6 +212,7 @@ namespace Javascript.Objects
 
         public void Disconnect(object state) { }
 
+        public void Dispose() { }
 
         event PropertyChangedEventHandler INotifyPropertyChanged.PropertyChanged {
             add { }

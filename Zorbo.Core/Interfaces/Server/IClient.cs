@@ -7,7 +7,7 @@ using System.ComponentModel;
 
 namespace Zorbo.Core.Interfaces.Server
 {
-    public interface IClient : INotifyPropertyChanged
+    public interface IClient : INotifyPropertyChanged, IDisposable
     {
         IServer Server { get; }
         ISocket Socket { get; }//plugins have to be careful accessing this property
@@ -54,6 +54,7 @@ namespace Zorbo.Core.Interfaces.Server
         IPAddress ExternalIp { get; }
 
         DateTime JoinTime { get; }
+        DateTime CaptchaTime { get; }
         DateTime LastUpdate { get; set; }
 
         ClientFlags Features { get; set; }

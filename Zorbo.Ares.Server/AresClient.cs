@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection;
 using System.Text;
 using Zorbo.Ares.Packets;
 using Zorbo.Ares.Packets.Chatroom;
@@ -635,7 +636,7 @@ namespace Zorbo.Ares.Server
 
         private void OnPacketReceived(object sender, PacketEventArgs e)
         {
-            if (LoggedIn && server.CheckCounters(this, e.Packet)) {
+            if (server.CheckCounters(this, e.Packet) && LoggedIn) {
 
                 LastUpdate = DateTime.Now;
 
@@ -1035,6 +1036,18 @@ namespace Zorbo.Ares.Server
                 socket.Disconnect(state);
         }
 
+        /// <summary>
+        /// AresServer should be the only class to Dispose of an AresClient class. 
+        /// The code below prevents calling Dispose from any other Assembly other than Zorbo.Ares.Server assembly. 
+        /// This is so the AresServer class can use 'IClient' explicitly for all operations, allowing "Users" to be exposed to plugins without any casting.
+        /// </summary>
+        void IDisposable.Dispose()
+        {
+            var asm1 = Assembly.GetAssembly(this.GetType());
+            var asm2 = Assembly.GetCallingAssembly();
+
+            if (asm1 == asm2) Dispose();
+        }
 
         internal void Dispose()
         {
@@ -1062,13 +1075,6 @@ namespace Zorbo.Ares.Server
 
             extended_props.Clear();
             extended_props = null;
-        }
-
-        //we don't want a plugin to be able
-        //to dispose us directly... bad
-        void IDisposable.Dispose()
-        {
-            if (Connected) Disconnect();
         }
 
         public override int GetHashCode()
