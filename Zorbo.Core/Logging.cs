@@ -139,7 +139,7 @@ namespace Zorbo.Core
         }
 
         private static string GetFilename() {
-            return Path.Combine(Directories.Logs, InitTime.ToString("dd-MM-yyyy HH-mm-ss") + ".txt");
+            return Path.Combine(Directories.Logs, InitTime.ToString("dd-MM-yyyy") + ".txt");
         }
 
         private static ConsoleColor GetColorFromLevel(LogLevel level) {

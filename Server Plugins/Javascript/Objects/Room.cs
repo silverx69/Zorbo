@@ -32,7 +32,7 @@ namespace Javascript.Objects
 
             this.Stats = new RoomStats(script, server.Stats);
             this.Records = new Records(script, server.History);
-            this.Admins = new Admin(script, server.History.Admin);
+            this.Admins = new Admins(script, server.History.Admin);
             this.Bans = new Banned(script, server.History);
             this.RangeBans = new RangeBanned(script, server.History);
             this.FloodRules = new FloodRules(script, server.FloodRules);
@@ -82,7 +82,7 @@ namespace Javascript.Objects
         public Records Records { get; }
 
         [JSProperty(Name = "admin", IsEnumerable = true)]
-        public Admin Admins { get; }
+        public Admins Admins { get; }
 
         [JSProperty(Name = "bans", IsEnumerable = true)]
         public Banned Bans { get; }

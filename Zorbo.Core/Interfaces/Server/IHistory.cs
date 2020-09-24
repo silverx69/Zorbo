@@ -2,10 +2,9 @@
 
 namespace Zorbo.Core.Interfaces.Server
 {
-    public interface IHistory<TPassword> : INotifyPropertyChanged where TPassword : IPassword
+    public interface IHistory : INotifyPropertyChanged
     {
-        IAdmins<TPassword> Admin { get; }
-
+        IAdmins Admin { get; }
         IBanned Bans { get; }
         IRangeBanned RangeBans { get; }
         IObservableCollection<Record> Records { get; }

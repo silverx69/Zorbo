@@ -69,11 +69,6 @@ namespace Javascript.Objects
             set { record.Muzzled = value; }
         }
 
-        [JSProperty(Name = "dnsName", IsEnumerable = true)]
-        public String DnsName {
-            get { return record.DnsName; }
-        }
-
         [JSProperty(Name = "externalIp", IsEnumerable = true)]
         public String ExternalIp {
             get { return record.ClientId.ExternalIp.ToString(); }

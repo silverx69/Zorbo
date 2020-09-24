@@ -38,10 +38,10 @@ namespace Zorbo.Core.Interfaces
 
         public Password() { }
 
-        public Password(IClient client, string sha1text) {
+        public Password(IClient client, string text) {
             this.clientid = new ClientId(client);
             this.level = client.Admin;
-            this.sha1text = sha1text;
+            this.sha1text = CreateSha1Text(text);
         }
 
         public Password(Record record, AdminLevel level, SecureString pass) {
@@ -60,6 +60,24 @@ namespace Zorbo.Core.Interfaces
             this.clientid = new ClientId(guid, ip);
             this.level = level;
             this.sha1text = CreateSha1Text(pass);
+        }
+
+        public bool Equals(IPassword other)
+        {
+            return ClientId.Equals(other.ClientId) && Sha1Text == other.Sha1Text;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IPassword pass)
+                return Equals(pass);
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(ClientId, Sha1Text);
         }
 
         public static string CreateSha1Text(string password) {

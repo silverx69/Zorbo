@@ -34,23 +34,60 @@ namespace Zorbo.Core.Models
 
         public virtual bool IsReadOnly { get => false; }
 
-
         protected internal object SyncRoot { get; } = new object();
 
-        object IObservableCollection.SyncRoot { get => SyncRoot; }
+
+        bool IList.IsFixedSize { get => false; }
+
+        bool ICollection.IsSynchronized { get => false; }
+
+        object ICollection.SyncRoot { get => SyncRoot; }
+
+        object IList.this[int index] {
+            get => this[index];
+            set { if (value is T v) this[index] = v; }
+        }
 
 
-        public ModelList() { m_list = new List<T>(); }
+        public ModelList() {
+            m_list = new List<T>();
+        }
 
-        public ModelList(int capacity) { m_list = new List<T>(capacity); }
+        public ModelList(int capacity) { 
+            m_list = new List<T>(capacity);
+        }
 
-        public ModelList(IEnumerable<T> collection) { m_list = new List<T>(collection); }
-        
+        public ModelList(IEnumerable<T> collection) {
+            m_list = new List<T>(collection);
+        }
+
+
+        int IList.IndexOf(object value)
+        {
+            if (value is T v)
+                return IndexOf(v);
+            return -1;
+        }
 
         public virtual int IndexOf(T item) { lock(SyncRoot) return m_list.IndexOf(item); }
 
+
+        bool IList.Contains(object value)
+        {
+            if (value is T v)
+                return Contains(v);
+            return false;
+        }
+
         public virtual bool Contains(T item) { lock(SyncRoot) return m_list.Contains(item); }
 
+
+        int IList.Add(object value)
+        {
+            if (value is T v) 
+                Add(v);
+            return Count;
+        }
 
         public virtual void Add(T item) {
             lock(SyncRoot) m_list.Add(item);
@@ -72,6 +109,11 @@ namespace Zorbo.Core.Models
             OnCollectionChanged(NotifyCollectionChangedAction.Add, collection);
         }
 
+        void IList.Insert(int index, object value)
+        {
+            if (value is T v) Insert(index, v);
+        }
+
         public virtual void Insert(int index, T item) {
             lock (SyncRoot) m_list.Insert(index, item);
             OnCollectionChanged(NotifyCollectionChangedAction.Add, item);
@@ -80,6 +122,11 @@ namespace Zorbo.Core.Models
         public virtual void InsertRange(int index, IEnumerable<T> collection) {
             lock (SyncRoot) m_list.InsertRange(index, collection);
             OnCollectionChanged(NotifyCollectionChangedAction.Add, collection, index);
+        }
+
+        void IList.Remove(object value)
+        {
+            if (value is T v) Remove(v);
         }
 
         public virtual bool Remove(T item) {
@@ -150,6 +197,11 @@ namespace Zorbo.Core.Models
 
         public virtual void CopyTo(int index, T[] array, int arrayIndex, int count) {
             lock (SyncRoot) m_list.CopyTo(index, array, arrayIndex, count);
+        }
+
+        public virtual void CopyTo(Array array, int index)
+        {
+            Array.Copy(this.ToArray(), 0, array, index, this.Count);
         }
 
         protected virtual void CopyToNoLock(int index, T[] array, int arrayIndex, int count) {

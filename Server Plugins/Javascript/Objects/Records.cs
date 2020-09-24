@@ -10,14 +10,14 @@ namespace Javascript.Objects
 {
     public class Records : Collection
     {
-        readonly IHistory<Zorbo.Core.Interfaces.Password> history;
+        readonly IHistory history;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public override int Count {
             get { return this.history.Records.Count; }
         }
 
-        public Records(JScript script, IHistory<Zorbo.Core.Interfaces.Password> history)
+        public Records(JScript script, IHistory history)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.history = history;

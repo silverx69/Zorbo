@@ -9,14 +9,14 @@ namespace Javascript.Objects
 {
     public class Banned : Collection
     {
-        readonly IHistory<Zorbo.Core.Interfaces.Password> history;
+        readonly IHistory history;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public override int Count {
             get { return this.history.Bans.Count; }
         }
 
-        public Banned(JScript script, IHistory<Zorbo.Core.Interfaces.Password> history)
+        public Banned(JScript script, IHistory history)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
             
             this.script = script;

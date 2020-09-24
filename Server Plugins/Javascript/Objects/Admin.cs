@@ -5,9 +5,9 @@ using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
-    public class Admin : ReadOnlyList
+    public class Admins : ReadOnlyList
     {
-        readonly IAdmins<Zorbo.Core.Interfaces.Password> admin;
+        readonly IAdmins admin;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public override int Count {
@@ -15,7 +15,7 @@ namespace Javascript.Objects
         }
 
 
-        public Admin(JScript script, IAdmins<Zorbo.Core.Interfaces.Password> admin)
+        public Admins(JScript script, IAdmins admin)
             : base(script) {
 
             this.admin = admin;

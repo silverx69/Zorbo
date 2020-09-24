@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -12,23 +13,20 @@ using Zorbo.Core.Models;
 namespace Zorbo.Ares.Server.Users
 {
     [JsonArray]
-    public class Passwords : ModelList<Password>, IPasswords<Password>
+    public class Passwords : ModelList<IPassword>, IPasswords
     {
         protected internal IServer Server {
             get;
             set;
         }
 
-        /// <summary>
-        /// This constructor is called by the serializer(s). Do not use.
-        /// </summary>
-        public Passwords() { }
-
-        public Passwords(IServer server) {
+        public Passwords(IServer server, IEnumerable<IPassword> passwords)
+            : base(passwords)
+        {
             Server = server;
         }
 
-        public new bool Add(Password password) {
+        public new bool Add(IPassword password) {
 
             int index = this.FindIndex((s) => s.ClientId.Equals(password.ClientId));
 

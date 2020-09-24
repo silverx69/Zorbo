@@ -2,8 +2,8 @@
 
 namespace Zorbo.Core.Interfaces.Server
 {
-    public interface IAdmins<TPassword> : IObservableCollection<IClient> where TPassword : IPassword
+    public interface IAdmins : IObservableCollection<IClient>
     {
-        IPasswords<TPassword> Passwords { get; }
+        IPasswords Passwords { get; }
     }
 }

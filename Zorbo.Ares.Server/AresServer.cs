@@ -141,7 +141,7 @@ namespace Zorbo.Ares.Server
 
         public AresUserHistory History { get; }
 
-        IHistory<Password> IServer.History {
+        IHistory IServer.History {
             get { return History; }
         }
 

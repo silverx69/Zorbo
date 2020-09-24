@@ -7,12 +7,13 @@
              mc:Ignorable="d" 
              d:DesignHeight="250" 
              d:DesignWidth="390">
-    <Grid>
+
+    <Grid DataContext="{Binding Path=Passwords, RelativeSource={RelativeSource AncestorType={x:Type views:Logins}, Mode=FindAncestor}}">
         <TextBlock Height="23" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top">
             <Run Text="Current logins:" />
-            <Run Text="{Binding Path=Admin.Passwords.Count, Mode=OneWay}" />
+            <Run Text="{Binding Path=Count, Mode=OneWay}" />
         </TextBlock>
-        <ListView ItemsSource="{Binding Path=Admin.Passwords, Mode=OneWay}" Margin="10,38,10,40" Name="lstCurrentAdmin">
+        <ListView ItemsSource="{Binding Mode=OneWay}" Margin="10,38,10,40" Name="lstCurrentAdmin">
             <ListView.View>
                 <GridView AllowsColumnReorder="False">
                     <GridViewColumn Header="Name" Width="130">
@@ -31,4 +32,5 @@
         <Button Content="Add" Height="23" HorizontalAlignment="Right" Margin="0,0,91,9" Name="btnNew" VerticalAlignment="Bottom" Width="75" Click="BtnNew_Click" />
         <Button Content="Remove" HorizontalAlignment="Right" Margin="0,0,10,9" Name="btnDelete" Width="75" Height="23" VerticalAlignment="Bottom" Click="BtnDelete_Click" />
     </Grid>
+    
 </UserControl>

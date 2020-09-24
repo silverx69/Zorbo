@@ -37,7 +37,7 @@ namespace Zorbo.Core.Models
             return ret;
         }
 
-        public static void SaveModel<T>(this T model, string filename) where T : ModelBase, new()
+        public static void SaveModel(this object model, string filename)
         {
             string content = Json.Serialize(model, Formatting.Indented);
             using var sw = new StreamWriter(File.Open(filename, FileMode.Create, FileAccess.Write));
@@ -46,7 +46,7 @@ namespace Zorbo.Core.Models
             sw.Flush();
         }
 
-        public static async Task SaveModelAsync<T>(this T model, string filename) where T : ModelBase, new()
+        public static async Task SaveModelAsync(this object model, string filename)
         {
             string content = Json.Serialize(model, Formatting.Indented);
             using var sw = new StreamWriter(File.Open(filename, FileMode.Create, FileAccess.Write));

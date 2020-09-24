@@ -18,9 +18,6 @@ namespace Zorbo.Core.Interfaces.Server
         [JsonProperty("name", Required = Required.Always)]
         public string Name { get; set; }
 
-        [JsonProperty("dns", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public string DnsName { get; set; }
-
         [JsonProperty("muzzled", Required = Required.Always)]
         public bool Muzzled { get; set; }
 

@@ -5,11 +5,7 @@ using System.Text;
 
 namespace Zorbo.Core.Interfaces.Server
 {
-    public interface IPasswords<TPassword> : 
-        IObservableCollection<TPassword>,
-        IList<TPassword>,
-        ICollection<TPassword>,
-        IEnumerable<TPassword> where TPassword : IPassword
+    public interface IPasswords : IObservableCollection<IPassword>
     {
         bool Add(IClient client, string password);
         bool Remove(string password);

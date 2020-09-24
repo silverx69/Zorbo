@@ -58,9 +58,10 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        internal static void HandleRegister(IServer server, IClient client, string sha1text) {
+        internal static void HandleRegister(IServer server, IClient client, string text) {
+
             var passes = server.History.Admin.Passwords;
-            var pass = new Password(client, sha1text);
+            var pass = new Password(client, text);
 
             if (!passes.Contains(pass)) {
                 passes.Add(pass);

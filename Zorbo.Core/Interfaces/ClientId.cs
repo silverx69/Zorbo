@@ -63,7 +63,7 @@ namespace Zorbo.Core.Interfaces
 
         public override int GetHashCode()
         {
-            return (Guid.GetHashCode() + ExternalIp.GetHashCode()) & int.MaxValue;
+            return HashCode.Combine(Guid, ExternalIp);
         }
     }
 }

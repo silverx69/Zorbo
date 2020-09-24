@@ -16,7 +16,7 @@ namespace Zorbo.Server.WPF.Converters
 
             if (values.Length == 2) {
                 if (values[0] is ClientId id) {
-                    if (id is null || !(values[1] is IHistory<Password> history))
+                    if (id is null || !(values[1] is IHistory history))
                         return string.Empty;
 
                     var record = history.Records.Find((s) => s.ClientId.Equals(id));

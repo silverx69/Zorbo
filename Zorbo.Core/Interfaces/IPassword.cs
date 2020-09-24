@@ -5,9 +5,11 @@ using System.Text;
 using System.Security;
 using System.ComponentModel;
 
-namespace Zorbo.Core.Interfaces.Server
+namespace Zorbo.Core.Interfaces
 {
-    public interface IPassword : INotifyPropertyChanged
+    public interface IPassword : 
+        IEquatable<IPassword>,
+        INotifyPropertyChanged
     {
         ClientId ClientId { get; set; }
         string Sha1Text { get; set; }

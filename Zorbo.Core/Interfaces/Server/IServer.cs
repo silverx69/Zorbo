@@ -15,7 +15,7 @@ namespace Zorbo.Core.Interfaces.Server
         IPAddress ExternalIp { get; }
         IPAddress InternalIp { get; }
 
-        IHistory<Password> History { get; }
+        IHistory History { get; }
         IServerStats Stats { get; }
         IServerConfig Config { get; }
         IChannelList Channels { get; }

@@ -12,7 +12,7 @@ using Zorbo.Core.Models;
 
 namespace Zorbo.Ares.Server.Users
 {
-    public class Admin : ModelList<IClient>, IAdmins<Password>
+    public class Admin : ModelList<IClient>, IAdmins
     {
 #pragma warning disable IDE0044 // Add readonly modifier
         IServer server = null;
@@ -27,7 +27,7 @@ namespace Zorbo.Ares.Server.Users
         }
 
         [JsonIgnore]
-        public IPasswords<Password> Passwords {
+        public IPasswords Passwords {
             get { return passwords; }
             set { OnPropertyChanged(() => passwords, value); }
         }
@@ -38,32 +38,24 @@ namespace Zorbo.Ares.Server.Users
         {
             Server = server;
             Server.Users.CollectionChanged += Users_CollectionChanged;
-
-            AddRange(Server.Users.FindAll((s) => s.Admin > 0));
-
-            passwords = Persistence.LoadModel<Passwords>(FilePath);
-            passwords.Server = server;
+            passwords = new Passwords(server, Persistence.LoadModel<ModelList<Password>>(FilePath));
         }
 
         public async Task LoadAsync(IServer server) 
         {
             Server = server;
             Server.Users.CollectionChanged += Users_CollectionChanged;
-
-            AddRange(Server.Users.FindAll((s) => s.Admin > 0));
-
-            passwords = await Persistence.LoadModelAsync<Passwords>(FilePath);
-            passwords.Server = server;
+            passwords = new Passwords(server, await Persistence.LoadModelAsync<ModelList<Password>>(FilePath));
         }
 
         public void Save()
         {
-            Persistence.SaveModel(passwords, FilePath);
+            Persistence.SaveModel(passwords.Cast<Password>(), FilePath);
         }
 
         public async Task SaveAsync() 
         {
-            await Persistence.SaveModelAsync(passwords, FilePath);
+            await Persistence.SaveModelAsync(passwords.Cast<Password>(), FilePath);
         }
 
         void Users_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {

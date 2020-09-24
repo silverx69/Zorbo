@@ -8,21 +8,24 @@ using System.Text;
 namespace Zorbo.Core.Interfaces
 {
     public interface IObservableCollection<T> :
-        IList<T>,
-        ICollection<T>,
         IEnumerable<T>,
         IObservableCollection
     {
+        new T this[int index] { get;set; }
+
+        bool Remove(T item);
         bool Remove(Predicate<T> search);
+
         int RemoveAll(Predicate<T> search);
 
         void Sort(Comparison<T> comparison);
     }
 
     public interface IObservableCollection : 
+        IList,
+        ICollection,
         IEnumerable,
         INotifyPropertyChanged,
         INotifyCollectionChanged {
-        object SyncRoot { get; }
     }
 }

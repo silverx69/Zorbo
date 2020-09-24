@@ -8,14 +8,14 @@ namespace Javascript.Objects
 {
     public class RangeBanned : Collection
     {
-        readonly IHistory<Zorbo.Core.Interfaces.Password> history;
+        readonly IHistory history;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public override int Count {
             get { return this.history.RangeBans.Count; }
         }
 
-        public RangeBanned(JScript script, IHistory<Zorbo.Core.Interfaces.Password> history)
+        public RangeBanned(JScript script, IHistory history)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.history = history;

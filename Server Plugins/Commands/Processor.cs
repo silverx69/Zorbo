@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Zorbo.Ares;
 using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Core;
+using Zorbo.Core.Interfaces;
 using Zorbo.Core.Interfaces.Server;
 
 namespace Commands

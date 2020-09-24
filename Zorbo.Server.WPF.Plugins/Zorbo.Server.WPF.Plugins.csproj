@@ -4,10 +4,31 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Copyright>Cloud3d Games 2020</Copyright>
+    <Product>Zorbo.Server.WPF.Plugins</Product>
+    <Company>Cloud3d Games</Company>
+    <Authors>SilverX (silverx69)</Authors>
+    <Version>0.2.0</Version>
+    <PackageProjectUrl>https://github.com/silverx69/Zorbo</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/silverx69/Zorbo</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageIcon>app.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Zorbo.Core\Zorbo.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\Zorbo.Server.WPF\Images\app.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

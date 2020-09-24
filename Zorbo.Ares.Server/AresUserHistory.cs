@@ -9,7 +9,7 @@ using Zorbo.Core.Models;
 
 namespace Zorbo.Ares.Server
 {
-    public class AresUserHistory : ModelBase, IHistory<Password>
+    public class AresUserHistory : ModelBase, IHistory
     {
 #pragma warning disable IDE0044 // Add readonly modifier
         Admin admins = null;
@@ -48,19 +48,19 @@ namespace Zorbo.Ares.Server
 
         #region " IHistory "
 
-        IAdmins<Password> IHistory<Password>.Admin {
+        IAdmins IHistory.Admin {
             get { return admins; }
         }
 
-        IBanned IHistory<Password>.Bans {
+        IBanned IHistory.Bans {
             get { return bans; }
         }
 
-        IRangeBanned IHistory<Password>.RangeBans {
+        IRangeBanned IHistory.RangeBans {
             get { return rBans; }
         }
 
-        IObservableCollection<Record> IHistory<Password>.Records {
+        IObservableCollection<Record> IHistory.Records {
             get { return Records; }
         }
 
