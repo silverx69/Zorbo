@@ -30,6 +30,9 @@ namespace Zorbo.Server.WPF
             if (!DesignerProperties.GetIsInDesignMode(this)) {
 
                 var directories = new Directories();
+
+                Logging.LogDirectory = directories.Logs;
+
                 var config = Persistence.LoadModel<Configuration>(Path.Combine(directories.AppData, "config.json"));
 
                 //supplying custom directories
