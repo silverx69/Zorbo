@@ -77,7 +77,7 @@ namespace Zorbo.Server.WPF.Views
         void CheckAvailable() {
 
             ServerPluginHost host = (ServerPluginHost)DataContext;
-            foreach (var dir in new DirectoryInfo(Directories.Plugins).GetDirectories()) {
+            foreach (var dir in new DirectoryInfo(host.BaseDirectory).GetDirectories()) {
 
                 string file = System.IO.Path.Combine(dir.FullName, dir.Name + ".dll");
 

@@ -74,7 +74,8 @@ namespace cb0tProtocol
 
                 if (user.LoggedIn) {
 
-                    user.SendPacket(voice_support);
+                    if (Server.Config.AllowVoice)
+                        user.SendPacket(voice_support);
 
                     bool pubvoice = (user.Features & ClientFlags.VOICE) == ClientFlags.VOICE;
                     bool privoice = (user.Features & ClientFlags.PRIVATE_VOICE) == ClientFlags.PRIVATE_VOICE;
@@ -128,15 +129,10 @@ namespace cb0tProtocol
 
         public override void OnSendJoin(IClient client)
         {
-            var features = Server.Config.GetFeatures();
-
-            bool voice = (features & SupportFlags.VOICE) == SupportFlags.VOICE;
-            bool opus = (features & SupportFlags.OPUS_VOICE) == SupportFlags.OPUS_VOICE;
-
-            if (voice || opus) {
+            if (Server.Config.AllowVoice) {
                 client.SendPacket(new Advanced(new ServerVoiceSupport() {
                     Enabled = true,
-                    HighQuality = opus,
+                    HighQuality = true,
                 }));
             }
 
@@ -152,18 +148,15 @@ namespace cb0tProtocol
                     var font = (ServerFont)target.Extended["CustomFont"];
                     if (font != null) client.SendPacket(font);
 
-                    if (voice || opus) {
+                    bool pubvoice = (target.Features & ClientFlags.VOICE) == ClientFlags.VOICE;
+                    bool privoice = (target.Features & ClientFlags.PRIVATE_VOICE) == ClientFlags.PRIVATE_VOICE;
 
-                        bool pubvoice = (target.Features & ClientFlags.VOICE) == ClientFlags.VOICE;
-                        bool privoice = (target.Features & ClientFlags.PRIVATE_VOICE) == ClientFlags.PRIVATE_VOICE;
-
-                        if (pubvoice || privoice) {
-                            client.SendPacket(new Advanced(new ServerVoiceSupportUser() {
-                                Username = target.Name,
-                                Public = pubvoice,
-                                Private = privoice,
-                            }));
-                        }
+                    if (pubvoice || privoice) {
+                        client.SendPacket(new Advanced(new ServerVoiceSupportUser() {
+                            Username = target.Name,
+                            Public = pubvoice,
+                            Private = privoice,
+                        }));
                     }
                 }
             }

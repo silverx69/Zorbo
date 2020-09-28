@@ -6,6 +6,7 @@
         Title="Zorbo - Settings Manager" 
         Height="345"
         Width="640"
+        FontFamily="Tahoma"
         Icon="/Zorbo.Server.WPF;component/Zorbo.ico" 
         ResizeMode="CanResize" 
         WindowStartupLocation="CenterOwner">

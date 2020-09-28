@@ -14,6 +14,10 @@ namespace Zorbo.Server.WPF.Views
     /// </summary>
     public partial class Chat : UserControl
     {
+        private AresServerConfig Config {
+            get { return DataContext as AresServerConfig; }
+        }
+
         public Chat() {
             InitializeComponent();
         }
@@ -38,9 +42,7 @@ namespace Zorbo.Server.WPF.Views
 
             if ((bool)ofd.ShowDialog()) {
                 string file = ofd.FileName;
-
-                AresAvatar avatar = AresAvatar.Load(file);
-                ((AresServerConfig)DataContext).Avatar = avatar;
+                Config.Avatar = AresAvatars.Load(file);
             }
         }
 

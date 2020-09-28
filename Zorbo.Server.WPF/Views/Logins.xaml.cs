@@ -1,4 +1,5 @@
 ﻿using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,16 +24,17 @@ namespace Zorbo.Server.WPF.Views
         }
 
         public Logins() {
-            Passwords = new CollectionViewSource();
-
             InitializeComponent();
+            Passwords = new CollectionViewSource();
             Loaded += Logins_Loaded;
         }
 
         private void Logins_Loaded(object sender, RoutedEventArgs e)
         {
-            History.Admin.Passwords.CollectionChanged += Passwords_CollectionChanged;
-            Passwords.Source = History.Admin.Passwords.ToArray();
+            if (!DesignerProperties.GetIsInDesignMode(this)) {
+                History.Admin.Passwords.CollectionChanged += Passwords_CollectionChanged;
+                Passwords.Source = History.Admin.Passwords.ToArray();
+            }
         }
 
         private void Passwords_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

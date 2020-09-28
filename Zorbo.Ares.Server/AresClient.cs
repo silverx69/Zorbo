@@ -48,8 +48,8 @@ namespace Zorbo.Ares.Server
         Gender gender = Gender.Unknown;
         Country country = Country.Unknown;
 
-        IAvatar avatar = null;
-        IAvatar orgavatar = null;
+        byte[] avatar = null;
+        byte[] orgavatar = null;
 
         string name;
         string orgname;
@@ -259,7 +259,7 @@ namespace Zorbo.Ares.Server
         }
 
 
-        public IAvatar Avatar {
+        public byte[] Avatar {
             get {
                 if (avatar == null)
                     return server.Config.Avatar;
@@ -279,7 +279,7 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        public IAvatar OrgAvatar {
+        public byte[] OrgAvatar {
             get { return orgavatar; }
             set { orgavatar = value; }
         }
@@ -512,6 +512,8 @@ namespace Zorbo.Ares.Server
 
                 server.PluginHost.OnSendJoin(this);
             }
+
+            server.SendWebsite();
         }
 
         internal void PerformQuickLogin()
@@ -535,6 +537,8 @@ namespace Zorbo.Ares.Server
 
                 server.PluginHost.OnSendJoin(this);
             }
+
+            server.SendWebsite();
         }
 
 
@@ -590,28 +594,18 @@ namespace Zorbo.Ares.Server
             orgname = name;
             Version = login.Version;
             LocalIp = login.LocalIp;
-            Browsable = (login.SupportFlag & SupportFlags.SHARING) == SupportFlags.SHARING;
-            Compression = (login.SupportFlag & SupportFlags.COMPRESSION) == SupportFlags.COMPRESSION;
             Age = login.Age;
             Gender = login.Gender;
             Country = login.Country;
             Region = login.Region;
-            Features = login.Features;
 
-            if ((Features & ClientFlags.OPUS_VOICE) == ClientFlags.OPUS_VOICE)
-                Features |= ClientFlags.VOICE;
-
-            if ((Features & ClientFlags.PRIVATE_OPUS_VOICE) == ClientFlags.PRIVATE_OPUS_VOICE)
-                Features |= ClientFlags.PRIVATE_VOICE;
-
+            HandleFeatures(login);
+                    
             var record = server.History.Add(this);
             var autologin = server.History.Admin.Passwords.Find((s) => s.ClientId.Equals(record.ClientId));
 
             admin = (autologin != null) ? autologin.Level : admin;
             admin = (LocalHost) ? AdminLevel.Host : admin;
-
-            if (admin != AdminLevel.User)
-                RaisePropertyChanged(nameof(Admin));
 
             if (AllowedJoin(record)) {
 
@@ -625,6 +619,27 @@ namespace Zorbo.Ares.Server
                 FinishJoin();
             }
             else server.Stats.Rejected++;
+        }
+
+        private void HandleFeatures(Login login)
+        {
+            Browsable = (login.SupportFlag & SupportFlags.SHARING) == SupportFlags.SHARING;
+            Compression = (login.SupportFlag & SupportFlags.COMPRESSION) == SupportFlags.COMPRESSION;
+
+            Features = login.Features;
+
+            if ((Features & ClientFlags.OPUS_VOICE) == ClientFlags.OPUS_VOICE)
+                Features |= ClientFlags.VOICE;
+
+            if ((Features & ClientFlags.PRIVATE_OPUS_VOICE) == ClientFlags.PRIVATE_OPUS_VOICE)
+                Features |= ClientFlags.PRIVATE_VOICE;
+
+            if (!server.Config.AllowVoice) {
+                Features ^= ClientFlags.VOICE;
+                Features ^= ClientFlags.OPUS_VOICE;
+                Features ^= ClientFlags.PRIVATE_VOICE;
+                Features ^= ClientFlags.PRIVATE_OPUS_VOICE;
+            }
         }
 
         private void FinishJoin()
@@ -926,10 +941,10 @@ namespace Zorbo.Ares.Server
                     if (avatar.AvatarBytes.Length == 0)
                         Avatar = null;
                     else {
-                        Avatar = new AresAvatar(avatar.AvatarBytes);
+                        Avatar = avatar.AvatarBytes;
 
                         if (OrgAvatar == null)
-                            OrgAvatar = new AresAvatar(avatar.AvatarBytes);
+                            OrgAvatar = avatar.AvatarBytes;
                     }
                     break;
                 case AresId.MSG_CHAT_CLIENT_CUSTOM_DATA: {

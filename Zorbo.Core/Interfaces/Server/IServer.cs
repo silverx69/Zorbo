@@ -23,6 +23,9 @@ namespace Zorbo.Core.Interfaces.Server
         IObservableCollection<IClient> Users { get; }
         IList<IFloodRule> FloodRules { get; }
 
+        void Start();
+        void Stop();
+
         IClient FindUser(Predicate<IClient> client);
 
         void SendPacket(IPacket packet);
@@ -54,7 +57,9 @@ namespace Zorbo.Core.Interfaces.Server
         void SendAnnounce(string text);
         void SendAnnounce(IClient target, string text);
         void SendAnnounce(Predicate<IClient> target, string text);
-
+        //sends configured website
+        void SendWebsite();
+        //sends custom website
         void SendWebsite(string address, string caption);
         void SendWebsite(string target, string address, string caption);
         void SendWebsite(IClient target, string address, string caption);

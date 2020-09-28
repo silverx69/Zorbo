@@ -1,4 +1,5 @@
-﻿using Javascript.Objects;
+﻿using cb0tProtocol;
+using Javascript.Objects;
 using Jurassic;
 using Jurassic.Library;
 using System;
@@ -23,7 +24,9 @@ namespace Javascript
         }
 
         public string Directory {
-            get { return Path.Combine(JurassicPlugin.Self.Directory, "Scripts", Name); }
+            get {
+                return Path.Combine(JurassicPlugin.Self.Directory, "Scripts", Name);
+            }
         }
 
         public ScriptEngine Engine { get; private set; }
@@ -60,6 +63,9 @@ namespace Javascript
             this.Name = name;
             this.Counters = new Dictionary<string, int>();
 
+            if (!System.IO.Directory.Exists(Directory))
+                System.IO.Directory.CreateDirectory(Directory);
+
             Counters.Add("print", 0);
             Counters.Add("text", 0);
             Counters.Add("emote", 0);
@@ -70,9 +76,12 @@ namespace Javascript
 
             this.Engine = new ScriptEngine();
 
-            //ENUMERATIONS 
+            //ENUMERATIONS - ENUMERATED
             Engine.Global.DefineProperty("AresId",
                 new PropertyDescriptor(new Objects.Enum(this, typeof(AresId)), PropertyAttributes.Enumerable | PropertyAttributes.Sealed), true);
+
+            Engine.Global.DefineProperty("AdvancedId",
+                new PropertyDescriptor(new Objects.Enum(this, typeof(AdvancedId)), PropertyAttributes.Enumerable | PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("Language",
                 new PropertyDescriptor(new Objects.Enum(this, typeof(Language)), PropertyAttributes.Enumerable | PropertyAttributes.Sealed), true);
@@ -99,7 +108,6 @@ namespace Javascript
                 new PropertyDescriptor(new Objects.Enum(this, typeof(SupportFlags)), PropertyAttributes.Enumerable | PropertyAttributes.Sealed), true);
 
             // INSTANCE CLASSES - NOT ENUMERATED 
-
             Engine.Global.DefineProperty("Error",
                 new PropertyDescriptor(new Objects.Error.Constructor(this), PropertyAttributes.Sealed), true);
 
@@ -123,19 +131,16 @@ namespace Javascript
 
             Engine.Global.DefineProperty("HttpRequest",
                 new PropertyDescriptor(new Objects.HttpRequest.Constructor(this), PropertyAttributes.Sealed), true);
-            
+
             Engine.Global.DefineProperty("Hashlink",
                 new PropertyDescriptor(new Objects.Hashlink.Constructor(this), PropertyAttributes.Sealed), true);
 
-            Engine.Global.DefineProperty("Avatar",
-                new PropertyDescriptor(new Objects.Avatar.Constructor(this), PropertyAttributes.Sealed), true);
-
             Engine.Global.DefineProperty("FloodRule",
                 new PropertyDescriptor(new Objects.FloodRule.Constructor(this), PropertyAttributes.Sealed), true);
-            
+
             Engine.Global.DefineProperty("EncodingInstance",
                 new PropertyDescriptor(new Objects.EncodingInstance.Constructor(this), PropertyAttributes.Sealed), true);
-            
+
             Engine.Global.DefineProperty("UserId",
                 new PropertyDescriptor(new Objects.UserId.Constructor(this), PropertyAttributes.Sealed), true);
 
@@ -146,9 +151,8 @@ namespace Javascript
                 new PropertyDescriptor(new Objects.UserRecord.Constructor(this), PropertyAttributes.Sealed), true);
 
             // GLOBAL (STATIC) CLASSES
-
             this.Room = new Room(this, JurassicPlugin.Self.Server);
-
+            // ease of use functions
             Engine.SetGlobalFunction("user", new Func<Object, User>(Room.FindUser));
             Engine.SetGlobalFunction("print", new Action<Object, Object>(Room.SendAnnounce));
 
@@ -157,6 +161,9 @@ namespace Javascript
 
             Engine.Global.DefineProperty("print",
                 new PropertyDescriptor(Engine.Global["print"], PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+
+            Engine.Global.DefineProperty("Room",
+                new PropertyDescriptor(Room, PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Channels",
                 new PropertyDescriptor(new Objects.Channels(this, JurassicPlugin.Self.Server.Channels), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
@@ -167,8 +174,8 @@ namespace Javascript
             Engine.Global.DefineProperty("Script",
                 new PropertyDescriptor(new Objects.Script(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
-            Engine.Global.DefineProperty("BitConverter",
-                new PropertyDescriptor(new Objects.BitConverter(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+            Engine.Global.DefineProperty("Hashlinks",
+                new PropertyDescriptor(new Objects.Hashlinks(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Encoding",
                 new PropertyDescriptor(new Objects.Encoding(this, true), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
@@ -176,17 +183,14 @@ namespace Javascript
             Engine.Global.DefineProperty("Base64",
                 new PropertyDescriptor(new Objects.Base64(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
-            Engine.Global.DefineProperty("Hashlinks",
-                new PropertyDescriptor(new Objects.Hashlinks(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+            Engine.Global.DefineProperty("BitConverter",
+                new PropertyDescriptor(new Objects.BitConverter(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
-            Engine.Global.DefineProperty("Room",
-                new PropertyDescriptor(Room, PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
-
-            foreach(var embedded in JurassicPlugin.Embedded) {
+            foreach (var embedded in JurassicPlugin.Embedded) {
                 Engine.Global.DefineProperty(
                     embedded.Key,
                     new PropertyDescriptor(embedded.Value.Create(this), embedded.Value.Attributes), true);
-            } 
+            }
 
             Eval(default_script.ToString());
         }

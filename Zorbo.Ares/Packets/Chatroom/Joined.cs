@@ -23,7 +23,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         byte age = 0;
         Gender gender = Gender.Unknown;
         Country country = Country.Unknown;
-        
+
         IPAddress externalIp = null;
         IPAddress internalIp = null;
 
@@ -40,7 +40,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         [JsonIgnore]
         [PacketItem(1)]
         public int Skipped1 { get; set; }
-        
+
         [JsonProperty("external_ip", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(2)]
         public IPAddress ExternalIp {
@@ -74,11 +74,11 @@ namespace Zorbo.Ares.Packets.Chatroom
         [JsonProperty("local_ip", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(8)]
         public IPAddress LocalIp {
-                get { return internalIp; }
-                set { OnPropertyChanged(() => internalIp, value); }
-            }
+            get { return internalIp; }
+            set { OnPropertyChanged(() => internalIp, value); }
+        }
 
-            [JsonProperty("browsable", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("browsable", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(9)]
         public bool Browsable {
             get { return browsable; }
@@ -129,7 +129,8 @@ namespace Zorbo.Ares.Packets.Chatroom
 
         public JoinBase() { }
 
-        public JoinBase(IClient user) {
+        public JoinBase(IClient user)
+        {
             FileCount = user.FileCount;
             ExternalIp = user.Server.Config.HideIPs ? IPAddress.Any : user.ExternalIp;
             DCPort = user.ListenPort;

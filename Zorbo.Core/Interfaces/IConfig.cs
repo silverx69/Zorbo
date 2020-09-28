@@ -8,13 +8,17 @@ namespace Zorbo.Core.Interfaces
     public interface IConfig
     {
         /// <summary>
+        /// Configurable directory locations for common files (not serialized to Json)
+        /// </summary>
+        IDirectories Directories { get; set; }
+        /// <summary>
         /// The default name
         /// </summary>
         string Name { get; }
         /// <summary>
         /// Default avatar
         /// </summary>
-        IAvatar Avatar { get; set; }
+        byte[] Avatar { get; set; }
         /// <summary>
         /// True if private messaging is supported, otherwise false
         /// </summary>
@@ -28,12 +32,8 @@ namespace Zorbo.Core.Interfaces
         /// </summary>
         bool AllowEncryption { get; set; }
         /// <summary>
-        /// True if voice packets are supported, otherwise false
+        /// True if voice packets are enabled, otherwise false
         /// </summary>
         bool AllowVoice { get; set; }
-        /// <summary>
-        /// True if opus voice packets are supported, otherwise false
-        /// </summary>
-        bool AllowOpusVoice { get; set; }
     }
 }

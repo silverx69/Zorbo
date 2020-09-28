@@ -1,6 +1,7 @@
 ﻿using Jurassic;
 using Jurassic.Library;
 using System;
+using System.Text.RegularExpressions;
 using Zorbo.Core.Interfaces;
 using Zorbo.Core.Interfaces.Server;
 using JScript = Javascript.Script;
@@ -9,11 +10,7 @@ namespace Javascript.Objects
 {
     public class User : ScriptObject
     {
-        Avatar avatar = null;
-        Avatar orgavatar = null;
-
         readonly JScript script = null;
-        
 
         public IClient Client { get; } = null;
 
@@ -214,27 +211,14 @@ namespace Javascript.Objects
         }
 
         [JSProperty(Name = "avatar", IsEnumerable = true)]
-        public Avatar Avatar {
-            get {
-                if (avatar == null)
-                    avatar = new Avatar(script, Client.Avatar);
-
-                return avatar;
-            }
-            set {
-                this.avatar = value;
-                Client.Avatar = value;
-            }
+        public ArrayInstance Avatar {
+            get { return Client.Avatar.ToJSArray(Engine); }
+            set { Client.Avatar = value.ToArray<byte>(); }
         }
 
         [JSProperty(Name = "orgAvatar", IsEnumerable = true)]
-        public Avatar OrgAvatar {
-            get {
-                if (orgavatar == null && Client.OrgAvatar != null)
-                    orgavatar = new Avatar(script, Client.OrgAvatar);
-
-                return orgavatar;
-            }
+        public ArrayInstance OrgAvatar {
+            get { return Client.OrgAvatar.ToJSArray(Engine); }
         }
 
         [JSProperty(Name = "version", IsEnumerable = true)]
@@ -255,6 +239,31 @@ namespace Javascript.Objects
 
         [JSProperty(Name = "monitor", IsEnumerable = true)]
         public Monitor Monitor { get; } = null;
+
+        [JSFunction(Name = "sendPacket", IsEnumerable = true, IsWritable = false)]
+        public void SendPacket(object a)
+        {
+            if (++script.Counters["json"] > 100)
+                throw new JavaScriptException(Engine.Error.Construct("Send packet limit reached"), 0, null);
+
+            string tmp = string.Empty;
+
+            if (a is ObjectInstance)
+                tmp = JSONObject.Stringify(Engine, a);
+
+            else if (a is string || a is ConcatenatedString)
+                tmp = a.ToString();
+
+            if (!string.IsNullOrEmpty(tmp)) {
+                Match match = Regex.Match(tmp, "(['\"]*)id\\1:\\s*(['\"]*)(\\d+)\\2", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                if (match.Success) {
+                    if (byte.TryParse(match.Groups[3].Value, out byte id)) {
+                        IPacket p = Room.Formatter.Unformat(id, tmp);
+                        if (p != null) Client.SendPacket(p);
+                    }
+                }
+            }
+        }
 
         [JSFunction(Name = "ban", IsEnumerable = true, IsWritable = false)]
         public void Ban(object a) {

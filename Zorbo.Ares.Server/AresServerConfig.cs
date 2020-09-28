@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Ares.Resources;
 using Zorbo.Core.Interfaces;
 using Zorbo.Core.Interfaces.Server;
@@ -17,16 +18,20 @@ namespace Zorbo.Ares.Server
     public class AresServerConfig : ModelBase, IServerConfig
     {
 #pragma warning disable IDE0044 // Add readonly modifier
+        IDirectories directories = null;
+
         ushort port = 34567;
         IPAddress localIp = IPAddress.Any;
-
-        AresAvatar avatar;
-        AresAvatar orgAvatar;
 
         string name = Strings.DefaultName;
         string botname = Strings.DefaultBotName;
         string topic = Strings.DefaultTopic;
         string orgTopic = string.Empty;
+
+        byte[] avatar = null;
+        byte[] orgAvatar = null;
+
+        Website website = null;
 
         uint banlength = 0;
 
@@ -36,18 +41,18 @@ namespace Zorbo.Ares.Server
         bool autostart = false;
 
         bool allowPrivate = true;
-        bool allowCompression = false;
+        bool allowCompression = true;
         bool allowEncryption = false;
         bool allowVoice = true;
-        bool allowOpusVoice = true;
 
         bool lanhost = true;//treat lan connections as LocalHost
         bool hideIps = true;
         bool muzzledPms = true;
         bool botProtection = true;
         bool useTcpSockets = true;
-        bool useUdpSockets = true;
+        bool useTlsSockets = false;
         bool useWebSockets = true;
+        bool useUdpSockets = true;
         bool showOnChannelList = true;
 
         Language language = Language.English;
@@ -99,31 +104,21 @@ namespace Zorbo.Ares.Server
             set { OnPropertyChanged(() => localIp, value); }
         }
 
-        [JsonProperty("banlength")]
-        public uint BanLength {
-            get { return banlength; }
-            set { OnPropertyChanged(() => banlength, value); }
-        }
-
         [JsonIgnore]
-        public AresAvatar Avatar {
+        public byte[] Avatar {
             get { return avatar; }
             set {
                 if (avatar == null || !avatar.Equals(value)) {
                     avatar = value;
                     OnPropertyChanged();
-                    if (avatar != null) OrgAvatar = avatar;
+                    if (orgAvatar == null) 
+                        orgAvatar = avatar;
                 }
             }
         }
 
-        IAvatar IConfig.Avatar {
-            get { return Avatar; }
-            set { Avatar = value as AresAvatar; }
-        }
-
         [JsonProperty("avatar", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public AresAvatar OrgAvatar {
+        public byte[] OrgAvatar {
             get { return orgAvatar; }
             set {
                 if (orgAvatar != null) return;
@@ -133,8 +128,22 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        IAvatar IServerConfig.OrgAvatar {
-            get { return OrgAvatar; }
+        [JsonProperty("website", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public Website Website {
+            get { return website; }
+            set { OnPropertyChanged(() => website, value); }
+        }
+
+        [JsonIgnore]
+        public IDirectories Directories {
+            get { return directories; }
+            set { OnPropertyChanged(() => directories, value); }
+        }
+
+        [JsonProperty("banlength")]
+        public uint BanLength {
+            get { return banlength; }
+            set { OnPropertyChanged(() => banlength, value); }
         }
 
         [JsonProperty("maxclones")]
@@ -177,12 +186,6 @@ namespace Zorbo.Ares.Server
         public bool AllowVoice {
             get { return allowVoice; }
             set { OnPropertyChanged(() => allowVoice, value); }
-        }
-
-        [JsonProperty("opus")]
-        public bool AllowOpusVoice {
-            get { return allowOpusVoice; }
-            set { OnPropertyChanged(() => allowOpusVoice, value); }
         }
 
         [JsonProperty("lanhost")]
@@ -242,16 +245,16 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        [JsonProperty("useudpsockets")]
-        public bool UseUdpSockets {
-            get { return useUdpSockets; }
-            set { OnPropertyChanged(() => useUdpSockets, value); }
-        }
-
         [JsonProperty("usetcpsockets")]
         public bool UseTcpSockets {
             get { return useTcpSockets; }
             set { OnPropertyChanged(() => useTcpSockets, value); }
+        }
+
+        [JsonProperty("usetlssockets")]
+        public bool UseTlsSockets {
+            get { return useTlsSockets; }
+            set { OnPropertyChanged(() => useTlsSockets, value); }
         }
 
         [JsonProperty("usewebsockets")]
@@ -260,17 +263,19 @@ namespace Zorbo.Ares.Server
             set { OnPropertyChanged(() => useWebSockets, value); }
         }
 
-        [JsonProperty("usetlssockets")]
-        public bool UseTlsSockets {
-            get { return useWebSockets; }
-            set { OnPropertyChanged(() => useWebSockets, value); }
+        [JsonProperty("useudpsockets")]
+        public bool UseUdpSockets {
+            get { return useUdpSockets; }
+            set { OnPropertyChanged(() => useUdpSockets, value); }
         }
 
         public static IEnumerable<Language> LanguageValues {
             get { return Enum.GetValues(typeof(Language)).Cast<Language>(); }
         }
 
-        public AresServerConfig() { }
+        public AresServerConfig() {
+            Website = new Website();
+        }
 
         public SupportFlags GetFeatures()
         {
@@ -278,9 +283,10 @@ namespace Zorbo.Ares.Server
 
             if (AllowPrivate) ret |= SupportFlags.PRIVATE;
             if (AllowCompression) ret |= SupportFlags.COMPRESSION;
-            if (AllowVoice) ret |= SupportFlags.VOICE;
-            if (AllowOpusVoice) ret |= SupportFlags.OPUS_VOICE;
-
+            if (AllowVoice) {
+                ret |= SupportFlags.VOICE;
+                ret |= SupportFlags.OPUS_VOICE;
+            }
             return ret;
         }
     }

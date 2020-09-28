@@ -15,7 +15,7 @@ namespace Zorbo.Core.Plugins.Client
         }
 
         public ChatClientPluginHost(IChatClient client)
-            : base()
+            : base(client.Directories.AppData)
         {
             Client = client;
         }
@@ -23,7 +23,7 @@ namespace Zorbo.Core.Plugins.Client
         protected override void OnPluginLoaded(LoadedPlugin<IChatClient, ChatClientPlugin> plugin)
         {
             try {
-                plugin.Plugin.Directory = Path.Combine(Directories.Plugins, plugin.Name);
+                plugin.Plugin.Directory = Path.Combine(BaseDirectory, plugin.Name);
                 plugin.Plugin.OnPluginLoaded(Client);
             }
             catch (Exception ex) {

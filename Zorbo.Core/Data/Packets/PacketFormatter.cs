@@ -32,6 +32,8 @@ namespace Zorbo.Core.Data.Packets
             return Encoding.UTF8.GetBytes(Json.Serialize(message));
         }
 
+
+
         public abstract IPacket Unformat(byte id, string data, bool ib0t = false);
 
 

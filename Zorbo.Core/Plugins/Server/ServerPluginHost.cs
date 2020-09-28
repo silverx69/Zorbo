@@ -15,14 +15,14 @@ namespace Zorbo.Core.Plugins.Server
         }
 
         public ServerPluginHost(IServer server) 
-            : base() {
+            : base(server.Config.Directories.Plugins) {
             Server = server;
         }
 
         protected override void OnPluginLoaded(LoadedPlugin<IServer, ServerPlugin> plugin)
         {
             try {
-                plugin.Plugin.Directory = Path.Combine(Directories.Plugins, plugin.Name);
+                plugin.Plugin.Directory = Path.Combine(BaseDirectory, plugin.Name);
                 plugin.Plugin.OnPluginLoaded(Server);
             }
             catch (Exception ex) {
@@ -59,7 +59,8 @@ namespace Zorbo.Core.Plugins.Server
         {
             foreach (var plugin in this) {
                 try {
-                    plugin.Plugin.OnCaptcha(client, @event);
+                    if (plugin.Enabled)
+                        plugin.Plugin.OnCaptcha(client, @event);
                 }
                 catch (Exception ex) {
                     OnError(plugin, nameof(OnCaptcha), ex);

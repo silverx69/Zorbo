@@ -54,7 +54,7 @@ namespace Zorbo.Ares.Packets.Formatters
                 AresId.MSG_CHAT_SERVER_PUBLIC => Json.Deserialize<ServerPublic>(data),
                 AresId.MSG_CHAT_SERVER_EMOTE => Json.Deserialize<ServerEmote>(data),
                 AresId.MSG_CHAT_SERVER_PVT => Json.Deserialize<Private>(data),
-                AresId.MSG_CHAT_SERVER_URL => Json.Deserialize<Website>(data),
+                AresId.MSG_CHAT_SERVER_URL => Json.Deserialize<ServerUrl>(data),
                 AresId.MSG_CHAT_SERVER_OFFLINEUSER => Json.Deserialize<Offline>(data),
                 AresId.MSG_CHAT_SERVER_ISIGNORINGYOU => Json.Deserialize<IgnoringYou>(data),
                 AresId.MSG_CHAT_CLIENT_CUSTOM_DATA => Json.Deserialize<ClientCustom>(data),
@@ -83,7 +83,7 @@ namespace Zorbo.Ares.Packets.Formatters
                 AresId.MSG_CHAT_SERVER_PUBLIC => Serializer.Deserialize<ServerPublic>(data, index, count),
                 AresId.MSG_CHAT_SERVER_EMOTE => Serializer.Deserialize<ServerEmote>(data, index, count),
                 AresId.MSG_CHAT_SERVER_PVT => Serializer.Deserialize<Private>(data, index, count),
-                AresId.MSG_CHAT_SERVER_URL => Serializer.Deserialize<Website>(data, index, count),
+                AresId.MSG_CHAT_SERVER_URL => Serializer.Deserialize<ServerUrl>(data, index, count),
                 AresId.MSG_CHAT_SERVER_OFFLINEUSER => Serializer.Deserialize<Offline>(data,index,count),
                 AresId.MSG_CHAT_SERVER_ISIGNORINGYOU => Serializer.Deserialize<IgnoringYou>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_CUSTOM_DATA => Serializer.Deserialize<ClientCustom>(data, index, count),
@@ -148,7 +148,7 @@ namespace Zorbo.Ares.Packets.Formatters
                     return new Topic(values[0]);
                 case "AVATAR":
                     values = Parseib0tMessage(content);
-                    return new ServerAvatar(values[0], new AresAvatar(Convert.FromBase64String(values[1])));
+                    return new ServerAvatar(values[0], Convert.FromBase64String(values[1]));
                 case "PERSMSG":
                     values = Parseib0tMessage(content);
                     return new ServerPersonal(values[0], values[1]);
@@ -187,7 +187,7 @@ namespace Zorbo.Ares.Packets.Formatters
                     return new IgnoringYou(values[0]);
                 case "URL":
                     values = Parseib0tMessage(content);
-                    return new Website(values[0], values[1]);
+                    return new ServerUrl(values[0], values[1]);
             }
 
             return null;

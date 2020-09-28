@@ -13,10 +13,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Zorbo.Ares\Zorbo.Ares.csproj" />
     <ProjectReference Include="..\..\Zorbo.Core\Zorbo.Core.csproj" />
+    <ProjectReference Include="..\cb0tProtocol.Shared\cb0tProtocol.Shared.csproj" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y&#xD;&#xA;xcopy &quot;$(TargetDir)Jurassic.dll&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y" />
+    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y&#xD;&#xA;xcopy &quot;$(TargetDir)Jurassic.dll&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y&#xD;&#xA;xcopy &quot;$(TargetDir)cb0tProtocol.Shared.dll&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y" />
   </Target>
 
 </Project>

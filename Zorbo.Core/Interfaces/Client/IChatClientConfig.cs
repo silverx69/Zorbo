@@ -4,9 +4,7 @@ using System.Text;
 
 namespace Zorbo.Core.Interfaces.Client
 {
-    public interface IChatClient
+    public interface IChatClientConfig : IConfig
     {
-        IDirectories Directories { get; }
-        IChatClientConfig Config { get; }
     }
 }

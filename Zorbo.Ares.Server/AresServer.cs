@@ -79,7 +79,9 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        public ISocket Socket { get { return listener; } }
+        public ISocket Socket {
+            get { return listener; }
+        }
 
         public bool Running {
             get { return running; }
@@ -175,7 +177,7 @@ namespace Zorbo.Ares.Server
 
             Channels = new AresChannels {
                 Server = this,
-                Channels = Persistence.LoadModel<ModelList<AresChannel>>(Path.Combine(Directories.Cache, "channels.json"))
+                Channels = Persistence.LoadModel<ModelList<AresChannel>>(Path.Combine(config.Directories.AppData, "channels.json"))
             };
 
             if (Channels.Channels.Count == 0)
@@ -189,7 +191,7 @@ namespace Zorbo.Ares.Server
             pending = new List<PendingConnection>();
             flood_rules = new List<IFloodRule>();
 
-            History = Persistence.LoadModel<AresUserHistory>(Path.Combine(Directories.Cache, "history.json"));
+            History = Persistence.LoadModel<AresUserHistory>(Path.Combine(config.Directories.AppData, "history.json"));
             History.Admin.Load(this);
 
             Logging.WriteLines(
@@ -270,7 +272,7 @@ namespace Zorbo.Ares.Server
 
             Channels.PropertyChanged -= OnChannelsPropertyChanged;
             Channels.Stop();
-            Channels.Channels.SaveModel(Path.Combine(Directories.Cache, "channels.json"));
+            Channels.Channels.SaveModel(Path.Combine(Config.Directories.AppData, "channels.json"));
 
             lock (pending) {
                 foreach (var sock in pending)
@@ -286,7 +288,7 @@ namespace Zorbo.Ares.Server
             Users.Clear();
 
             History.Admin.Save();//admin are saved separate from history
-            History.SaveModel(Path.Combine(Directories.Cache, "history.json"));
+            History.SaveModel(Path.Combine(Config.Directories.AppData, "history.json"));
 
             Logging.Info("AresServer", "Chatroom server stopped.");
         }
@@ -319,13 +321,13 @@ namespace Zorbo.Ares.Server
 
             if (now.Subtract(Channels.LastSaved).TotalMinutes >= 10) {
                 Channels.LastSaved = now;
-                Channels.Channels.SaveModel(Path.Combine(Directories.Cache, "channels.json"));
+                Channels.Channels.SaveModel(Path.Combine(Config.Directories.AppData, "channels.json"));
             }
 
             if (now.Subtract(History.LastSaved).TotalMinutes >= 10) {
                 History.LastSaved = now;
                 History.Admin.Save();//admin are saved separate from the history
-                History.SaveModel(Path.Combine(Directories.Cache, "history.json"));
+                History.SaveModel(Path.Combine(Config.Directories.AppData, "history.json"));
             }
         }
 
@@ -466,7 +468,11 @@ namespace Zorbo.Ares.Server
 
                 lock (pending) pending.Add(new PendingConnection(socket, DateTime.Now));
 
-                socket.ActivateTLS(Config.Name);
+                string path = Config.Directories.Certificates;
+
+                socket.ActivateTLS(
+                    Path.Combine(path, Config.Name + ".pfx"), 
+                    Path.Combine(path, Config.Name + ".cer"));
                 socket.ReceiveAsync();
             }
             else {
@@ -743,6 +749,9 @@ namespace Zorbo.Ares.Server
                         SendPacket(user, allPacket);
                     }
                     break;
+                case nameof(Config.Website):
+                    SendWebsite(Config.Website.Address, Config.Website.Caption);
+                    break;
             }
         }
 
@@ -844,20 +853,26 @@ namespace Zorbo.Ares.Server
         }
 
 
+        public void SendWebsite()
+        {
+            if (Config.Website != null)
+                SendWebsite(Config.Website.Address, Config.Website.Caption);
+        }
+
         public void SendWebsite(string address, string caption) {
-            SendPacket(new Website(address, caption));
+            SendPacket(new ServerUrl(address, caption));
         }
 
         public void SendWebsite(string target, string address, string caption) {
-            SendPacket((s) => s.Name == target, new Website(address, caption));
+            SendPacket((s) => s.Name == target, new ServerUrl(address, caption));
         }
 
         public void SendWebsite(IClient target, string address, string caption) {
-            SendPacket((s) => s == target, new Website(address, caption));
+            SendPacket((s) => s == target, new ServerUrl(address, caption));
         }
 
         public void SendWebsite(Predicate<IClient> match, string address, string caption) {
-            SendPacket(match, new Website(address, caption));
+            SendPacket(match, new ServerUrl(address, caption));
         }
 
         #endregion

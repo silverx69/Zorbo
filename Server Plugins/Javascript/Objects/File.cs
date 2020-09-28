@@ -23,7 +23,7 @@ namespace Javascript.Objects
             
             if ((a is String || a is ConcatenatedString)) {
 
-                FileInfo file = new FileInfo(Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString()));
+                FileInfo file = new FileInfo(Path.Combine(script.Directory, a.ToString()));
                 return script.Engine.Number.Construct((double)file.Length);
             }
 
@@ -35,17 +35,13 @@ namespace Javascript.Objects
 
             if ((a is String || a is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
-                if (System.IO.File.Exists(path)) {
+                System.IO.File
+                    .Create(path)
+                    .Dispose();
 
-                    Stream stream = System.IO.File.Create(path);
-
-                    stream.Close();
-                    stream.Dispose();
-
-                    return true;
-                }
+                return true;
             }
 
             return false;
@@ -56,7 +52,7 @@ namespace Javascript.Objects
 
             if ((a is String || a is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
                 if (System.IO.File.Exists(path)) {
 
@@ -74,11 +70,11 @@ namespace Javascript.Objects
             if ((a is String || a is ConcatenatedString) &&
                 (b is String || b is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
                 if (System.IO.File.Exists(path)) {
 
-                    System.IO.File.Move(path, Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, b.ToString()));
+                    System.IO.File.Move(path, Path.Combine(script.Directory, b.ToString()));
                     System.IO.File.Delete(path);
 
                     return true;
@@ -91,13 +87,8 @@ namespace Javascript.Objects
         [JSFunction(Name = "read", IsEnumerable = true, IsWritable = false, Flags = JSFunctionFlags.ConvertNullReturnValueToUndefined)]
         public string Read(object a) {
 
-            if (a is String || a is ConcatenatedString) {
-
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
-
-                if (System.IO.File.Exists(path))
-                    return System.IO.File.ReadAllText(path);
-            }
+            if (a is String || a is ConcatenatedString)
+                return System.IO.File.ReadAllText(Path.Combine(script.Directory, a.ToString()));
 
             return null;
         }
@@ -107,7 +98,7 @@ namespace Javascript.Objects
 
             if (a is String || a is ConcatenatedString) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
                 if (System.IO.File.Exists(path)) {
 
@@ -130,13 +121,10 @@ namespace Javascript.Objects
             if ((a is String || a is ConcatenatedString) &&
                 (b is String || b is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
-                try {
-                    System.IO.File.WriteAllText(path, b.ToString());
-                    return true;
-                }
-                catch { }
+                System.IO.File.WriteAllText(path, b.ToString());
+                return true;
             }
 
             return false;
@@ -147,7 +135,7 @@ namespace Javascript.Objects
 
             if (b != null && (a is String || a is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
                 System.IO.File.WriteAllLines(path, b.ToArray<string>());
                 return true;
@@ -163,13 +151,10 @@ namespace Javascript.Objects
             if ((a is String || a is ConcatenatedString) &&
                 (b is String || b is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
+                string path = Path.Combine(script.Directory, a.ToString());
 
-                if (System.IO.File.Exists(path)) {
-
-                    System.IO.File.AppendAllText(path, b.ToString());
-                    return true;
-                }
+                System.IO.File.AppendAllText(path, b.ToString());
+                return true;
             }
 
             return false;
@@ -180,10 +165,7 @@ namespace Javascript.Objects
 
             if (b != null && (a is String || a is ConcatenatedString)) {
 
-                string path = Path.Combine(JurassicPlugin.Self.Directory, "Scripts", script.Name, a.ToString());
-
-                if (!System.IO.File.Exists(path))
-                    System.IO.File.Create(path).Dispose();
+                string path = Path.Combine(script.Directory, a.ToString());
 
                 System.IO.File.AppendAllLines(path, b.ToArray<string>());
                 return true;

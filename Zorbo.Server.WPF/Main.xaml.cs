@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Shell;
 using Zorbo.Ares.Server;
 using Zorbo.Core;
 using Zorbo.Core.Models;
@@ -25,12 +29,50 @@ namespace Zorbo.Server.WPF
 
             if (!DesignerProperties.GetIsInDesignMode(this)) {
 
-                var config = Persistence.LoadModel<Configuration>(Path.Combine(Directories.AppData, "config.json"));
+                var directories = new Directories();
+                var config = Persistence.LoadModel<Configuration>(Path.Combine(directories.AppData, "config.json"));
+
+                //supplying custom directories
+                config.Directories = directories;
+                config.PropertyChanged += Config_PropertyChanged;
 
                 server = new AresServer(config);
                 server.PropertyChanged += Server_PropertyChanged;
 
                 DataContext = server;
+
+                JumpList list = new JumpList {
+                    ShowRecentCategory = false,
+                    ShowFrequentCategory = false
+                };
+
+                list.JumpItems.Add(new JumpTask() {
+                    Title = "Start server",
+                    Arguments = "-start_server",
+                    ApplicationPath = App.Filename,
+                    WorkingDirectory = Directories.BaseDirectory,
+                });
+
+                list.JumpItems.Add(new JumpTask() {
+                    Title = "Stop server",
+                    Arguments = "-stop_server",
+                    ApplicationPath = App.Filename,
+                    WorkingDirectory = Directories.BaseDirectory,
+                });
+
+                list.JumpItems.Add(new JumpTask() {
+                    Title = "Logs",
+                    ApplicationPath = config.Directories.Logs,
+                    CustomCategory = "Places"
+                });
+
+                list.JumpItems.Add(new JumpTask() {
+                    Title = "Plugins",
+                    ApplicationPath = config.Directories.Plugins,
+                    CustomCategory = "Places"
+                });
+
+                JumpList.SetJumpList(Application.Current, list);
             }
         }
 
@@ -45,7 +87,8 @@ namespace Zorbo.Server.WPF
             this.Close();
         }
 
-        private void Server_PropertyChanged(object sender, PropertyChangedEventArgs e) {
+        private void Server_PropertyChanged(object sender, PropertyChangedEventArgs e) 
+        {
             if (e.PropertyName == "Running") {
 
                 if (server.Running)
@@ -53,8 +96,25 @@ namespace Zorbo.Server.WPF
 
                 else {
                     btnStart.Content = "Start";
-                    ((Configuration)server.Config).SaveModel(Path.Combine(Directories.AppData, "config.json"));
+                    server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
                 }
+            }
+        }
+
+        private bool is_resetting;
+        private async void Config_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "LoadWithWindows" && sender is Configuration config) {
+                if (config.LoadWithWindows) {
+                    if (!await LaunchAdminCommand("-add_start_win")) {
+                        is_resetting = true;
+                        config.LoadWithWindows = false;
+                    }
+                }
+                else if (!is_resetting)
+                    await LaunchAdminCommand("-rem_start_win");
+
+                else is_resetting = false;
             }
         }
 
@@ -99,7 +159,7 @@ namespace Zorbo.Server.WPF
                 if (server.Running)
                     server.Stop();
 
-                server.Config.SaveModel(Path.Combine(Directories.AppData, "config.json"));
+                server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
 
                 icon.Visible = false;
                 icon.Dispose();
@@ -131,7 +191,31 @@ namespace Zorbo.Server.WPF
             var settings = (Settings)sender;
             settings.Closed -= Settings_Closed;
 
-            server.Config.SaveModel(Path.Combine(Directories.AppData, "config.json"));
+            server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
+        }
+
+        private static async Task<bool> LaunchAdminCommand(params string[] args)
+        {
+            try {
+                await Task.Run(() => {
+                    Process proc = new Process();
+                    proc.StartInfo.FileName = App.Filename;
+                    proc.StartInfo.Arguments = args.Join(" ");
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.StartInfo.Verb = "runas";
+                    proc.Start();
+
+                });
+                return true;
+            }
+            catch (Exception ex) {
+                MessageBox.Show(
+                    string.Format("An error occured while running an elevated command.\r\nException: {0}", ex.Message),
+                    "Elevation Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return false;
+            }
         }
     }
 }

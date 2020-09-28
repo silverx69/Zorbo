@@ -102,12 +102,12 @@ namespace Javascript.Objects
             get { return Country.Unknown; }
         }
 
-        public IAvatar Avatar {
+        public byte[] Avatar {
             get { return null; }
             set { }
         }
 
-        public IAvatar OrgAvatar {
+        public byte[] OrgAvatar {
             get { return null; }
         }
 

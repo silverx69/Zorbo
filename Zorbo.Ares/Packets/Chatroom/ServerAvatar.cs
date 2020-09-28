@@ -24,12 +24,12 @@ namespace Zorbo.Ares.Packets.Chatroom
 
         public ServerAvatar(IClient user) {
             Username = user.Name;
-            AvatarBytes = user.Avatar?.SmallBytes ?? new byte[0];
+            AvatarBytes = user.Avatar ?? new byte[0];
         }
 
-        public ServerAvatar(string name, IAvatar avatar) {
+        public ServerAvatar(string name, byte[] avatar) {
             Username = name;
-            AvatarBytes = avatar?.SmallBytes ?? new byte[0];
+            AvatarBytes = avatar ?? new byte[0];
         }
     }
 }

@@ -24,6 +24,16 @@ namespace Zorbo.Core.Plugins
             get { return this.Count(s => s.Enabled); }
         }
 
+        public string BaseDirectory {
+            get;
+            private set;
+        }
+
+        public PluginHost(string baseDirectory)
+        {
+            BaseDirectory = baseDirectory;
+        }
+
         public bool LoadPlugin(string name)
         {
             return LoadPlugin(name, true);
@@ -47,7 +57,7 @@ namespace Zorbo.Core.Plugins
                 }
             }
 
-            string dir = Path.Combine(Directories.Plugins, name);
+            string dir = Path.Combine(BaseDirectory, name);
             string file = Path.Combine(dir, name + ".dll");
 
             if (!Directory.Exists(dir) || !File.Exists(file))
@@ -80,22 +90,20 @@ namespace Zorbo.Core.Plugins
 
         private void EnablePlugin(LoadedPlugin<THost, TPlugin> plugin)
         {
-            if (plugin.Enabled)
-                return;
-
-            plugin.Enabled = true;
-            RaisePropertyChanged(nameof(Count));
-            OnPluginLoaded(plugin);
+            if (!plugin.Enabled) {
+                plugin.Enabled = true;
+                RaisePropertyChanged(nameof(Count));
+                OnPluginLoaded(plugin);
+            }
         }
 
         private void DisablePlugin(LoadedPlugin<THost, TPlugin> plugin)
         {
-            if (!plugin.Enabled)
-                return;
-
-            plugin.Enabled = false;
-            RaisePropertyChanged(nameof(Count));
-            OnPluginKilled(plugin);
+            if (plugin.Enabled) {
+                plugin.Enabled = false;
+                RaisePropertyChanged(nameof(Count));
+                OnPluginKilled(plugin);
+            }
         }
 
         public bool ImportPlugin(string path)
@@ -107,7 +115,7 @@ namespace Zorbo.Core.Plugins
                     if (info.Extension != ".dll")
                         throw new FileLoadException("Invalid plugin file specified. Plugin must be a Class Library (.dll).");
 
-                    string plugin_path = Path.Combine(Directories.Plugins, info.Name);
+                    string plugin_path = Path.Combine(BaseDirectory, info.Name);
 
                     if (!Directory.Exists(plugin_path))
                         Directory.CreateDirectory(plugin_path);

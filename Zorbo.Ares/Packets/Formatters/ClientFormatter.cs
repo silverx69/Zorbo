@@ -147,7 +147,7 @@ namespace Zorbo.Ares.Packets.Formatters
                     var ignored = (IgnoringYou)packet;
                     return string.Format("IGNORING:{0}:{1}", ignored.Username.Length, ignored.Username);
                 case AresId.MSG_CHAT_SERVER_URL:
-                    var url = (Website)packet;
+                    var url = (ServerUrl)packet;
                     return string.Format("URL:{0},{1}:{2}{3}", url.Address.Length, url.Caption.Length, url.Address, url.Caption);
             }
 

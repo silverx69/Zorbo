@@ -4,6 +4,7 @@
         Title="Zorbo - Add New Login" 
         Height="266" 
         Width="450" 
+        FontFamily="Tahoma"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
     <Grid Background="WhiteSmoke">
@@ -32,31 +33,46 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock Height="23" Margin="0,62,15,0" x:Name="textBlock1" VerticalAlignment="Top" HorizontalAlignment="Right" Width="185">
-            <Run Text="Name:      "/> 
-            <Run Text="{Binding Path=SelectedItem.Name, ElementName=listBox1}"/>
-        </TextBlock>
 
-        <TextBlock Height="23" HorizontalAlignment="Right" Margin="0,96,15,0" x:Name="textBlock2" VerticalAlignment="Top">
-            <Run Text="Password:" BaselineAlignment="Center"/> 
-            <PasswordBox Name="passBox" Width="130" FontSize="14" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
-        </TextBlock>
+        <Grid Margin="234,71,10,68">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
 
-        <TextBlock Height="23" HorizontalAlignment="Right" Margin="0,128,14,0" x:Name="textBlock3" VerticalAlignment="Top">
-            <Run BaselineAlignment="Center" Text="Level:       " /> 
-            <ComboBox Name="cbLevel" VerticalAlignment="Stretch" Width="130" HorizontalAlignment="Left">
-                <ComboBoxItem Content="Moderator"/>
-                <ComboBoxItem Content="Administrator"/>
-                <ComboBoxItem Content="Host"/>
-            </ComboBox>
-        </TextBlock>
+            <TextBlock Height="23" VerticalAlignment="Top">
+                <Run Text="Name:      "/> 
+                <Run Text="{Binding Path=SelectedItem.Name, ElementName=listBox1}"/>
+            </TextBlock>
+            
+            <TextBlock Grid.Row="1" Height="23" VerticalAlignment="Top">
+                <Run Text="Password: " BaselineAlignment="Center"/> 
+                <PasswordBox Name="passBox" Width="128" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+            </TextBlock>
+
+            <TextBlock Grid.Row="2" Height="23" VerticalAlignment="Top">
+                <Run BaselineAlignment="Center" Text="Level:       " /> 
+                <ComboBox Name="cbLevel" Width="129" HorizontalAlignment="Right">
+                    <ComboBoxItem Content="Moderator"/>
+                    <ComboBoxItem Content="Administrator"/>
+                    <ComboBoxItem Content="Host"/>
+                </ComboBox>
+            </TextBlock>
+        </Grid>
+
+        
+
+        
+
+        
 
         <Button Content="OK" Height="23" HorizontalAlignment="Right" Margin="0,0,116,13" x:Name="button1" VerticalAlignment="Bottom" Width="75" Click="Button1_Click" />
         <Button Content="Cancel" Height="23" HorizontalAlignment="Right" Margin="0,0,15,13" x:Name="button2" VerticalAlignment="Bottom" Width="75" Click="Button2_Click" />
 
         <TextBlock Height="23" HorizontalAlignment="Left" Margin="19,20,0,0" x:Name="textBlock4" VerticalAlignment="Top">
             <Run Text="Find: " BaselineAlignment="Center"/> 
-            <TextBox Name="txtSearch" Width="130" TextChanged="TextBox_TextChanged" />
+            <TextBox Name="txtSearch" FontSize="14" Width="130" TextChanged="TextBox_TextChanged" />
         </TextBlock>
     </Grid>
 </Window>

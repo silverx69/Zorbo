@@ -1,13 +1,21 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Cache;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Shell;
 using Zorbo.Ares;
+using Zorbo.Ares.Server;
 using Zorbo.Core;
+using Zorbo.Core.Interfaces;
+using Zorbo.Core.Models;
 
 namespace Zorbo.Server.WPF
 {
@@ -16,63 +24,47 @@ namespace Zorbo.Server.WPF
     /// </summary>
     public partial class App : Application
     {
+        static readonly string RunPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
+        public static readonly string Filename = Path.Combine(
+            Directories.BaseDirectory, 
+            $"{AppDomain.CurrentDomain.FriendlyName}.exe");
+
         protected override void OnStartup(StartupEventArgs e)
         {
             if (e.Args.Length > 0) {
-
                 //ToDo: non-windows dependant IPC 
+                try {
 
-                if (e.Args[0] == "/start") {
-                    //MainWindow.SendMessage(Win32.Commands.StartServer);
-                    Shutdown();
+                    switch (e.Args[0]) {
+                        case "-start_server":
+                            
+                            break;
+                        case "-stop_server":
+
+                            break;
+                        case "-add_start_win": {
+                            using RegistryKey key = Registry.CurrentUser.OpenSubKey(RunPath, true);
+                            key.SetValue("Zorbo", Filename, RegistryValueKind.String);
+                            break;
+                        }
+                        case "-rem_start_win": {
+                            using RegistryKey key = Registry.CurrentUser.OpenSubKey(RunPath, true);
+                            key.DeleteValue("Zorbo", false);
+                            break;
+                        }
+                    }
                 }
-                else if (e.Args[0] == "/stop") {
-                    //MainWindow.SendMessage(Win32.Commands.StopServer);
-                    Shutdown();
+                catch {
+                    Application.Current.Shutdown(-1);
                 }
 
-                return;
+                Application.Current.Shutdown(0);
             }
+            else {
 
-            base.OnStartup(e);
-
-            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-
-            JumpList list = new JumpList {
-                ShowRecentCategory = false,
-                ShowFrequentCategory = false
-            };
-
-            string dir = AppDomain.CurrentDomain.BaseDirectory;
-            string app = System.IO.Path.Combine(dir, AppDomain.CurrentDomain.FriendlyName);
-
-            list.JumpItems.Add(new JumpTask() {
-                Title = "Start server",
-                Arguments = "/start",
-                ApplicationPath = app,
-                WorkingDirectory = dir,
-            });
-
-            list.JumpItems.Add(new JumpTask() {
-                Title = "Stop server",
-                Arguments = "/stop",
-                ApplicationPath = app,
-                WorkingDirectory = dir,
-            });
-
-            list.JumpItems.Add(new JumpTask() {
-                Title = "Logs",
-                ApplicationPath = Directories.Logs,
-                CustomCategory = "Places"
-            });
-
-            list.JumpItems.Add(new JumpTask() {
-                Title = "Plugins",
-                ApplicationPath = Directories.Plugins,
-                CustomCategory = "Places"
-            });
-
-            JumpList.SetJumpList(this, list);
+                AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+            }
         }
 
         protected virtual void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

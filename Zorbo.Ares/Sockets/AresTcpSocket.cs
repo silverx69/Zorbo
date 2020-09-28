@@ -789,7 +789,7 @@ namespace Zorbo.Ares.Sockets
 
         #region " SSL / TLS "
 
-        public void ActivateTLS(string cert)
+        public void ActivateTLS(string pvt_file, string pub_file)
         {
             if (sslStream != null)
                 throw new InvalidOperationException("TLS has already been activated on this Socket.");
@@ -799,10 +799,9 @@ namespace Zorbo.Ares.Sockets
                 stream = new NetworkStream(Socket, false);
                 sslStream = new SslStream(stream, true, CertificateValidation);
 
-                string privateCert = Path.Combine(Directories.Certificates, cert + ".pfx");
-                CreateCertificate(privateCert, Path.Combine(Directories.Certificates, cert + ".cer"));
+                CreateCertificate(pvt_file, pub_file);
 
-                sslCert = new X509Certificate2(privateCert);
+                sslCert = new X509Certificate2(pvt_file);
                 sslStream.AuthenticateAsServer(sslCert, false, SslProtocols.None, false);
 
                 activating = false;

@@ -23,6 +23,7 @@
     <convert:AvatarToSourceConverter x:Key="AvatarToSourceConverter"/>
     <convert:LanguageToInt32Converter x:Key="LanguageToInt32Converter"/>
     <convert:ClientIdToUsernameConverter x:Key="ClientIdToUsernameConverter"/>
+    <convert:ReadableTopicConverter x:Key="ReadableTopicConverter"/>
 
     <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
 

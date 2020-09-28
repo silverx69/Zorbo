@@ -19,7 +19,10 @@ namespace Zorbo.Ares.Server.Users
         Passwords passwords = null;
 #pragma warning restore IDE0044 // Add readonly modifier
 
-        static readonly string FilePath = Path.Combine(Directories.Cache, "admin.json");
+        protected string FilePath {
+            get;
+            private set;
+        }
 
         protected internal IServer Server {
             get { return server; }
@@ -38,6 +41,7 @@ namespace Zorbo.Ares.Server.Users
         {
             Server = server;
             Server.Users.CollectionChanged += Users_CollectionChanged;
+            FilePath = Path.Combine(Server.Config.Directories.AppData, "admin.json");
             passwords = new Passwords(server, Persistence.LoadModel<ModelList<Password>>(FilePath));
         }
 
@@ -45,6 +49,7 @@ namespace Zorbo.Ares.Server.Users
         {
             Server = server;
             Server.Users.CollectionChanged += Users_CollectionChanged;
+            FilePath = Path.Combine(Server.Config.Directories.AppData, "admin.json");
             passwords = new Passwords(server, await Persistence.LoadModelAsync<ModelList<Password>>(FilePath));
         }
 

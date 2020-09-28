@@ -6,11 +6,18 @@ using System.Text;
 
 namespace Zorbo.Core
 {
+    /*
     public static class Directories
     {
-        public static string AresData {
+        string appData;
+        string appLogs;
+        //string appCache;
+        string appCerts;
+        string appPlugins;
+
+        public static string BaseDirectory {
             get {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ares", "Data");
+                return AppDomain.CurrentDomain.BaseDirectory;
             }
         }
 
@@ -59,4 +66,5 @@ namespace Zorbo.Core
             }
         }
     }
+    */
 }

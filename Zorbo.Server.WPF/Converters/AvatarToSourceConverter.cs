@@ -18,11 +18,11 @@ namespace Zorbo.Server.WPF.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is IAvatar avatar) {
-                if (avatar.LargeBytes.Length > 0) {
+            if (value is byte[] bytes) {
+                if (bytes.Length > 0) {
 
                     BitmapImage img = new BitmapImage();
-                    MemoryStream stream = new MemoryStream(avatar.LargeBytes);
+                    MemoryStream stream = new MemoryStream(bytes);
 
                     img.BeginInit();
                     img.StreamSource = stream;

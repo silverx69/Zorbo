@@ -16,8 +16,8 @@ namespace Zorbo.Server.WPF.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
 
-            if (value is IAvatar avatar)
-                return avatar.SmallBytes.Length;
+            if (value is byte[] avatar)
+                return avatar.Length;
 
             return null;
         }

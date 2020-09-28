@@ -1,4 +1,5 @@
-﻿using Jurassic.Library;
+﻿using Jurassic;
+using Jurassic.Library;
 using System;
 using Zorbo.Core.Interfaces;
 using Zorbo.Core.Interfaces.Server;
@@ -8,18 +9,11 @@ namespace Javascript.Objects
 {
     public class Config : ScriptObject
     {
-        Avatar avatar = null;
-        Avatar orgAvatar = null;
-
-        readonly JScript script = null;
         readonly IServerConfig config = null;
 
         public Config(JScript script, IServerConfig config)
             : base(script.Engine) {
-
             this.config = config;
-            this.script = script;
-
             this.PopulateFunctions();
         }
 
@@ -56,27 +50,14 @@ namespace Javascript.Objects
         }
 
         [JSProperty(Name = "avatar", IsEnumerable = true)]
-        public Avatar Avatar {
-            get {
-                if (avatar == null)//IAvatar might not be a JS object
-                    avatar = new Avatar(script, config.Avatar);
-
-                return avatar;
-            }
-            set {
-                avatar = value;
-                config.Avatar = value; 
-            }
+        public ArrayInstance Avatar {
+            get { return config.Avatar.ToJSArray(Engine); }
+            set { config.Avatar = value.ToArray<byte>(); }
         }
 
         [JSProperty(Name = "orgAvatar", IsEnumerable = true)]
-        public Avatar OrgAvatar {
-            get {
-                if (orgAvatar == null)
-                    orgAvatar = new Avatar(script, config.OrgAvatar);
-
-                return orgAvatar;
-            }
+        public ArrayInstance OrgAvatar {
+            get { return config.OrgAvatar.ToJSArray(Engine); }
         }
 
         [JSProperty(Name = "botProtection", IsEnumerable = true)]
@@ -107,12 +88,6 @@ namespace Javascript.Objects
         public bool AllowVoice {
             get { return config.AllowVoice; }
             set { config.AllowVoice = value; }
-        }
-
-        [JSProperty(Name = "allowOpusVoice", IsEnumerable = true)]
-        public bool AllowOpusVoice {
-            get { return config.AllowOpusVoice; }
-            set { config.AllowOpusVoice = value; }
         }
 
         [JSProperty(Name = "muzzledPMs", IsEnumerable = true)]

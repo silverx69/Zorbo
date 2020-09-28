@@ -8,25 +8,21 @@ namespace Javascript.Objects
 {
     public class Enum : ScriptObject
     {
-        readonly System.Type enumType;
-
-        public override IEnumerable<PropertyNameAndValue> Properties {
-            get {
-                string[] names = System.Enum.GetNames(enumType);
-                Array values = System.Enum.GetValues(enumType);
-
-                for (int i = 0; i < names.Length; i++)
-                    yield return new PropertyNameAndValue(
-                        names[i], 
-                        new PropertyDescriptor(values.GetValue(i), PropertyAttributes.FullAccess));
-            }
-        }
+        readonly Type m_enumType;
 
         public Enum(JScript script, Type enumType)
             : base(script.Engine) {
-            this.enumType = enumType;
+            m_enumType = enumType;
+            var m_names = System.Enum.GetNames(m_enumType);
+            var m_values = System.Enum.GetValues(m_enumType);
+            for (int i = 0; i < m_names.Length; i++)
+                DefineProperty(
+                    m_names[i], 
+                    new PropertyDescriptor(
+                        ToPrimitive(m_values.GetValue(i)), 
+                        PropertyAttributes.Enumerable | PropertyAttributes.Sealed), 
+                    true);
         }
-
 
         private object ToPrimitive(object value) {
             try {
@@ -38,27 +34,9 @@ namespace Javascript.Objects
             return value;
         }
 
-        protected override object GetMissingPropertyValue(object key) {
-            string[] names = System.Enum.GetNames(enumType);
-            Array values = System.Enum.GetValues(enumType);
-
-            string propertyName = key.ToString();
-
-            int index = names.FindIndex((s) => s == propertyName);
-            if (index >= 0) 
-                return ToPrimitive(values.GetValue(index));
-
-            return base.GetMissingPropertyValue(propertyName);
-        }
-
-        public override PropertyDescriptor GetOwnPropertyDescriptor(uint index) {
-
-            Array values = System.Enum.GetValues(enumType);
-
-            if (index < values.Length)
-                return new PropertyDescriptor(ToPrimitive(values.GetValue(index)), PropertyAttributes.FullAccess);
-            
-            return new PropertyDescriptor(null, PropertyAttributes.Sealed);
+        protected override string InternalClassName()
+        {
+            return m_enumType.Name;
         }
     }
 }

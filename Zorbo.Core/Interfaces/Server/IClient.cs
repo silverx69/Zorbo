@@ -35,8 +35,8 @@ namespace Zorbo.Core.Interfaces.Server
         Gender Gender { get; }
         Country Country { get; }
 
-        IAvatar Avatar { get; set; }
-        IAvatar OrgAvatar { get; }
+        byte[] Avatar { get; set; }
+        byte[] OrgAvatar { get; }
 
         string Name { get; set; }
         string OrgName { get; }

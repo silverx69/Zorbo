@@ -32,7 +32,11 @@ namespace Zorbo.Core.Interfaces.Server
         /// <summary>
         /// Default avatar for the server
         /// </summary>
-        IAvatar OrgAvatar { get; }
+        byte[] OrgAvatar { get; }
+        /// <summary>
+        /// The website link of the server
+        /// </summary>
+        Website Website { get; set; }
         /// <summary>
         /// The number of clients allowed per ipaddress
         /// </summary>

@@ -23,6 +23,9 @@ namespace Zorbo.Core
         static readonly object lockObject = new object();
         static readonly DateTime InitTime = DateTime.Now;
 
+        public static string LogDirectory { get; set; } = ".";
+
+
         public static void Error(string source, Exception ex) {
             Write(
                 LogLevel.Error, 
@@ -139,7 +142,7 @@ namespace Zorbo.Core
         }
 
         private static string GetFilename() {
-            return Path.Combine(Directories.Logs, InitTime.ToString("dd-MM-yyyy") + ".txt");
+            return Path.Combine(LogDirectory, InitTime.ToString("dd-MM-yyyy") + ".txt");
         }
 
         private static ConsoleColor GetColorFromLevel(LogLevel level) {

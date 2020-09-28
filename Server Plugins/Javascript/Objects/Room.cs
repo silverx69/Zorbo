@@ -1,4 +1,5 @@
-﻿using Jurassic;
+﻿using cb0tProtocol;
+using Jurassic;
 using Jurassic.Library;
 using System;
 using System.Linq;
@@ -20,6 +21,9 @@ namespace Javascript.Objects
         IServer server = null;
         List users = null;
 #pragma warning restore IDE0044 // Add readonly modifier
+
+        //for converting from JSON to IPacket (requires reference to cb0tProtocol.Shared)
+        internal static readonly AdvancedServerFormatter Formatter = new AdvancedServerFormatter();
 
         public Room(JScript script, IServer server)
             : base(script.Engine) {
@@ -356,47 +360,41 @@ namespace Javascript.Objects
                 throw new JavaScriptException(Engine.Error.Construct("Send packet limit reached"), 0, null);
 
             if (b is Undefined) {
-                var formatter = new ServerFormatter();
-                string tmp = a.ToString();
+                string tmp = a is ObjectInstance ? JSONObject.Stringify(Engine, a) : a.ToString();
                 Match match = Regex.Match(tmp, "(['\"]*)id\\1:\\s*(['\"]*)(\\d+)\\2", RegexOptions.Singleline | RegexOptions.IgnoreCase);
                 if (match.Success) {
                     if (byte.TryParse(match.Groups[3].Value, out byte id)) {
-                        IPacket p = formatter.Unformat(id, tmp);
+                        IPacket p = Formatter.Unformat(id, tmp);
                         if (p != null) server.SendPacket(p);
                         return;
                     }
                 }
             }
-            else if (a is User user) {
-                var formatter = new ServerFormatter();
-                string tmp = b.ToString();
+            else {
+                string tmp = b is ObjectInstance ? JSONObject.Stringify(Engine, b) : b.ToString();
                 Match match = Regex.Match(tmp, "(['\"]*)id\\1:\\s*(['\"]*)(\\d+)\\2", RegexOptions.Singleline | RegexOptions.IgnoreCase);
                 if (match.Success) {
-                    if (byte.TryParse(match.Groups[3].Value, out byte id)) {
-                        IPacket p = formatter.Unformat(id, tmp);
-                        if (p != null) server.SendPacket(user.Client, p);
-                        return;
+                    if (a is User user) {
+                        if (byte.TryParse(match.Groups[3].Value, out byte id)) {
+                            IPacket p = Formatter.Unformat(id, tmp);
+                            if (p != null) server.SendPacket(user.Client, p);
+                            return;
+                        }
                     }
-                }
-            }
-            else if (a is FunctionInstance match) {
-                var formatter = new ServerFormatter();
-                string tmp = b.ToString();
-                Match regm = Regex.Match(tmp, "(['\"]*)id\\1:\\s*(['\"]*)(\\d+)\\2", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                if (regm.Success) {
-                    if (byte.TryParse(regm.Groups[3].Value, out byte id)) {
-                        IPacket p = formatter.Unformat(id, tmp);
-                        if (p != null) {
-                            for (int i = 0; i < this.script.Room.Users.Items.Count; i++) {
-                                user = (User)this.script.Room.Users.Items[i];
-                                try {
-                                    object ret = match.Call(this, user);
-                                    if (TypeConverter.ConvertTo<bool>(Engine, ret)) {
-                                        server.SendPacket(user.Client, p);
+                    else if (a is FunctionInstance predicate) {
+                        if (byte.TryParse(match.Groups[3].Value, out byte id)) {
+                            IPacket p = Formatter.Unformat(id, tmp);
+                            if (p != null) {
+                                for (int i = 0; i < this.script.Room.Users.Items.Count; i++) {
+                                    user = (User)this.script.Room.Users.Items[i];
+                                    try {
+                                        object ret = predicate.Call(this, user);
+                                        if (TypeConverter.ConvertTo<bool>(Engine, ret))
+                                            server.SendPacket(user.Client, p);
                                     }
-                                }
-                                catch (JavaScriptException jex) {
-                                    JurassicPlugin.Self.OnError(jex);
+                                    catch (JavaScriptException jex) {
+                                        JurassicPlugin.Self.OnError(jex);
+                                    }
                                 }
                             }
                         }
