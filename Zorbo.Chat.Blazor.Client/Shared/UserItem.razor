@@ -1,0 +1,40 @@
+﻿@implements IDisposable
+<div class="d-flex chatuser">
+    <div class="avatar">
+        <img src="@(string.IsNullOrEmpty(User.AvatarBase64) ? "images/zorbo.png" : $"data:image/jpeg;charset=utf-8;base64, {User.AvatarBase64}")" class="avatar-md rounded-circle">
+    </div>
+    <div class="d-flex-col info">
+        <span class="name" style="color:@GetColorFromLevel(User.Level)">@User.Username</span>
+        <span class="msg"><FormatText Text="@User.PersonalMessage" /></span>
+    </div>
+</div>
+@code {
+
+    [Parameter]
+    public ChatUser User { get; set; }
+
+    protected override void OnInitialized()
+    {
+        User.PropertyChanged += UserPropertyChanged;
+    }
+
+    private void UserPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private static string GetColorFromLevel(AdminLevel level)
+    {
+        switch (level) {
+            case AdminLevel.Host: return ColorCode.Red.ToHtmlColor();
+            case AdminLevel.Admin: return ColorCode.Blue.ToHtmlColor();
+            case AdminLevel.Moderator: return ColorCode.Green.ToHtmlColor();
+            default: return ColorCode.Black.ToHtmlColor();
+        }
+    }
+
+    public void Dispose()
+    {
+        User.PropertyChanged -= UserPropertyChanged;
+    }
+}

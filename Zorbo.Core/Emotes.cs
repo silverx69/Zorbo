@@ -10,11 +10,6 @@ namespace Zorbo.Core
 {
     public static class Emotes
     {
-        public static readonly Regex FullRegex;
-        public static readonly Regex ReadRegex;
-        public static readonly Regex StripRegex;
-        public static readonly Regex TopicRegex;
-
         public static readonly List<Emoticon> Images;
 
         public static string GetImageUri(string key)
@@ -23,82 +18,6 @@ namespace Zorbo.Core
             if (emoticon == null) { return null; }
 
             return emoticon.Image;
-        }
-
-        public static string StripTopic(string text)
-        {
-            int lastMatch = 0;
-            string text2 = string.Empty;
-
-            if (string.IsNullOrEmpty(text))
-                return string.Empty;
-
-            Match match = StripRegex.Match(text);
-            while (match.Success) {
-                text2 += text[lastMatch..match.Index];
-                lastMatch = match.Index + match.Length;
-                switch (match.Value) {
-                    case "\u0003":
-                        if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
-                            lastMatch += 7;
-                            break;
-                        }
-
-                        if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _))
-                            lastMatch += 2;
-                        break;
-                    case "\u0005":
-                        if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
-                            lastMatch += 7;
-                            break;
-                        }
-                        if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _)) {
-                            lastMatch += 2;
-                        }
-                        break;
-                }   
-                match = StripRegex.Match(text, lastMatch);
-            }
-            text2 += text[lastMatch..];
-            return text2;
-        }
-
-        public static string ToAresColorCodes(string text) 
-        {
-            int lastMatch = 0;
-            string text2 = string.Empty;
-
-            if (string.IsNullOrEmpty(text))
-                return string.Empty;
-
-            Match match = ReadRegex.Match(text);
-            while (match.Success) {
-                text2 += text[lastMatch..match.Index];
-                lastMatch = match.Index + match.Length;
-                text2 += Convert.ToChar(int.Parse(match.Groups[1].Value));
-                match = ReadRegex.Match(text, lastMatch);
-            }
-            text2 += text[lastMatch..];
-            return text2;
-        }
-
-        public static string ToReadableColorCodes(string text)
-        {
-            int lastMatch = 0;
-            string text2 = string.Empty;
-
-            if (string.IsNullOrEmpty(text))
-                return string.Empty;
-
-            Match match = StripRegex.Match(text);
-            while (match.Success) {
-                text2 += text[lastMatch..match.Index];
-                lastMatch = match.Index + match.Length;
-                text2 += string.Format("\u0002{0}", (int)match.Value[0]);
-                match = StripRegex.Match(text, lastMatch);
-            }
-            text2 += text[lastMatch..];
-            return text2;
         }
 
 		static Emotes() {
@@ -184,22 +103,6 @@ namespace Zorbo.Core
                 new Emoticon("(CO)", "images/emotes/computer.gif"),
                 new Emoticon("(MP)", "images/emotes/cellphone.gif"),
             };
-            string emote_pat = BuildEmoteRegex();
-            string strip_pat = "\u0003|\u0005|\u0006|\a|\t";
-            string link_pat = "arlnk://|www\\.|https?://|ftps?://|wss?://";
-            ReadRegex = new Regex("\u0002(3|5|6|7|9)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            StripRegex = new Regex(strip_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            TopicRegex = new Regex(strip_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            FullRegex = new Regex(strip_pat + "|" + link_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-        }
-
-        static string BuildEmoteRegex()
-        {
-            var sb = new StringBuilder();
-            foreach (Emoticon emote in Images)
-                sb.AppendFormat("{0}|", Regex.Escape(emote.Key));
-            sb.Remove(sb.Length - 1, 1);
-            return sb.ToString();
         }
     }
 

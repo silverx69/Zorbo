@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using Zorbo.Ares.Packets.Chatroom;
-using Zorbo.Ares.Packets.WebSockets;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
 
 namespace Zorbo.Ares.Packets.Formatters
 {

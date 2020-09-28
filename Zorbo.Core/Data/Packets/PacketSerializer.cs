@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using Zorbo.Core.Interfaces;
-
 namespace Zorbo.Core.Data.Packets
 {
     public class PacketSerializer

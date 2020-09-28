@@ -4,19 +4,31 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using Zorbo.Core.Interfaces;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Core
 {
     public static partial class Extensions
     {
+        public static readonly Regex FullRegex;
+        public static readonly Regex ReadRegex;
+        public static readonly Regex StripRegex;
+        public static readonly Regex TopicRegex;
+
+        static Extensions() {
+            string emote_pat = BuildEmoteRegex();
+            string strip_pat = "\u0003|\u0005|\u0006|\a|\t";
+            string link_pat = "arlnk://|www\\.|https?://|ftps?://|wss?://";
+            ReadRegex = new Regex("\u0002(3|5|6|7|9)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            StripRegex = new Regex(strip_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            TopicRegex = new Regex(strip_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            FullRegex = new Regex(strip_pat + "|" + link_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        }
+
         public static uint ToUInt32(this IPAddress address)
         {
             return BitConverter.ToUInt32(address.GetAddressBytes(), 0);
@@ -129,6 +141,91 @@ namespace Zorbo.Core
                 ColorCode.Silver => "#C0C0C0",
                 _ => string.Empty,
             };
+        }
+
+        public static string StripColor(this string text)
+        {
+            int lastMatch = 0;
+            string text2 = string.Empty;
+
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            Match match = StripRegex.Match(text);
+            while (match.Success) {
+                text2 += text[lastMatch..match.Index];
+                lastMatch = match.Index + match.Length;
+                switch (match.Value) {
+                    case "\u0003":
+                        if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
+                            lastMatch += 7;
+                            break;
+                        }
+
+                        if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _))
+                            lastMatch += 2;
+                        break;
+                    case "\u0005":
+                        if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
+                            lastMatch += 7;
+                            break;
+                        }
+                        if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _)) {
+                            lastMatch += 2;
+                        }
+                        break;
+                }
+                match = StripRegex.Match(text, lastMatch);
+            }
+            text2 += text[lastMatch..];
+            return text2;
+        }
+
+        public static string ToAresColor(this string text)
+        {
+            int lastMatch = 0;
+            string text2 = string.Empty;
+
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            Match match = ReadRegex.Match(text);
+            while (match.Success) {
+                text2 += text[lastMatch..match.Index];
+                lastMatch = match.Index + match.Length;
+                text2 += Convert.ToChar(int.Parse(match.Groups[1].Value));
+                match = ReadRegex.Match(text, lastMatch);
+            }
+            text2 += text[lastMatch..];
+            return text2;
+        }
+
+        public static string ToReadableColor(this string text)
+        {
+            int lastMatch = 0;
+            string text2 = string.Empty;
+
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            Match match = StripRegex.Match(text);
+            while (match.Success) {
+                text2 += text[lastMatch..match.Index];
+                lastMatch = match.Index + match.Length;
+                text2 += string.Format("\u0002{0}", (int)match.Value[0]);
+                match = StripRegex.Match(text, lastMatch);
+            }
+            text2 += text[lastMatch..];
+            return text2;
+        }
+
+        static string BuildEmoteRegex()
+        {
+            var sb = new StringBuilder();
+            foreach (Emoticon emote in Emotes.Images)
+                sb.AppendFormat("{0}|", Regex.Escape(emote.Key));
+            sb.Remove(sb.Length - 1, 1);
+            return sb.ToString();
         }
 
         public static string AnonUsername(this IPAddress address)

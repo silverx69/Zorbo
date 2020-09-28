@@ -1,0 +1,26 @@
+﻿@using Zorbo.Chat.Blazor.Client.Pages
+@inject IJSRuntime JSRuntime
+@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+<div id="hashlink-dialog" class="d-flex modal hidden">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Connect by Hashlink</h4>
+            </div>
+            <div class="modal-body">
+                Please input the hashlink below:
+                <br />
+                <textarea id="hashlink-field" @bind-value="@ChatClient.HashlinkText" @bind-value:event="oninput" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" @onclick="@(() => Interop.HideHashlinkDialog())">Connect</button>
+                <button type="button" class="btn btn-light" @onclick="@(() => Interop.HideHashlinkDialog(true))">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public ChannelsInterop Interop { get; set; }
+}

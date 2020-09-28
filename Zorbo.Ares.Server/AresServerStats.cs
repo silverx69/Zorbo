@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Zorbo.Core.Data;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares.Server
 {

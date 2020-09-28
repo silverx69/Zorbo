@@ -1,0 +1,13 @@
+@page "/authentication/{action}"
+
+<RemoteAuthenticatorView Action="@Action">
+   <LoggingIn>
+       <Loading Message="Checking login servers..." />
+   </LoggingIn>
+</RemoteAuthenticatorView>
+
+@code{
+
+    [Parameter] 
+    public string Action { get; set; }
+}

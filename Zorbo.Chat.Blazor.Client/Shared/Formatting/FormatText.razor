@@ -1,0 +1,129 @@
+﻿@while (match?.Success ?? false) {
+    text2 = text.Substring(lastMatch, match.Index - lastMatch);
+    lastMatch = match.Index + match.Length;
+    if (!string.IsNullOrEmpty(text2)) {
+        <span class="chattext" style="@GetStyleString(color1, color2, bold, italic, underline)">@text2</span>
+    }
+    switch (match.Value) {
+        case "\u0003":
+            if (text.Length >= lastMatch + 7) {
+                if (text[lastMatch] == '#') {
+                    color1 = text.Substring(lastMatch, 7);
+                    lastMatch += 7;
+                    break;
+                }
+            }
+            if (text.Length >= lastMatch + 2) {
+                if (int.TryParse(text.Substring(lastMatch, 2), out int c)) {
+                    color1 = c.ToHtmlColor();
+                    lastMatch += 2;
+                }
+            }
+            break;
+        case "\u0005":
+            if (text.Length >= lastMatch + 7) {
+                if (text[lastMatch] == '#') {
+                    color2 = text.Substring(lastMatch, 7);
+                    lastMatch += 7;
+                    break;
+                }
+            }
+            if (text.Length >= lastMatch + 2) {
+                if (int.TryParse(text.Substring(lastMatch, 2), out int c)) {
+                    color2 = c.ToHtmlColor();
+                    lastMatch += 2;
+                }
+            }
+            break;
+        case "\u0006"://bold
+            bold = !bold;
+            break;
+        case "\a"://underline
+            underline = !underline;
+            break;
+        case "\t"://italic
+            italic = !italic;
+            break;
+        default:
+            Emoticon emote = Emotes.Images.Find(s => s.Key == match.Value.ToUpper());
+            if (emote != null) {
+                <span class="chattext emote" style="@GetStyleString(color1, color2, bold, italic, underline)"><img src="@emote.Image" alt="@emote.Key" /></span>
+            }
+            break;
+    }
+    match = Extensions.FullRegex.Match(text, lastMatch);
+}
+@{text2 = text.Substring(lastMatch, text.Length - lastMatch);
+    if (!string.IsNullOrEmpty(text2)) {
+        <span class="chattext" style="@GetStyleString(color1, color2, bold, italic, underline)">@text2</span>
+    }
+}
+@code {
+
+    private int lastMatch;
+    private Match match;
+    private bool bold;
+    private bool italic;
+    private bool underline;
+    private string startColor = string.Empty;
+    private string text = string.Empty;
+    private string text2 = string.Empty;
+    private string color1 = ColorCode.Black.ToHtmlColor();
+    private string color2 = "transparent";
+    private StringBuilder styleBuilder = new StringBuilder();
+    private volatile bool hasChanged = false;
+
+    [Parameter]
+    public string Text {
+        get { return text; }
+        set { Reset(value); }
+    }
+
+    [Parameter]
+    public string StartColor {
+        get { return startColor; }
+        set { startColor = value; }
+    }
+
+
+    protected override void OnInitialized()
+    {
+        color1 = StartColor;
+    }
+
+    private void Reset(string value)
+    {
+        if (!string.Equals(text, value)) {
+            hasChanged = true;
+            text = value;
+            lastMatch = 0;
+            match = Extensions.FullRegex.Match(text);
+            bold = false;
+            italic = false;
+            underline = false;
+            text2 = string.Empty;
+            color1 = StartColor;
+            color2 = "transparent";
+        }
+    }
+
+    private void OnHyperlinkClicked(string linkText)
+    {
+
+    }
+
+    private string GetStyleString(string color1, string color2, bool b, bool i, bool u)
+    {
+        styleBuilder.Clear();
+        styleBuilder.AppendFormat("color:{0};background-color:{1};", color1, color2);
+        if (b) styleBuilder.Append("font-weight:bold;");
+        if (i) styleBuilder.Append("font-style:italic;");
+        if (u) styleBuilder.Append("text-decoration:underline;");
+        return styleBuilder.ToString();
+    }
+
+    protected override bool ShouldRender() 
+    {
+        return hasChanged;
+    }
+}

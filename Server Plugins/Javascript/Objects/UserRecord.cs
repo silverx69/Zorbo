@@ -1,7 +1,7 @@
 ﻿using Jurassic.Library;
 using System;
 using System.Net;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 using JScript = Javascript.Script;
 
 namespace Javascript.Objects

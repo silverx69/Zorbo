@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace cb0tProtocol
 {

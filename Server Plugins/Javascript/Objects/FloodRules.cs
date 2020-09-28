@@ -3,7 +3,6 @@ using Jurassic.Library;
 using System;
 using System.Collections.Generic;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
 using JScript = Javascript.Script;
 
 namespace Javascript.Objects

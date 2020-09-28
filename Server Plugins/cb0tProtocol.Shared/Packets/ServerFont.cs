@@ -3,8 +3,8 @@ using System;
 using System.ComponentModel;
 using Zorbo.Ares.Packets;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 
 namespace cb0tProtocol.Packets
 {

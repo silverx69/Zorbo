@@ -2,8 +2,7 @@
 using System.Globalization;
 using System.Windows.Data;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Server.WPF.Converters
 {

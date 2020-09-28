@@ -2,7 +2,7 @@
 using System;
 using System.Net;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares.Packets.Chatroom
 {

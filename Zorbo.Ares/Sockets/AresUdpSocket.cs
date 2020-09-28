@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using Zorbo.Core.Data;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 
 namespace Zorbo.Ares.Sockets
 {

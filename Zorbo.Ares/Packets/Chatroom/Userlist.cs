@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares.Packets.Chatroom
 {

@@ -1,0 +1,60 @@
+﻿@inject IJSRuntime JSRuntime
+@inject ChatClient ChatClient
+@implements IDisposable
+<div class="d-flex-col-expand userlist @UserlistCssClass">
+    <span class="hide-btn" @onclick="@ToggleUserlist" @ontouchend="ToggleUserlist" @onclick:preventDefault>
+        <i class="fas fa-arrow-right"></i>
+    </span>
+    <div class="d-flex-col-expand inner-list">
+        <div class="d-flex-col w-100 users">
+            @foreach (var user in Chat.Users.Where(s => s.Level > AdminLevel.User)) {
+                <UserItem User="@user" />
+            }
+            @foreach (var user in Chat.Users.Where(s => s.Level == AdminLevel.User)) {
+                <UserItem User="@user" />
+            }
+        </div>
+    </div>
+</div>
+@code {
+
+    [CascadingParameter(Name = "Chat")]
+    public ChatInstance Chat { get; set; }
+
+    [Parameter]
+    public bool IsShowing { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> IsShowingChanged { get; set; }
+
+
+    string UserlistCssClass => IsShowing ? "show" : null;
+
+
+    protected override void OnInitialized()
+    {
+        Chat.PropertyChanged += ChatPropertyChanged;
+    }
+
+    private async Task ToggleUserlist()
+    {
+        IsShowing = !IsShowing;
+        await IsShowingChanged.InvokeAsync(IsShowing);
+    }
+
+
+    private void ChatPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName) {
+            case nameof(ChatInstance.Users):
+            case nameof(ChatInstance.IsShowingUsers):
+                StateHasChanged();
+                break;
+        }
+    }
+
+    public void Dispose()
+    {
+        Chat.PropertyChanged -= ChatPropertyChanged;
+    }
+}

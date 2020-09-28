@@ -1,17 +1,12 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading;
-using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Ares.Resources;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
 using Zorbo.Core.Models;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares.Server
 {

@@ -1,15 +1,11 @@
 ﻿using cb0tProtocol.Packets;
 using cb0tProtocol.Packets.ib0t;
 using System;
-using System.Linq;
-using System.Runtime;
 using System.Text;
-using Zorbo.Ares.Packets;
 using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Ares.Packets.Formatters;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
 
 namespace cb0tProtocol
 {

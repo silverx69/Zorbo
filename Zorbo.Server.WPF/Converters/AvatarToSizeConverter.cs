@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Windows.Data;
 
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 
 namespace Zorbo.Server.WPF.Converters
 {

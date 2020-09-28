@@ -11,9 +11,8 @@ using Zorbo.Ares.Packets.WebSockets;
 using Zorbo.Ares.Resources;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
 using Zorbo.Core.Models;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares.Server
 {

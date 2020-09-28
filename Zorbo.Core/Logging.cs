@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Core
 {

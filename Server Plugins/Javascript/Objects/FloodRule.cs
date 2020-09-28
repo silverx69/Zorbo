@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel;
 using Zorbo.Ares.Packets;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
 using JScript = Javascript.Script;
 
 namespace Javascript.Objects

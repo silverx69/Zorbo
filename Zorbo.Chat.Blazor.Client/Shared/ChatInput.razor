@@ -1,0 +1,153 @@
+﻿@using Zorbo.Ares.Packets.Chatroom
+@inject IJSRuntime JSRuntime
+@inject ChatClient ChatClient
+<nav class="navbar navbar-expand navbar-light bg-light chatmenu">
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item"><a class="nav-link" href="" @onclick="@(() => OnTextStyleClicked(0))" @onclick:preventDefault><strong>B</strong></a></li>
+        <li class="nav-item"><a class="nav-link" href="" @onclick="@(() => OnTextStyleClicked(1))" @onclick:preventDefault><em>I</em></a></li>
+        <li class="nav-item"><a class="nav-link" href="" @onclick="@(() => OnTextStyleClicked(2))" @onclick:preventDefault><u>U</u></a></li>
+        <li class="nav-item"><input type="color" title="Foreground" value="#0000ff" @onchange="@((e) => OnColorValueChanged(0, e))" @ref="@ForegroundButton"></li>
+        <li class="nav-item"><input type="color" title="Background" value="#ffffff" @onchange="@((e) => OnColorValueChanged(1, e))" @ref="@BackgroundButton"></li>
+        <li class="nav-item mr-auto"><a class="nav-link" href="" @onclick:preventDefault>😀</a></li>
+    </ul>
+    <ul class="navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" href="" @onclick="@ToggleUserlist" @onclick:preventDefault>
+                <span class="fas fa-users" aria-hidden="true"></span>
+            </a>
+        </li>
+    </ul>
+</nav>
+<div class="d-flex">
+    <!--input area -->
+    <div class="msg-area input-group">
+        <div class="input-group-append">
+            <span class="attach-btn input-group-text">
+                <i class="fas fa-paperclip"></i>
+            </span>
+        </div>
+        <input id="imgUpload" type="file" multiple accept="image/*" style="display:none">
+        <input type="text"
+               class="form-control message"
+               placeholder="Type your message..."
+               style="font-family:Tahoma"
+               @bind-value="@InputText"
+               @bind-value:event="oninput"
+               @onkeydown="@OnInputKeyDown" />
+        <div class="input-group-append" @onclick="@OnSendClicked" @ontouchend="@OnSendClicked" @onclick:preventDefault>
+            <span class="send-btn input-group-text"><i class="fas fa-location-arrow"></i></span>
+        </div>
+    </div>
+</div>
+@code {
+
+    string inputText = "";
+
+    ElementReference ForegroundButton { get; set; }
+    ElementReference BackgroundButton { get; set; }
+
+    [CascadingParameter(Name = "Chat")]
+    public ChatInstance Chat { get; set; }
+
+
+    public string InputText {
+        get { return inputText; }
+        set {
+            if (inputText != value) {
+                inputText = value;
+                OnInputChanged();
+            }
+        }
+    }
+
+    public EventCallback<string> InputTextChanged { get; set; }
+
+
+    private void ToggleUserlist()
+    {
+        Chat.IsShowingUsers = !Chat.IsShowingUsers;
+    }
+
+
+    private void OnTextStyleClicked(int type)
+    {
+        switch (type) {
+            case 0: InputText += "\u00026";
+                break;
+            case 1: InputText += "\u00029";
+                break;
+            case 2: InputText += "\u00027";
+                break;
+        }
+    }
+
+    private void OnColorValueChanged(int type, ChangeEventArgs e)
+    {
+        var jip = (IJSInProcessRuntime)JSRuntime;
+        switch (type) {
+            case 0:
+                InputText += ("\u00023" + e.Value.ToString());
+                jip.InvokeVoid("ZorboApp.setValue", ForegroundButton, "#0000ff");
+                break;
+            case 1:
+                InputText += ("\u00025" + e.Value.ToString());
+                jip.InvokeVoid("ZorboApp.setValue", BackgroundButton, "#ffffff");
+                break;
+        }
+    }
+
+    private async void OnInputKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await OnSendClicked();
+    }
+
+    private async void OnInputChanged()
+    {
+        await InputTextChanged.InvokeAsync(InputText);
+
+        if (string.IsNullOrEmpty(InputText))
+            await Chat.FinishedWriting();
+
+        else {
+            await Chat.StartedWriting();
+        }
+    }
+
+    private void OnAttachFile() {
+        var jip = (IJSInProcessRuntime)JSRuntime;
+        jip.InvokeVoid("ZorboApp.attachFile");
+    }
+
+    private async Task OnSendClicked()
+    {
+        string text =
+            Regex.Replace(InputText, "\r|\n", "").ToAresColor();
+
+        if (!string.IsNullOrEmpty(text)) {
+            InputText = string.Empty;
+            await HandleSendMessage(text);
+        }
+    }
+
+    private async Task HandleSendMessage(string input)
+    {
+        if (input.StartsWith('/')) {
+
+            string[] pts = input.Split('\x20', 2);
+
+            if (pts[0].ToLower() == "/me") {
+                if (pts.Length > 1 && !string.IsNullOrEmpty(pts[1])) {
+                    await Chat.SendAsync(new ClientEmote() { Message = pts[1] });
+                }
+            }
+            else {
+                //other commands?
+                await Chat.SendAsync(new Command() { Message = input.Substring(1) });
+            }
+        }
+        else {
+            await Chat.SendAsync(new ClientPublic() { Message = input });
+        }
+    }
+}

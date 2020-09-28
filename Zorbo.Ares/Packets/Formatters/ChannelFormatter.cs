@@ -3,7 +3,6 @@ using System.Text;
 using Zorbo.Ares.Packets.Channels;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Ares.Packets.Formatters
 {

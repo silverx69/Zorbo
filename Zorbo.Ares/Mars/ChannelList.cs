@@ -4,7 +4,6 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Ares.Mars
 {
@@ -34,7 +33,7 @@ namespace Zorbo.Ares.Mars
 
         public string Topic {
             get { return topic; }
-            set { topic = value; BareTopic = Emotes.StripTopic(topic); }
+            set { topic = value; BareTopic = topic.StripColor(); }
         }
 
         public string BareTopic { get; set; }

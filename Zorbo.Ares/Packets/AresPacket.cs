@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Zorbo.Ares.Packets.Formatters;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Ares.Packets

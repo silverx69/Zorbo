@@ -1,12 +1,10 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Security.Authentication.ExtendedProtection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +17,8 @@ using Zorbo.Ares.Sockets;
 using Zorbo.Core;
 using Zorbo.Core.Data;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
 using Zorbo.Core.Models;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Ares
 {

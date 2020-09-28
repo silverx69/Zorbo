@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 using Zorbo.Core.Models;
 using Zorbo.Core.Plugins.Server;
 

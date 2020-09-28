@@ -6,8 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 
-using Zorbo.Core.Interfaces;
-
 namespace Zorbo.Core.Data.Packets
 {
     public class PacketReader : BinaryReader

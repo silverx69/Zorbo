@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 
 namespace Zorbo.Server.WPF.Converters
 {

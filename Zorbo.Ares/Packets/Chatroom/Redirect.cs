@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Newtonsoft.Json;
 
 namespace Zorbo.Ares.Packets.Chatroom

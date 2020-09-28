@@ -1,6 +1,5 @@
-using System;
 using System.Windows.Controls;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Plugins.Server;
 
 namespace Zorbo.Server.WPF.Plugins
 {

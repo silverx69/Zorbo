@@ -1,0 +1,12 @@
+﻿@page "/"
+@inject ChatClient ChatClient 
+<p>Home Screen</p>
+
+@code {        
+
+    protected override void OnInitialized()
+    {
+        ChatClient.HeaderText = "Welcome to Zorbo!";
+    }
+
+}

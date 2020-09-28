@@ -3,7 +3,7 @@ using Jurassic.Library;
 using System;
 using System.Net;
 using Zorbo.Ares;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using JScript = Javascript.Script;
 
 namespace Javascript.Objects

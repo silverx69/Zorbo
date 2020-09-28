@@ -1,0 +1,67 @@
+﻿@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+@implements IDisposable
+<li class="nav-item px-3 channel-link">
+    <a href="#" class="nav-link @LinkCssClass" @onclick="@ShowChatroom" @ontouchend="@TouchEnded" @onclick:preventDefault>
+        <span class="oi oi-list-rich" aria-hidden="true"></span>
+        <span class="name">@Chat.Channel.Name</span>
+        <div class="btn-msgs" title="New Messages" aria-hidden="true">
+            <span class="@(!isActive && Chat.NewMessages > 0 ? "" : "hidden")">@Chat.NewMessages</span>
+        </div>
+        <span class="fa fa-window-close btn-close" title="Close Chatroom" aria-hidden="true" @onclick="@CloseChatroom" @ontouchend="CloseChatroom" @onclick:preventDefault></span>
+    </a>
+</li>
+@code {
+
+    [Parameter]
+    public ChatInstance Chat { get; set; }
+
+
+    bool isActive => NavigationManager.Uri.Contains(Chat.Channel.HashlinkUri);
+    string LinkCssClass => isActive ? "active" : "";
+
+
+    protected override void OnInitialized()
+    {
+        Chat.PropertyChanged += OnChatPropertyChanged;
+    }
+
+    private void TouchEnded()
+    {
+        ChatClient.IsShowingMenu = false;
+    }
+
+    private void ShowChatroom()
+    {
+        ChatClient.OpenChannel(Chat.Channel, new Uri(NavigationManager.BaseUri));
+        NavigationManager.NavigateTo(string.Format("/chatrooms/{0}", Chat.Channel.HashlinkUri));
+    }
+
+    private async Task CloseChatroom()
+    {
+        await ChatClient.CloseChannel(Chat);
+
+        if (ChatClient.ActiveChat != null)
+            NavigationManager.NavigateTo(string.Format("/chatrooms/{0}", ChatClient.ActiveChat.Channel.HashlinkUri));
+        else
+            NavigationManager.NavigateTo("/channels");
+    }
+
+    private void OnChatPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        switch(e.PropertyName) {
+            case nameof(Chat.MyDisplayName):
+                StateHasChanged();
+                break;
+            case nameof(Chat.NewMessages):
+                if (!isActive) StateHasChanged();
+                else Chat.NewMessages = 0;
+                break;
+        }
+    }
+
+    public void Dispose()
+    {
+        Chat.PropertyChanged -= OnChatPropertyChanged;
+    }
+}

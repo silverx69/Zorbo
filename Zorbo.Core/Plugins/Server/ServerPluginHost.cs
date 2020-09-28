@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Core.Plugins.Server
 {

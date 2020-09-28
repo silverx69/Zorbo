@@ -8,8 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Zorbo.Ares.Packets;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 
 namespace Javascript
 {

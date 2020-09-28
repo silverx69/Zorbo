@@ -1,0 +1,13 @@
+﻿@inject ChatClient ChatClient
+<ul class="nav mr-auto">
+    <li class="nav-item left">
+        @Text
+    </li>
+</ul>
+@code {
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public EventCallback<string> TextChanged { get; set; }
+}

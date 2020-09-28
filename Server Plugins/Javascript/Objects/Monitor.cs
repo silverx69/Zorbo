@@ -1,5 +1,5 @@
 ﻿using Jurassic.Library;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 
 using JScript = Javascript.Script;
 

@@ -2,8 +2,8 @@
 using Jurassic.Library;
 using System;
 using System.Text.RegularExpressions;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 using JScript = Javascript.Script;
 
 namespace Javascript.Objects

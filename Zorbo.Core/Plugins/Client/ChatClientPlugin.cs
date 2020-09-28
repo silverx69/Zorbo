@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Client;
+using Zorbo.Core.Client;
 
 namespace Zorbo.Core.Plugins.Client
 {

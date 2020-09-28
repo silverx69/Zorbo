@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 
 namespace Javascript.Objects
 {

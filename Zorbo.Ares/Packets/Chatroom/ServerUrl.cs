@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 
 namespace Zorbo.Ares.Packets.Chatroom
 {

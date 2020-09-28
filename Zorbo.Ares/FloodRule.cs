@@ -1,6 +1,6 @@
 ﻿using System;
 using Zorbo.Ares.Packets;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Ares

@@ -1,21 +1,8 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Cache;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Shell;
-using Zorbo.Ares;
-using Zorbo.Ares.Server;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Models;
 
 namespace Zorbo.Server.WPF
 {

@@ -4,8 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using Zorbo.Ares.Server;
 using Zorbo.Ares.Server.Users;
-using Zorbo.Core.Interfaces;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Server.WPF.Views
 {

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Net;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Ares

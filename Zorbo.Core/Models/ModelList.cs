@@ -10,7 +10,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zorbo.Core.Collections;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Core.Models
 {

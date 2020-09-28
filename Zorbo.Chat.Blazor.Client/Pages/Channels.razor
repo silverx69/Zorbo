@@ -1,0 +1,188 @@
+@page "/channels"
+@using System.Threading
+@inject IJSRuntime JSRuntime
+@inject HttpClient HttpClient 
+@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+@implements IDisposable
+<div class="d-flex-col-expand channels">
+    <div class="d-flex tools">
+        <nav class="navbar navbar-expand navbar-light bg-light w-100">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <button type="button" class="btn btn-light refresh-btn" @onclick="@OnConnectClicked">
+                        <i class="fas fa-plug"></i>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="btn btn-light refresh-btn" @onclick="@OnRefreshClicked">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <div class="input-group">
+                        <input @bind-value="@ChatClient.ChannelSearch" @bind-value:event="oninput" class="form-control search" type="text" placeholder="Search...">
+                        <div class="input-group-prepend">
+                            <span class="search-btn input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    <div class="d-flex flex-grow-1 inner-list">
+        <div class="d-flex-col w-100">
+            <table class="table tbl-channels" @ref="@Table">
+                <thead>
+                    <tr>
+                        <th class="col name"
+                            @onclick="@(() => OnColumnClicked("Name"))"
+                            @ontouchend="@(() => OnColumnClicked("Name"))"
+                            @onclick:preventDefault>Name</th>
+                        <th class="col"
+                            @onclick="@(() => OnColumnClicked("Topic"))"
+                            @ontouchend="@(() => OnColumnClicked("Topic"))"
+                            @onclick:preventDefault>Topic</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <NameDialog Interop="@jsInterop" />
+    <HashlinkDialog Interop="@jsInterop" />
+</div>
+@code {
+
+    DateTime lastRefresh;
+    bool namesDescending = false;
+
+    List<ServerRecord> channels = new List<ServerRecord>();
+
+    ElementReference Table { get; set; }
+
+    ChannelsInterop jsInterop => new ChannelsInterop(JSRuntime, NavigationManager);
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) InitializeChannels();
+    }
+
+    private async void InitializeChannels()
+    {
+        ChatClient.HeaderText = "Fetching channel list...";
+        ChatClient.PropertyChanged += OnClientPropertyChanged;
+
+        jsInterop.SetChannelList();
+
+        await LoadChannelsAsync();
+    }
+
+    private async Task LoadChannelsAsync(bool refresh = false)
+    {
+        if (!refresh && ChatClient.Channels.Count > 0)
+            channels = ChatClient.Channels.Where(filter).ToList();
+        else
+            channels = (await ChatClient.GetChannels(NavigationManager.BaseUri)).Where(filter).ToList();
+
+        UpdateHeaderText();
+
+        jsInterop.AddChannels(Table, Json.Serialize(channels));
+    }
+
+    private void UpdateHeaderText()
+    {
+        if (channels.Count == ChatClient.Channels.Count)
+            ChatClient.HeaderText =
+                string.Format("Channel List ({0})", channels.Count);
+        else {
+            ChatClient.HeaderText =
+                string.Format("Channel List ({0} / {1})", channels.Count, ChatClient.Channels.Count);
+        }
+    }
+
+    // Connect by hashlink support, need dialog
+    private void OnConnectClicked()
+    {
+        jsInterop.ShowHashlinkDialog();
+    }
+
+    private async void OnRefreshClicked()
+    {
+        var last = DateTime.Now.Subtract(lastRefresh);
+        if (last.TotalSeconds > 30) {
+            lastRefresh = DateTime.Now;
+            await LoadChannelsAsync(true);
+        }
+        else {
+            int more = 30 - (int)last.TotalSeconds;
+            string previous = ChatClient.HeaderText.StartsWith("Please wait") ? "" : ChatClient.HeaderText;
+
+            if (!string.IsNullOrEmpty(previous)) {
+                ChatClient.HeaderText = string.Format("Please wait {0} more second{1}.", more, more > 1 ? "s" : "");
+                await Task.Delay(3000);
+                ChatClient.HeaderText = previous;
+            }
+        }
+    }
+
+    private async void OnClientPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName) {
+            case nameof(ChatClient.ChannelSearch): {
+
+                string search = ChatClient.ChannelSearch;
+
+                if (!string.IsNullOrWhiteSpace(search))
+                    searchRegex = new Regex(Regex.Escape(search), RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                else searchRegex = null;
+
+                await LoadChannelsAsync();
+                break;
+            }
+        }
+    }
+
+    private static bool IsFilterMatch(ServerRecord c)
+    {
+        if (searchRegex == null)
+            return true;
+        return searchRegex.IsMatch(c.Name) || searchRegex.IsMatch(c.BareTopic);
+    }
+
+    private async void OnColumnClicked(string name)
+    {
+        if (name != "Name") return;
+
+        await Task.Run(() => {
+
+            namesDescending = !namesDescending;
+            if (namesDescending)
+                channels.Sort(SortByNameDescending);
+            else
+                channels.Sort(SortByNameAscending);
+
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        ChatClient.PropertyChanged -= OnClientPropertyChanged;
+        jsInterop?.Dispose();
+    }
+
+    public static int SortByNameAscending(ServerRecord a, ServerRecord b)
+    {
+        return string.Compare(a.Name, b.Name, StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    public static int SortByNameDescending(ServerRecord a, ServerRecord b)
+    {
+        return string.Compare(b.Name, a.Name, StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    private static Regex searchRegex;
+    private static readonly Func<ServerRecord, bool> filter = new Func<ServerRecord, bool>(IsFilterMatch);
+}

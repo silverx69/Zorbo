@@ -11,12 +11,12 @@ namespace Zorbo.Server.WPF.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return Emotes.ToReadableColorCodes(value.ToString());
+            return value.ToString().ToReadableColor();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return Emotes.ToAresColorCodes(value.ToString());
+            return value.ToString().ToAresColor();
         }
     }
 }

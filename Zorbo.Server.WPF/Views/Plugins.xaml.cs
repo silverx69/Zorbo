@@ -6,7 +6,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces.Server;
+using Zorbo.Core.Server;
 using Zorbo.Core.Models;
 using Zorbo.Core.Plugins;
 using Zorbo.Core.Plugins.Server;

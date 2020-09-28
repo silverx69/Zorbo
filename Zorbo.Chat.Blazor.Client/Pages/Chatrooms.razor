@@ -1,0 +1,30 @@
+﻿@page "/chatrooms/{SafeHashlink}"
+@inject IJSRuntime JSRuntime
+@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+
+<Chatroom Chat="@ChatClient.ActiveChat" />
+
+@code { 
+
+    [Parameter]
+    public string SafeHashlink { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(SafeHashlink)) {
+            var instance = ChatClient.OpenChannels.Find(s => s.Channel.HashlinkUri == SafeHashlink);
+            if (instance == null) {
+                var channel = Hashlinks.FromHashlinkString<ServerRecord>(SafeHashlink.FromURLSafeBase64());
+                if (channel != null) {
+                    instance = ChatClient.OpenChannel(channel, new Uri(NavigationManager.BaseUri));
+                    if (instance != null) {
+                        NavigationManager.NavigateTo(string.Format("/chatrooms/{0}", channel.HashlinkUri));
+                        return;
+                    }
+                }
+                NavigationManager.NavigateTo("/channels");
+            }
+        }
+    }
+}

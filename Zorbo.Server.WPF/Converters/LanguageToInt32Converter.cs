@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Windows.Data;
 using Zorbo.Ares.Server;
 using Zorbo.Core;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Server.WPF.Converters
 {

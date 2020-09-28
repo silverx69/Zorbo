@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Zorbo.Core.Models;
 
 namespace cb0tProtocol.Packets.ib0t

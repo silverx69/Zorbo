@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
-using Zorbo.Core.Interfaces.Server;
+﻿using System.Windows.Forms;
+using Zorbo.Core.Plugins.Server;
 
 namespace Zorbo.Server.WPF.Plugins
 {

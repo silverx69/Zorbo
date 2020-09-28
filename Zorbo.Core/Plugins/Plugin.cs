@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Zorbo.Core.Interfaces;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Core.Plugins

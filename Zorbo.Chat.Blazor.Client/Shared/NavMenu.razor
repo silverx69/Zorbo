@@ -1,0 +1,45 @@
+﻿@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+<div class="d-flex-col sidebar @NavMenuCssClass">
+    <div class="top-row pl-4 navbar navbar-dark">
+        <a class="navbar-brand" href="">@ChatClient.MenuText</a>
+        <button class="navbar-toggler" @onclick="@ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+    <div>
+        <ul class="nav flex-column">
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="" @ontouchend="@ToggleNavMenu" Match="NavLinkMatch.All">
+                    <span class="oi oi-home" aria-hidden="true"></span> Home
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="channels" @ontouchend="@ToggleNavMenu" Match="NavLinkMatch.Prefix">
+                    <span class="oi oi-list-rich" aria-hidden="true"></span> Channels
+                </NavLink>
+            </li>
+            @foreach (var chat in ChatClient.OpenChannels) {
+                <ChannelLink Chat="@chat" />
+            }
+        </ul>
+    </div>
+</div>
+@code {
+
+    [Parameter]
+    public bool IsShowing { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsShowingChanged { get; set; }
+
+
+    private string NavMenuCssClass => IsShowing ? "show" : null;
+
+
+    private async void ToggleNavMenu()
+    {
+        IsShowing = !IsShowing;
+        await IsShowingChanged.InvokeAsync(IsShowing);
+    }
+}

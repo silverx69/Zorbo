@@ -1,0 +1,24 @@
+﻿@using Zorbo.Chat.Blazor.Client.Pages
+@inject IJSRuntime JSRuntime
+@inject ChatClient ChatClient
+@inject NavigationManager NavigationManager
+<div id="username-dialog" class="d-flex modal hidden">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Choose Username</h4>
+            </div>
+            <div class="modal-body">
+                It seems you haven't chosen a username yet, would you like to do that now?
+                <br /><input type="text" id="username-field" @bind-value="@ChatClient.Username" @bind-value:event="oninput" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" @onclick="@Interop.HideNameDialog">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public ChannelsInterop Interop { get; set; }
+}

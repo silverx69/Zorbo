@@ -18,7 +18,6 @@ using Zorbo.Ares.Packets.WebSockets;
 using Zorbo.Core;
 using Zorbo.Core.Data;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Ares.Sockets
 {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 
-using Zorbo.Core.Interfaces;
-
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 

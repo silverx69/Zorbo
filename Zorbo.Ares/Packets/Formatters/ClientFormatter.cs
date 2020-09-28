@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Ares.Packets.WebSockets;
 using Zorbo.Core;
 using Zorbo.Core.Data.Packets;
-using Zorbo.Core.Interfaces;
 
 namespace Zorbo.Ares.Packets.Formatters
 {

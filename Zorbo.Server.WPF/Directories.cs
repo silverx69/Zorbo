@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Zorbo.Core.Interfaces;
+using Zorbo.Core;
 using Zorbo.Core.Models;
 
 namespace Zorbo.Server.WPF
