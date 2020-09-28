@@ -1,22 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <LangVersion>8.0</LangVersion>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>8.0</LangVersion>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Jurassic" Version="3.1.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Jurassic" Version="3.1.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Zorbo.Ares\Zorbo.Ares.csproj" />
-    <ProjectReference Include="..\..\Zorbo.Core\Zorbo.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\Zorbo.Ares\Zorbo.Ares.csproj" />
+		<ProjectReference Include="..\..\Zorbo.Core\Zorbo.Core.csproj" />
+	</ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y&#xD;&#xA;xcopy &quot;$(TargetDir)Jurassic.dll&quot; &quot;%25APPDATA%25\Zorbo\Plugins\$(TargetName)\&quot; /i /F /Y" />
-  </Target>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<MakeDir Directories="$(AppData)\Zorbo\Plugins\$(TargetName)" Condition="!Exists('$(AppData)\Zorbo\Plugins\$(TargetName)')" />
+		<Copy  SourceFiles="$(TargetPath)" DestinationFolder="$(AppData)\Zorbo\Plugins\$(TargetName)" />
+		<Copy  SourceFiles="$(TargetDir)\Jurassic.dll" DestinationFolder="$(AppData)\Zorbo\Plugins\$(TargetName)" />
+
+		<MakeDir Directories="$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Autoload" Condition="!Exists('$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Autoload')" />
+		<Copy  SourceFiles="$(SolutionDir)\Server Plugins\Javascript\Autoload.js" DestinationFolder="$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Autoload" />
+
+		<MakeDir Directories="$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Room" Condition="!Exists('$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Room')" />
+		<Copy  SourceFiles="$(SolutionDir)\Server Plugins\Javascript\Room.js" DestinationFolder="$(AppData)\Zorbo\Plugins\$(TargetName)\Scripts\Room" />
+	</Target>
 
 </Project>
