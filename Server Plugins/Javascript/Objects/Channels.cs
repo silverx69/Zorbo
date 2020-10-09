@@ -1,6 +1,5 @@
 ﻿using Jurassic.Library;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -12,7 +11,7 @@ namespace Javascript.Objects
         public uint AddIpHits {
             get { return channels?.AddIpHits ?? 0; }
         }
-
+        
         [JSProperty(Name = "ackIpHits", IsEnumerable = true)]
         public uint AckIpHits {
             get { return channels?.AckIpHits ?? 0; }
@@ -44,9 +43,9 @@ namespace Javascript.Objects
             get { return channels?.FirewallOpen ?? false; }
         }
 
-        [JSProperty(Name = "finishedTestingFirewall", IsEnumerable = true)]
-        public bool FinishedTestingFirewall {
-            get { return channels?.FinishedTestingFirewall ?? false; }
+        [JSProperty(Name = "testingFirewall", IsEnumerable = true)]
+        public bool TestingFirewall {
+            get { return channels?.TestingFirewall ?? false; }
         }
 
         [JSProperty(Name = "speedIn", IsEnumerable = true)]
@@ -69,7 +68,7 @@ namespace Javascript.Objects
             get { return channels.Monitor?.TotalBytesOut ?? 0; }
         }
 
-        public Channels(JScript script, IChannelList channels)
+        public Channels(Script script, IChannelList channels)
             : base(script.Engine) {
 
             this.channels = channels;

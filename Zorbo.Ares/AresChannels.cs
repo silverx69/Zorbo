@@ -53,12 +53,10 @@ namespace Zorbo.Ares
         bool firewallTest = false;
         bool isDownloading = false;
 
+        volatile bool running = false;
 #pragma warning restore IDE0044 // Add readonly modifier
 
-        volatile bool running = false;
-        const int AddIpFrequency = 3; //seconds
-
-        const string MarsList = "http://marsproject.net/ib0t/list.aspx";
+        const int AddIpFrequency = 5; //seconds
 
         [JsonIgnore]
         public IServer Server {
@@ -117,6 +115,12 @@ namespace Zorbo.Ares
         }
 
         [JsonIgnore]
+        public bool IsRunning {
+            get { return running; }
+            private set { OnPropertyChanged(() => running, value); }
+        }
+
+        [JsonIgnore]
         public bool Listing {
             get { return Server?.Config.ShowChannel ?? false; }
             set {
@@ -134,7 +138,7 @@ namespace Zorbo.Ares
         }
 
         [JsonIgnore]
-        public bool FinishedTestingFirewall {
+        public bool TestingFirewall {
             get { return firewallTest; }
             set { OnPropertyChanged(() => firewallTest, value); }
         }
@@ -259,7 +263,7 @@ namespace Zorbo.Ares
         public AresChannels()
         {
             LastSaved = DateTime.Now;
-            LastMars = DateTime.Now.Subtract(TimeSpan.FromMinutes(8));
+            LastMars = DateTime.Now.Subtract(TimeSpan.FromMinutes(7));
 
             udptimer = new Timer(new TimerCallback(OnTimer), null, -1, -1);
             ticklength = TimeSpan.FromSeconds(AddIpFrequency);
@@ -274,14 +278,12 @@ namespace Zorbo.Ares
         {
             socket = new AresUdpSocket(new ChannelFormatter());
 
-            socket.Exception += SocketException;
             socket.PacketReceived += UdpPacketReceived;
-
             socket.Bind(new IPEndPoint(IPAddress.Any, port));
 
             udptimer.Change(TimeSpan.Zero, ticklength);
 
-            running = true;
+            IsRunning = true;
             socket.ReceiveAsync();
         }
 
@@ -296,72 +298,75 @@ namespace Zorbo.Ares
 
         public void Stop()
         {
-            running = false;
+            IsRunning = false;
             udptimer.Change(-1, -1);
 
             if (socket != null) {
-                socket.Exception -= SocketException;
                 socket.PacketReceived -= UdpPacketReceived;
                 socket.Dispose();
                 socket = null;
             }
 
             FirewallOpen = false;
-            FinishedTestingFirewall = false;
+            TestingFirewall = false;
         }
 
 
-        public void DownloadFromMars() 
+        public async void Download()
         {
-            DownloadFromMarsAsync().RunSynchronously();
-        }
-
-        public async Task DownloadFromMarsAsync()
-        {
-            var request = WebRequest.CreateHttp(MarsList);
-
-            request.Method = "GET";
-
-            using var response = await request.GetResponseAsync();
-            using var reader = new StreamReader(response.GetResponseStream());
-
-            string temp = await reader.ReadToEndAsync();
-
-            ChannelList list = Json.Deserialize<ChannelList>(temp);
-
-            foreach (var channel in list.Items) {
-                var c = Channels.Find(s => s.Equals(channel));
-                if (c != null)
-                    c.CopyFrom(channel);
-                else
-                    Channels.Add(new AresChannel() {
-                        Name = channel.Name,
-                        Topic = channel.Topic,
-                        Port = (ushort)channel.Port,
-                        ExternalIp = IPAddress.Parse(channel.ExternalIP),
-                        LocalIp = IPAddress.Parse(channel.LocalIP),
-                        WebSockets = true
-                    });
+            if (!IsDownloading) {
+                await DownloadFromMars();
+                DownloadFromNetwork();
             }
         }
 
+        private async Task DownloadFromMars()
+        {
+            const string mars = "http://marsproject.net/ib0t/list.aspx";
+            try {
+                var request = WebRequest.CreateHttp(mars);
 
-        public void DownloadFromNetwork()
+                request.Method = "GET";
+
+                using var response = await request.GetResponseAsync();
+                using var reader = new StreamReader(response.GetResponseStream());
+
+                string temp = await reader.ReadToEndAsync();
+
+                ChannelList list = Json.Deserialize<ChannelList>(temp);
+
+                foreach (var channel in list.Items) {
+                    var c = Channels.Find(s => s.Equals(channel));
+                    if (c != null)
+                        c.CopyFrom(channel);
+                    else
+                        Channels.Add(new AresChannel() {
+                            Name = channel.Name,
+                            Topic = channel.Topic,
+                            Port = (ushort)channel.Port,
+                            ExternalIp = IPAddress.Parse(channel.ExternalIP),
+                            InternalIp = IPAddress.Parse(channel.LocalIP),
+                            WebSockets = true
+                        });
+                }
+            }
+            catch { Logging.Warning("AresChannels", "Unable to download channels from {0}", mars); }
+        }
+
+        private void DownloadFromNetwork()
         {
             if (!IsDownloading) {
                 IsDownloading = true;
                 lastackinfo = DateTime.Now;
-                ThreadPool.QueueUserWorkItem(DownloadThread, new AresUdpSocket(new ChannelFormatter()));
+                ThreadPool.QueueUserWorkItem(DownloadThread);
             }
         }
 
         private async void DownloadThread(object state)
         {
-            var socket = (AresUdpSocket)state;
+            var socket = new AresUdpSocket(new ChannelFormatter());
 
-            socket.Exception += SocketException;
             socket.PacketReceived += UdpPacketReceived;
-
             socket.ReceiveAsync();
 
             int i = 0;
@@ -404,7 +409,7 @@ namespace Zorbo.Ares
         {
             if (running) {
 
-                if (!FinishedTestingFirewall)
+                if (!TestingFirewall)
                     CheckFirewall();
 
                 else if (Listing) {
@@ -424,6 +429,7 @@ namespace Zorbo.Ares
                     if (now.Subtract(lastmars).TotalMinutes >= 10) {
                         lastmars = now;
                         UpdateMars();
+                        UpdateZorbo();
                     }
 
                     if (now.Subtract(lastexpire).TotalMinutes >= 1) {
@@ -443,35 +449,84 @@ namespace Zorbo.Ares
 
         private async void UpdateMars()
         {
-            const string ib0t = "http://chatrooms.marsproject.net/ibot.aspx?proto=2";
+            if (Server.Config.UseWebSockets) {
 
-            string data = string.Format(
-                "local={0}&port={1}&name={2}&topic={3}",
-                Server.InternalIp ?? ExternalIp,
-                Server.Config.Port,
-                Uri.EscapeDataString(Server.Config.Name),
-                Uri.EscapeDataString(Server.Config.Topic));
+                const string ib0t = "http://chatrooms.marsproject.net/ibot.aspx?proto=2";
 
-            byte[] body = Encoding.UTF8.GetBytes(data);
+                string data = string.Format(
+                    "local={0}&port={1}&name={2}&topic={3}",
+                    Server.InternalIp ?? ExternalIp,
+                    Server.Config.Port,
+                    Uri.EscapeDataString(Server.Config.Name),
+                    Uri.EscapeDataString(Server.Config.Topic));
 
-            try {
-                var request = WebRequest.CreateHttp(ib0t);
-               
-                request.Method = "POST";
-                request.ContentLength = body.Length;
-                request.ContentType = "application/x-www-form-urlencoded";
+                byte[] body = Encoding.UTF8.GetBytes(data);
+                try {
+                    var request = WebRequest.CreateHttp(ib0t);
 
-                using var stream = await request.GetRequestStreamAsync();
+                    request.Method = "POST";
+                    request.ContentLength = body.Length;
+                    request.ContentType = "application/x-www-form-urlencoded";
 
-                await stream.WriteAsync(body, 0, body.Length);
-                await stream.FlushAsync();
+                    using var stream = await request.GetRequestStreamAsync();
 
-                using var response = await request.GetResponseAsync();
+                    await stream.WriteAsync(body, 0, body.Length);
+                    await stream.FlushAsync();
+
+                    using var response = await request.GetResponseAsync();
+                }
+                catch {
+                    lastmars = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
+                    Logging.Warning("AresChannels", "Unable to send room update to {0}", ib0t); 
+                }
             }
-            catch(Exception ex) {//mars probably just timed out
-                Logging.Error("AresChannels", ex);
-                //try again in 5 minutes?
-                lastmars = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
+        }
+
+        private async void UpdateZorbo() 
+        {
+            if (server.Config.UseTlsSockets && 
+                !string.IsNullOrWhiteSpace(Server.Config.DomainName)) {
+
+                const string zorbo = "https://zorbo.ca/api/Channels/update";
+
+                string data = Json.Serialize(new ServerDbRecord() { 
+                    Name = Server.Config.Name.StripColor(),
+                    Topic = Server.Config.Topic.ToBase64(),
+                    Port = Server.Config.Port,
+                    Users = (ushort)(Server.Users.Count + 1),
+                    Domain = Server.Config.DomainName,
+                    ExternalIp = Server.ExternalIp.ToString(),
+                    InternalIp = Server.InternalIp.ToString(),
+                    WebSockets = Server.Config.UseWebSockets,
+                    SupportJson = server.Config.UseWebSockets,
+                    Language = (byte)server.Config.Language,
+                    Version = Strings.VersionChannels
+                });
+
+                byte[] body = Encoding.UTF8.GetBytes(data);
+                try {
+                    var request = WebRequest.CreateHttp(zorbo);
+
+                    request.Method = "POST";
+                    request.ContentLength = body.Length;
+                    request.ContentType = "application/json";
+
+                    using var stream = await request.GetRequestStreamAsync();
+
+                    await stream.WriteAsync(body, 0, body.Length);
+                    await stream.FlushAsync();
+
+                    using var response = await request.GetResponseAsync();
+                    using var reader = new StreamReader(response.GetResponseStream());
+
+                    string message = await reader.ReadToEndAsync();
+
+                    if (message != "OK") System.Diagnostics.Debug.WriteLine(message);
+                }
+                catch {
+                    lastmars = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
+                    Logging.Warning("AresChannels", "Unable to send room update to {0}", zorbo);
+                }
             }
         }
 
@@ -493,45 +548,9 @@ namespace Zorbo.Ares
                     new CheckFirewallWanted(channel.Port),
                     new IPEndPoint(ip, channel.Port));
             }
-            else { FinishedTestingFirewall = true; }
+            else { TestingFirewall = true; }
         }
-        /*
-        private bool CheckFloodCounter(IPacket packet, IPAddress address)
-        {
-            UdpFloodCounter counter;
 
-            DateTime now = DateTime.Now;
-            TimeSpan span = TimeSpan.FromMinutes(5);
-
-            lock (counters) {
-                counter = counters.Find(s => s.Address.Equals(address));
-
-                if (counter == null) {
-                    counter = new UdpFloodCounter(packet.Id, address, 0, now);
-                    counters.Add(counter);
-                }
-            }
-
-            if (now.Subtract(counter.Last) > span) {
-                counter.Count = 0;
-                counter.Last = now;
-            }
-            else if (++counter.Count >= 10) {
-                Logging.Info("AresChannels",
-                    "UDP Flood from '{0}'. Has sent packet '{1}' {2} times.",
-                    address,
-                    (AresUdpId)packet.Id,
-                    counter.Count);
-                //SOFT BAN SERVER
-                lock (banned) banned.Add(new SoftBan(address, now));
-
-                return false;
-            }
-            //else counter.Last = now;
-
-            return true;
-        }
-        */
         private void PurgeOld()
         {
             DateTime now = DateTime.Now;
@@ -555,7 +574,6 @@ namespace Zorbo.Ares
                     Channels.RemoveAt(Channels.Count - 1);
             }
         }
-
 
         private void ParseServers(byte[] input)
         {
@@ -651,9 +669,9 @@ namespace Zorbo.Ares
             if (!FirewallOpen) {
                 lock (myfirewalltests) {
 
-                    FinishedTestingFirewall = myfirewalltests.Contains((s) => s.ExternalIp.Equals(endpoint.Address));
+                    TestingFirewall = myfirewalltests.Contains((s) => s.ExternalIp.Equals(endpoint.Address));
 
-                    if (FinishedTestingFirewall) {
+                    if (TestingFirewall) {
 
                         FirewallOpen = true;
                         myfirewalltests.Clear();
@@ -663,12 +681,6 @@ namespace Zorbo.Ares
                 return FirewallOpen;
             }
             else return false;
-        }
-
-
-        private void SocketException(object sender, ExceptionEventArgs e)
-        {
-            if (socket != null) socket.ReceiveAsync();
         }
 
         private void UdpPacketReceived(object sender, PacketEventArgs e)
@@ -695,17 +707,9 @@ namespace Zorbo.Ares
                     AresChannel channel = FindChannel(e.RemoteEndPoint.Address, info.Port);
 
                     if (channel == null)
-                        if (e.RemoteEndPoint.Address.IsLocalMachine()) {
-                            channel = Channels.Find(s => Equals(ExternalIp, s.ExternalIp));
-                        }
-                        else if (e.RemoteEndPoint.Address.IsLocalAreaNetwork()) {
-                            channel = Channels.Find(s => Equals(ExternalIp, s.ExternalIp) && Equals(s.LocalIp, e.RemoteEndPoint.Address));
-                        }
+                        channel = FindLocalChannel(e.RemoteEndPoint.Address);
 
-                    if (channel == null) {
-                        //problem
-                        throw new Exception("Bad things happened.");
-                    }
+                    if (channel == null) return;
 
                     channel.Port = info.Port;
                     channel.Users = info.Users;
@@ -729,8 +733,8 @@ namespace Zorbo.Ares
                     else {
                         var address = e.RemoteEndPoint.Address;
 
-                        if (address.IsLocalAreaNetwork())
-                            address = ExternalIp ?? e.RemoteEndPoint.Address;
+                        if (e.RemoteEndPoint.Address.IsLocalAreaNetwork())
+                            address = ExternalIp ?? address;
                         
                         channel = new AresChannel(address, add.Port);
                         Channels.Add(channel);
@@ -849,32 +853,6 @@ namespace Zorbo.Ares
                     }
                 }
                 break;
-                /* --- Used for P2P stuff - Ignore
-                case AresUdpId.OP_SERVERLIST_SENDNODES: {
-                    uint num = 20;
-                    SendNodes sendnodes = (SendNodes)e.Packet;
-
-                    SendNodeHits++;
-
-                    if (Listing) {
-
-                        AckNodes acknodes = new AckNodes() {
-                            Port = (ushort)socket.LocalEndPoint.Port,
-                            Servers = GetSendServers(e.RemoteEndPoint.Address, ref num)
-                        };
-
-                        socket.SendAsync(acknodes, e.RemoteEndPoint);
-                    }
-                }
-                break;
-                case AresUdpId.OP_SERVERLIST_ACKNODES: {
-                    AckNodes ackNodes = (AckNodes)e.Packet;
-
-                    AckNodeHits++;
-                    ParseServers(ackNodes.Servers);
-                }
-                break;
-                */
             }
         }
 
@@ -886,7 +864,19 @@ namespace Zorbo.Ares
 
         private AresChannel FindChannel(IPAddress ip, ushort port)
         {
-            return Channels.Find((s) => s.ExternalIp.Equals(ip) && s.Port.Equals(port));
+            foreach (var channel in Channels)
+                if (channel.ExternalIp.Equals(ip) && channel.Port.Equals(port))
+                    return channel;
+            return null;
+        }
+
+        private AresChannel FindLocalChannel(IPAddress ip) {
+            foreach (var s in Channels)
+                if (ip.IsLocalMachine() && Equals(ExternalIp, s.ExternalIp))
+                    return s;
+                else if (ip.IsLocalAreaNetwork() && Equals(ExternalIp, s.ExternalIp) && Equals(s.InternalIp, ip))
+                    return s;
+            return null;
         }
 
         public void LoadFromDatFile() {

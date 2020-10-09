@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel;
 using Zorbo.Ares.Packets;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,9 +15,9 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script = null;
+            readonly Script script = null;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "FloodRule", new FloodRule(script)) {
 
                 this.script = script;
@@ -73,20 +72,20 @@ namespace Javascript.Objects
             set { if (rule != null) rule.Timeout = value; }
         }
 
-        private FloodRule(JScript script)
+        private FloodRule(Script script)
             : base(script.Engine) {
 
             this.PopulateFunctions();
         }
 
-        public FloodRule(JScript script, IFloodRule rule)
+        public FloodRule(Script script, IFloodRule rule)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["FloodRule"]).InstancePrototype) {
 
             this.rule = rule;
             this.PopulateFunctions();
         }
 
-        internal FloodRule(JScript script, string name, int id, double count, double timeout)
+        internal FloodRule(Script script, string name, int id, double count, double timeout)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["FloodRule"]).InstancePrototype) {
 
 
@@ -94,7 +93,7 @@ namespace Javascript.Objects
             this.PopulateFunctions();
         }
 
-        internal FloodRule(JScript script, ObjectInstance proto, string name, int id, double count, double timeout)
+        internal FloodRule(Script script, ObjectInstance proto, string name, int id, double count, double timeout)
             : base(script.Engine, proto) {
 
             this.rule = new Zorbo.Ares.FloodRule(name, (AresId)id, count, timeout);

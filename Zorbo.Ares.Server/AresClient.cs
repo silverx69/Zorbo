@@ -20,16 +20,13 @@ namespace Zorbo.Ares.Server
     {
         #region " Variables "
 
-        ISocket socket;
-
 #pragma warning disable IDE0044 // Add readonly modifier
+
+        Guid guid;
 
         AresServer server;
         AdminLevel admin;
-
-        ushort id;
-        Guid guid;
-
+        
         int captchaTries = 5;
         int captchaAnswer;
 
@@ -42,7 +39,7 @@ namespace Zorbo.Ares.Server
         bool fastping = false;
         bool compression = false;
         bool encryption = false;
-        
+
         byte age = 0;
         Gender gender = Gender.Unknown;
         Country country = Country.Unknown;
@@ -51,24 +48,16 @@ namespace Zorbo.Ares.Server
         byte[] orgavatar = null;
 
         string name;
-        string orgname;
         string version;
         string region;
         string message;
 
         ushort vroom;
-        ushort dcport;
-        ushort nodeport;
 
         IPAddress nodeip;
         IPAddress localip;
 
         DateTime jointime;
-        DateTime captchatime;
-        DateTime lastupdate;
-
-        ModelList<string> ignored;
-
         ClientFlags features = ClientFlags.NONE;
 
         Dictionary<byte, FloodCounter> counters;
@@ -80,10 +69,7 @@ namespace Zorbo.Ares.Server
 
         #region " Properties "
 
-        public ushort Id {
-            get { return id; }
-            set { id = value; }
-        }
+        public ushort Id { get; set; }
 
         public Guid Guid {
             get { return guid; }
@@ -94,9 +80,7 @@ namespace Zorbo.Ares.Server
             get { return (uint)GetHashCode(); }
         }
 
-        public ISocket Socket {
-            get { return socket; }
-        }
+        public ISocket Socket { get; private set; }
 
         public IServer Server {
             get { return server; }
@@ -104,20 +88,21 @@ namespace Zorbo.Ares.Server
 
         public IMonitor Monitor {
             get {
-                if (socket != null)
-                    return socket.Monitor;
+                if (Socket != null)
+                    return Socket.Monitor;
 
                 return null;
             }
         }
 
         public ClientId ClientId {
-            get { return new ClientId(Guid, ExternalIp); }
+            get;
+            private set;
         }
 
 
         public bool Connected {
-            get { return socket != null && socket.IsConnected; }
+            get { return Socket != null && Socket.IsConnected; }
         }
 
         public bool IsCaptcha {
@@ -135,7 +120,8 @@ namespace Zorbo.Ares.Server
                         if (LoggedIn)
                             server.SendPacket((s) =>
                                 s != this &&
-                                s.Vroom == Vroom,
+                                s.Vroom == Vroom &&
+                                s.CanSee(this),
                                 new Parted(Name));
 
                         vroom = ushort.MaxValue;
@@ -221,7 +207,6 @@ namespace Zorbo.Ares.Server
             set { OnPropertyChanged(() => encryption, value); }
         }
 
-
         public byte Age {
             get { return age; }
             set { OnPropertyChanged(() => age, value); }
@@ -251,8 +236,11 @@ namespace Zorbo.Ares.Server
                     admin = value;
                     OnPropertyChanged();
 
-                    server.SendPacket(this, new OpChange(Admin > AdminLevel.User));
-                    server.SendPacket((s) => s.Vroom == Vroom, new ServerUpdate(this));
+                    SendPacket(new OpChange(Admin > AdminLevel.User));
+                    server.SendPacket((s) => 
+                        s.Vroom == Vroom &&
+                        s.CanSee(this), 
+                        new ServerUpdate(this));
                 }
             }
         }
@@ -260,19 +248,17 @@ namespace Zorbo.Ares.Server
 
         public byte[] Avatar {
             get {
-                if (avatar == null)
+                if (avatar.IsEmpty())
                     return server.Config.Avatar;
-
-                return avatar;
+                return avatar; 
             }
             set {
                 if (avatar == null || !avatar.Equals(value)) {
-
                     avatar = value;
                     OnPropertyChanged();
-
                     server.SendPacket((s) =>
-                        s.Vroom == Vroom,
+                        s.Vroom == Vroom && 
+                        s.CanSee(this),
                         new ServerAvatar(this));
                 }
             }
@@ -280,26 +266,20 @@ namespace Zorbo.Ares.Server
 
         public byte[] OrgAvatar {
             get { return orgavatar; }
-            set { orgavatar = value; }
+            set { OnPropertyChanged(() => orgavatar, value); }
         }
 
 
         public string Name {
             get { return name; }
-            set {
-                if (name != value)
-                    ChangeName(name, value);
-            }
+            set { ChangeName(name, value); }
         }
 
-        public string OrgName {
-            get { return orgname; }
-            set { orgname = value; }
-        }
+        public string OrgName { get; set; }
 
         public string Version {
             get { return version; }
-            set { version = value; }
+            set { OnPropertyChanged(() => version, value); }
         }
 
         public string Region {
@@ -315,32 +295,23 @@ namespace Zorbo.Ares.Server
                     OnPropertyChanged();
 
                     server.SendPacket((s) =>
-                        s.Vroom == Vroom,
+                        s.Vroom == Vroom &&
+                        s.CanSee(this),
                         new ServerPersonal(Name, message));
                 }
             }
         }
 
-
         public ushort Vroom {
             get { return vroom; }
-            set {
-                if (vroom != value)
-                    ChangeVroom(vroom, value);
-            }
+            set { ChangeVroom(vroom, value); }
         }
 
         public ushort FileCount => 0;
 
-        public ushort ListenPort {
-            get { return dcport; }
-            set { dcport = value; }
-        }
+        public ushort ListenPort { get; set; }
 
-        public ushort NodePort {
-            get { return nodeport; }
-            set { nodeport = value; }
-        }
+        public ushort NodePort { get; set; }
 
 
         public IPAddress NodeIp {
@@ -354,15 +325,7 @@ namespace Zorbo.Ares.Server
         }
 
         public IPAddress ExternalIp {
-            get {
-                if (socket != null)
-                    try {
-                        return socket.RemoteEndPoint.Address;
-                    }
-                    catch { }
-
-                return null;
-            }
+            get { return Socket?.RemoteEndPoint?.Address; }
         }
 
         public ClientFlags Features {
@@ -370,10 +333,7 @@ namespace Zorbo.Ares.Server
             set { OnPropertyChanged(() => features, value); }
         }
 
-
-        public ModelList<string> Ignored {
-            get { return ignored; }
-        }
+        public ModelList<string> Ignored { get; private set; }
 
         IObservableCollection<string> IClient.Ignored {
             get { return Ignored; }
@@ -384,26 +344,15 @@ namespace Zorbo.Ares.Server
         }
 
 
-        public DateTime JoinTime {
-            get { return jointime; }
-            set { jointime = value; }
-        }
+        public DateTime JoinTime { get; set; }
 
-        public DateTime CaptchaTime {
-            get { return captchatime; }
-            set { captchatime = value; }
-        }
+        public DateTime CaptchaTime { get; set; }
 
-        public DateTime LastUpdate {
-            get { return lastupdate; }
-            set { lastupdate = value; }
-        }
+        public DateTime LastPing { get; set; }
 
+        public DateTime LastUpdate { get; set; }
 
-        internal Dictionary<byte, FloodCounter> Counters {
-            get { return counters; }
-            set { counters = value; }
-        }
+        internal Dictionary<byte, FloodCounter> Counters { get; set; }
 
         IDictionary<byte, IFloodCounter> IClient.Counters {
             get { return (IDictionary<byte,IFloodCounter>)Counters; }
@@ -414,32 +363,36 @@ namespace Zorbo.Ares.Server
 
         internal AresClient(AresServer server, ISocket socket, ushort id)
         {
-            this.id = id;
+            this.Id = id;
 
             this.server = server;
-            this.socket = socket;
-            this.socket.PacketReceived += OnPacketReceived;
-            this.Socket.RequestReceived += OnHttpRequestReceived;
+            this.Socket = socket;
+            this.Socket.PacketReceived += OnPacketReceived;
 
             this.jointime = DateTime.Now;
-            this.lastupdate = this.jointime;
+            this.LastPing = this.jointime;
+            this.LastUpdate = this.jointime;
 
-            this.ignored = new ModelList<string>();
+            this.Ignored = new ModelList<string>();
             this.counters = new Dictionary<byte, FloodCounter>();
             this.extended_props = new Dictionary<string, object>();
         }
 
+
         public void SendPacket(IPacket packet)
         {
+            if (packet is FastPing)
+                LastPing = DateTime.Now;
+
             if (Connected && LoggedIn)
-                socket.SendAsync(packet);
+                Socket.SendAsync(packet);
         }
 
         public void SendPacket(Predicate<IClient> match, IPacket packet)
         {
-            if (match(this))
-                SendPacket(packet);
+            if (match(this)) SendPacket(packet);
         }
+
 
         private void ShowCaptcha()
         {
@@ -449,11 +402,9 @@ namespace Zorbo.Ares.Server
             else PerformQuickLogin();
 
             try {
-                //this could except on client.Socket
-                //SendPacket won't send out packets to IsCaptcha = true
                 captchaAnswer = Captcha.Create(this);
+                CaptchaTime = DateTime.Now;
 
-                captchatime = DateTime.Now;
                 server.PluginHost.OnCaptcha(this, CaptchaEvent.Enter);
             }
             catch { }
@@ -487,14 +438,14 @@ namespace Zorbo.Ares.Server
         {
             LoggedIn = true;
 
-            server.SendPacket(this, new LoginAck() {
+            SendPacket(new LoginAck() {
                 Username = Name,
                 ServerName = server.Config.Name,
             });
 
             var features = server.PluginHost.OnSendFeatures(this, server.Config.GetFeatures());
 
-            server.SendPacket(this, new Features() {
+            SendPacket(new Features() {
                 Version = Strings.VersionLogin,
                 SupportFlag = features,
                 SharedTypes = 63,
@@ -502,65 +453,66 @@ namespace Zorbo.Ares.Server
                 Token = this.Token,
             });
 
-            server.SendPacket(this, new TopicFirst(server.Config.Topic));
+            SendPacket(new TopicFirst(server.Config.Topic));
             server.SendUserlist(this);
 
             if (!IsCaptcha) {
+                SendPacket(new OpChange(Admin > AdminLevel.User));
+                server.SendWebsite();
                 server.SendAvatars(this);
-                server.SendPacket(this, new OpChange(Admin > AdminLevel.User));
-
                 server.PluginHost.OnSendJoin(this);
             }
-
-            server.SendWebsite();
         }
 
         internal void PerformQuickLogin()
         {
-            server.SendPacket(this, new LoginAck() {
+            SendPacket(new LoginAck() {
                 Username = Name,
                 ServerName = server.Config.Name,
             });
 
-            server.SendPacket(this, new TopicFirst(server.Config.Topic));
+            SendPacket(new TopicFirst(server.Config.Topic));
             server.SendUserlist(this);
 
             if (!IsCaptcha) {
-                if (!String.IsNullOrEmpty(Message))
+                SendPacket(new OpChange(Admin > AdminLevel.User));
+                server.SendWebsite();
+                if (!string.IsNullOrEmpty(Message))
                     server.SendPacket((s) =>
-                        s.Vroom == Vroom,
+                        s.Vroom == Vroom &&
+                        s.CanSee(this),
                         new ServerPersonal(Name, Message));
-
                 server.SendAvatars(this);
-                server.SendPacket(this, new OpChange(Admin > AdminLevel.User));
-
                 server.PluginHost.OnSendJoin(this);
             }
-
-            server.SendWebsite();
         }
 
 
         internal void ChangeName(string oldname, string newname)
         {
-            name = newname.FormatUsername();
+            newname = newname.FormatUsername();
 
-            if (string.IsNullOrWhiteSpace(name))
-                name = ExternalIp.AnonUsername();
+            if (string.IsNullOrWhiteSpace(newname))
+                newname = ExternalIp.AnonUsername();
 
-            RaisePropertyChanged(nameof(Name));
+            if (oldname != newname) {
 
-            server.SendPacket((s) =>
-                s != this &&
-                s.Vroom == Vroom,
-                new Parted() { Username = oldname });
+                name = newname;
+                RaisePropertyChanged(nameof(Name));
 
-            PerformQuickLogin();
+                server.SendPacket((s) =>
+                    s != this &&
+                    s.Vroom == Vroom &&
+                    s.CanSee(this),
+                    new Parted() { Username = oldname });
+
+                PerformQuickLogin();
+            }
         }
 
         internal void ChangeVroom(ushort oldvroom, ushort newvroom)
         {
-            if (server.PluginHost.OnVroomJoinCheck(this, newvroom)) {
+            if (oldvroom != newvroom && server.PluginHost.OnVroomJoinCheck(this, newvroom)) {
 
                 server.PluginHost.OnVroomPart(this);
 
@@ -569,7 +521,8 @@ namespace Zorbo.Ares.Server
 
                 server.SendPacket((s) =>
                     s != this &&
-                    s.Vroom == oldvroom,
+                    s.Vroom == oldvroom &&
+                    s.CanSee(this),
                     new Parted(Name));
 
                 PerformQuickLogin();
@@ -577,12 +530,12 @@ namespace Zorbo.Ares.Server
             }
         }
 
-
         internal void HandleJoin(PacketEventArgs e)
         {
             Login login = (Login)e.Packet;
 
             Guid = login.Guid;
+            ClientId = new ClientId(Guid, ExternalIp);
             Encryption = login.Encryption == 250;
             ListenPort = login.ListenPort;
             NodeIp = login.NodeIp;
@@ -590,7 +543,7 @@ namespace Zorbo.Ares.Server
             name = login.Username.FormatUsername();
             if (string.IsNullOrWhiteSpace(name))
                 name = ExternalIp.AnonUsername();
-            orgname = name;
+            OrgName = name;
             Version = login.Version;
             LocalIp = login.LocalIp;
             Age = login.Age;
@@ -641,12 +594,14 @@ namespace Zorbo.Ares.Server
             }
         }
 
+
         private void FinishJoin()
         {
             PerformLogin();
             server.Stats.Joined++;
             server.PluginHost.OnJoin(this);
         }
+
 
         private void OnPacketReceived(object sender, PacketEventArgs e)
         {
@@ -665,12 +620,6 @@ namespace Zorbo.Ares.Server
             }
         }
 
-        private void OnHttpRequestReceived(object sender, RequestEventArgs e)
-        {
-            Console.WriteLine("--------- HTTP Request Received ---------");
-            Console.WriteLine("");
-        }
-
         /// <summary>
         /// Packets handled in this function are 'internal' and cannot be overriden.
         /// </summary>
@@ -679,11 +628,13 @@ namespace Zorbo.Ares.Server
             if (IsCaptcha) {
                 switch ((AresId)e.Packet.Id) {
                     case AresId.MSG_CHAT_CLIENT_FASTPING:
-                        fastping = true;
+                        FastPing = true;
+                        return true;
+                    case AresId.MSG_CHAT_CLIENT_DUMMY:
                         return true;
                     case AresId.MSG_CHAT_CLIENT_AUTOLOGIN:
                         AutoLogin login = (AutoLogin)e.Packet;
-                        Commands.HandleAutoLogin(server, this, login.Sha1Password);
+                        AresCommands.HandleAutoLogin(server, this, login.Sha1Password);
                         return true;
                     case AresId.MSG_CHAT_CLIENT_PUBLIC:
                         ClientPublic pub = (ClientPublic)e.Packet;
@@ -698,7 +649,7 @@ namespace Zorbo.Ares.Server
                     case AresId.MSG_CHAT_CLIENT_UPDATE_STATUS:
                         ClientUpdate update = (ClientUpdate)e.Packet;
 
-                        lastupdate = DateTime.Now;
+                        LastUpdate = DateTime.Now;
 
                         NodeIp = update.NodeIp;
                         NodePort = update.NodePort;
@@ -716,39 +667,36 @@ namespace Zorbo.Ares.Server
 
                 switch ((AresId)e.Packet.Id) {
                     case AresId.MSG_CHAT_CLIENT_FASTPING:
-                        fastping = true;
+                        FastPing = true;
                         return true;
                     case AresId.MSG_CHAT_CLIENT_DUMMY:
                         return true;
                     case AresId.MSG_CHAT_CLIENT_PUBLIC:
                         ClientPublic pub = (ClientPublic)e.Packet;
 
-                        if (!String.IsNullOrEmpty(pub.Message))
-                            if (pub.Message.StartsWith("#") && Commands.HandlePreCommand(server, this, pub.Message.Substring(1)))
-                                return true;
+                        if (AresCommands.HandlePreCommand(server, this, pub.Message))
+                            return true;
 
                         if (Muzzled) {
                             server.SendAnnounce(this, Strings.AreMuzzled);
                             return true;
                         }
-
-                        return false;
+                        break;
                     case AresId.MSG_CHAT_CLIENT_EMOTE:
                         ClientEmote emote = (ClientEmote)e.Packet;
 
-                        if (!String.IsNullOrEmpty(emote.Message))
-                            if (emote.Message.StartsWith("#") && Commands.HandlePreCommand(server, this, emote.Message.Substring(1)))
-                                return true;
+                        if (AresCommands.HandlePreCommand(server, this, emote.Message))
+                            return true;
 
                         if (Muzzled) {
                             server.SendAnnounce(this, Strings.AreMuzzled);
                             return true;
                         }
-
-                        return false;
+                        break;
                     case AresId.MSG_CHAT_CLIENT_COMMAND:
                         Command cmd = (Command)e.Packet;
-                        Commands.HandlePreCommand(server, this, cmd.Message);
+                        if (AresCommands.HandleCommand(server, this, cmd.Message))
+                            return true;
                         break;
                     case AresId.MSG_CHAT_CLIENT_PVT:
                         Private pvt = (Private)e.Packet;
@@ -756,44 +704,43 @@ namespace Zorbo.Ares.Server
                         if (Muzzled && !server.Config.MuzzledPMs) {
 
                             pvt.Message = "[" + Strings.AreMuzzled + "]";
-                            server.SendPacket(this, pvt);
+                            SendPacket(pvt);
 
                             return true;
                         }
 
-                        return false;
+                        break;
                     case AresId.MSG_CHAT_CLIENT_AUTHREGISTER: {
                         AuthRegister reg = (AuthRegister)e.Packet;
-                        Commands.HandleRegister(server, this, reg.Password);
+                        AresCommands.HandleRegister(server, this, reg.Password);
+                        return true;
                     }
-                    return true;
                     case AresId.MSG_CHAT_CLIENT_AUTHLOGIN: {
                         AuthLogin login = (AuthLogin)e.Packet;
-                        Commands.HandleLogin(server, this, login.Password);
+                        AresCommands.HandleLogin(server, this, login.Password);
+                        return true;
                     }
-                    return true;
                     case AresId.MSG_CHAT_CLIENT_AUTOLOGIN: {
                         AutoLogin login = (AutoLogin)e.Packet;
-                        Commands.HandleAutoLogin(server, this, login.Sha1Password);
+                        AresCommands.HandleAutoLogin(server, this, login.Sha1Password);
+                        return true;
                     }
-                    return true;
                     case AresId.MSG_CHAT_CLIENT_ADDSHARE:
                         return true;
                     case AresId.MSG_CHAT_CLIENT_IGNORELIST:
                         Ignored ignore = (Ignored)e.Packet;
-
                         if (ignore.Ignore) {
-                            lock (ignored) {
-                                if (!ignored.Contains(ignore.Username)) {
-                                    ignored.Add(ignore.Username);
+                            lock (Ignored) {
+                                if (!Ignored.Contains(ignore.Username)) {
+                                    Ignored.Add(ignore.Username);
                                     server.SendAnnounce(this, String.Format(Strings.Ignored, ignore.Username));
                                 }
                             }
                         }
                         else {
-                            lock (ignored) {
-                                if (ignored.Contains(ignore.Username)) {
-                                    ignored.Remove(ignore.Username);
+                            lock (Ignored) {
+                                if (Ignored.Contains(ignore.Username)) {
+                                    Ignored.Remove(ignore.Username);
                                     server.SendAnnounce(this, String.Format(Strings.Unignored, ignore.Username));
                                 }
                             }
@@ -802,7 +749,7 @@ namespace Zorbo.Ares.Server
                     case AresId.MSG_CHAT_CLIENT_UPDATE_STATUS:
                         ClientUpdate update = (ClientUpdate)e.Packet;
 
-                        lastupdate = DateTime.Now;
+                        LastUpdate = DateTime.Now;
 
                         NodeIp = update.NodeIp;
                         NodePort = update.NodePort;
@@ -810,43 +757,46 @@ namespace Zorbo.Ares.Server
                         Gender = (update.Gender != 0) ? update.Gender : Gender;
                         Country = (update.Country != 0) ? update.Country : Country;
                         //Region = !String.IsNullOrEmpty(update.Region) ? update.Region : Region;
-                        server.SendPacket((s) => s.Vroom == Vroom, new ServerUpdate(this));
+                        server.SendPacket((s) => 
+                            s.Vroom == Vroom &&
+                            s.CanSee(this), 
+                            new ServerUpdate(this));
 
                         return true;
                     case AresId.MSG_CHAT_CLIENT_DIRCHATPUSH:
                         ClientDirectPush push = (ClientDirectPush)e.Packet;
 
                         if (Encoding.UTF8.GetByteCount(push.Username) < 2) {
-                            server.SendPacket(this, new DirectPushError(4));
+                            SendPacket(new DirectPushError(4));
                             return true;
                         }
 
                         if (push.TextSync.Length < 16) {
-                            server.SendPacket(this, new DirectPushError(3));
+                            SendPacket(new DirectPushError(3));
                             return true;
                         }
 
                         IClient target = server.FindUser(s => s.Name == push.Username);
 
                         if (target == null) {
-                            server.SendPacket(this, new DirectPushError(1));
+                            SendPacket(new DirectPushError(1));
                             return true;
                         }
 
                         if (target.Ignored.Contains(Name)) {
-                            server.SendPacket(this, new DirectPushError(2));
+                            SendPacket(new DirectPushError(2));
                             return true;
                         }
 
-                        server.SendPacket(this, new DirectPushError(0));
+                        SendPacket(new DirectPushError(0));
                         server.SendPacket(target, new ServerDirectPush(this, push));
 
                         return true;
                     case AresId.MSG_CHAT_CLIENT_BROWSE:
-                        server.SendPacket(this, new BrowseError(((Browse)e.Packet).BrowseId));
+                        SendPacket(new BrowseError(((Browse)e.Packet).BrowseId));
                         return true;
                     case AresId.MSG_CHAT_CLIENT_SEARCH:
-                        server.SendPacket(this, new SearchEnd(((Search)e.Packet).SearchId));
+                        SendPacket(new SearchEnd(((Search)e.Packet).SearchId));
                         return true;
                     case AresId.MSG_CHAT_CLIENTCOMPRESSED: {
                         Compressed packet = (Compressed)e.Packet;
@@ -892,6 +842,7 @@ namespace Zorbo.Ares.Server
 
                         server.SendPacket((s) =>
                             s.Vroom == Vroom &&
+                            s.CanSee(this) &&
                            !s.Ignored.Contains(Name),
                             new ServerPublic(Name, pub.Message));
                     }
@@ -903,6 +854,7 @@ namespace Zorbo.Ares.Server
 
                         server.SendPacket((s) =>
                             s.Vroom == Vroom &&
+                            s.CanSee(this) &&
                            !s.Ignored.Contains(Name),
                             new ServerEmote(Name, emote.Message));
                     }
@@ -917,19 +869,15 @@ namespace Zorbo.Ares.Server
                     if (target != null) {
 
                         if (target.Ignored.Contains(Name))
-                            server.SendPacket(this, new IgnoringYou(priv.Username));
+                            SendPacket(new IgnoringYou(priv.Username));
                         else {
                             priv.Username = Name;
                             server.SendPacket(target, priv);
                         }
                     }
-                    else server.SendPacket(this, new Offline(priv.Username));
+                    else SendPacket(new Offline(priv.Username));
                 }
                 break;
-                case AresId.MSG_CHAT_CLIENT_COMMAND:
-                    //Command cmd = (Command)e.Packet;
-                    //Not necessary to handle this here anymore
-                    break;
                 case AresId.MSG_CHAT_CLIENT_PERSONAL_MESSAGE:
                     ClientPersonal personal = (ClientPersonal)e.Packet;
                     Message = personal.Message;
@@ -941,9 +889,7 @@ namespace Zorbo.Ares.Server
                         Avatar = null;
                     else {
                         Avatar = avatar.AvatarBytes;
-
-                        if (OrgAvatar == null)
-                            OrgAvatar = avatar.AvatarBytes;
+                        OrgAvatar ??= avatar.AvatarBytes;
                     }
                     break;
                 case AresId.MSG_CHAT_CLIENT_CUSTOM_DATA: {
@@ -963,7 +909,8 @@ namespace Zorbo.Ares.Server
 
                     server.SendPacket((s) =>
                         s != this &&
-                        s.Vroom == Vroom,
+                        s.Vroom == Vroom &&
+                        s.CanSee(this),
                         new ClientCustom(Name, customAll));
 
                     break;
@@ -999,12 +946,12 @@ namespace Zorbo.Ares.Server
                     if (user.Name == Name)
                         return Rejected(new Announce(Errors.NameTaken), RejectReason.NameTaken);
                     
-                    else if (user.ExternalIp.Equals(socket.RemoteEndPoint.Address))
+                    else if (user.ExternalIp.Equals(Socket.RemoteEndPoint.Address))
                         count++;
                 }
 
                 if (count > server.Config.MaxClones)
-                    return Rejected(new Error(String.Format(Errors.Clones, socket.RemoteEndPoint.Address)), RejectReason.TooManyBots);
+                    return Rejected(new Error(String.Format(Errors.Clones, Socket.RemoteEndPoint.Address)), RejectReason.TooManyBots);
             }
             //Disconnect ghosts after the Name hijack check
             //this prevents an infinite loop in case you open 2 tabs to the same room with the same name
@@ -1018,7 +965,7 @@ namespace Zorbo.Ares.Server
 
         private bool Rejected(IPacket msg, RejectReason reason)
         {
-            socket.SendAsync(msg);
+            Socket.SendAsync(msg);
             server.PluginHost.OnJoinRejected(this, reason);
 
             Disconnect();
@@ -1046,8 +993,8 @@ namespace Zorbo.Ares.Server
 
         public void Disconnect(Object state)
         {
-            if (socket != null)
-                socket.Disconnect(state);
+            if (Socket != null)
+                Socket.Disconnect(state);
         }
 
         /// <summary>
@@ -1067,12 +1014,12 @@ namespace Zorbo.Ares.Server
         {
             LoggedIn = false;
 
-            socket.Dispose();
-            socket = null;
+            Socket.Dispose();
+            Socket = null;
 
             guid = Guid.Empty;
             name = null;
-            orgname = null;
+            OrgName = null;
             version = null;
             region = null;
             message = null;
@@ -1084,8 +1031,8 @@ namespace Zorbo.Ares.Server
             counters.Clear();
             counters = null;
 
-            ignored.Clear();
-            ignored = null;
+            Ignored.Clear();
+            Ignored = null;
 
             extended_props.Clear();
             extended_props = null;

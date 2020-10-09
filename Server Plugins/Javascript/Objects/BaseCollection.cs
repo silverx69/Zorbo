@@ -6,24 +6,23 @@ using System.Text;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
     public abstract class BaseCollection : ScriptObject
     {
-        protected JScript script;
+        protected Script script;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public abstract int Count { get; }
 
-        public BaseCollection(JScript script)
+        public BaseCollection(Script script)
             : base(script.Engine) {
             this.script = script;
             this.PopulateFunctions();
         }
 
-        public BaseCollection(JScript script, ObjectInstance prototype)
+        public BaseCollection(Script script, ObjectInstance prototype)
             : base(script.Engine, prototype) {
             this.script = script;
             this.PopulateFunctions();

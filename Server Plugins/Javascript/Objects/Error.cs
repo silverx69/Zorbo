@@ -2,20 +2,19 @@
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
     public class Error : ScriptObject
     {
-        readonly JScript script = null;
+        readonly Script script = null;
         readonly JavaScriptException error = null;
 
         #region " Constructor "
 
         public class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "Error", new Error(script)) {
             }
 
@@ -32,7 +31,7 @@ namespace Javascript.Objects
 
         #endregion
 
-        public Error(JScript script)
+        public Error(Script script)
             : base(script.Engine) {
 
             this.script = script;
@@ -41,7 +40,7 @@ namespace Javascript.Objects
             this.PopulateFunctions();
         }
 
-        public Error(JScript script, JavaScriptException ex)
+        public Error(Script script, JavaScriptException ex)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["Error"]).InstancePrototype) {
 
             this.error = ex;

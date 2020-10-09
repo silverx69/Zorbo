@@ -1,13 +1,11 @@
-﻿using cb0tProtocol.Packets;
-using cb0tProtocol.Packets.ib0t;
-using Jurassic.Library;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Zorbo.Ares.Formatters;
 using Zorbo.Ares.Packets;
 using Zorbo.Ares.Packets.Chatroom;
+using Zorbo.Ares.Packets.Chatroom.ib0t;
 using Zorbo.Core;
-using Zorbo.Core.Plugins;
 using Zorbo.Core.Plugins.Server;
 using Zorbo.Core.Server;
 
@@ -17,19 +15,9 @@ namespace cb0tProtocol
     public class cb0tProtocol : ServerPlugin
 #pragma warning restore IDE1006 // Naming Styles
     {
-        IPacketFormatter formatter = null;
-
-        internal static cb0tProtocol Self { get; private set; } = null;
-
         public override void OnPluginLoaded()
         {
-            Self = this;
-            Server.PluginHost.Loaded += OnHostLoadedPlugin;
-
-            this.formatter = new AdvancedClientFormatter();
-
             foreach (var user in Server.Users) {
-                user.Socket.Formatter = formatter;
                 user.Extended["CustomFont"] = null;
                 user.Extended["SupportEmote"] = false;
                 user.Extended["VoiceIgnore"] = new List<String>();
@@ -39,25 +27,11 @@ namespace cb0tProtocol
             foreach (var user in Server.Users)
                 OnSendJoin(user);
 
-            var js = Server.PluginHost.Find(s => s.Name.ToLower() == "javascript");
-            if (js != null) OnHostLoadedPlugin(null, js);
-
             Server.SendAnnounce("cb0tProtocol plugin has been loaded!!");
-        }
-
-        //inject the Scribble Javascript object into the Zorbo Javascript Plugin. 
-        //this requires references to Jurassic.dll as well as the plugin (Javascript.dll)
-        private void OnHostLoadedPlugin(object sender, LoadedPlugin<IServer, ServerPlugin> plugin)
-        {
-            if (plugin.Plugin is Javascript.JurassicPlugin js) {
-                js.EmbedObject("Scribble", typeof(Scribble.Constructor), PropertyAttributes.Configurable);
-            }
         }
 
         public override void OnPluginKilled()
         {
-            Server.PluginHost.Loaded -= OnHostLoadedPlugin;
-
             // Send packets to inform cb0t we've stopped supporting the advanced features
             var voice_support = new Advanced(new ServerVoiceSupport() {
                 Enabled = false,
@@ -73,7 +47,7 @@ namespace cb0tProtocol
 
                     bool pubvoice = (user.Features & ClientFlags.VOICE) == ClientFlags.VOICE;
                     bool privoice = (user.Features & ClientFlags.PRIVATE_VOICE) == ClientFlags.PRIVATE_VOICE;
-
+                    
                     if (pubvoice || privoice) {
 
                         Server.SendPacket(new Advanced(new ServerVoiceSupportUser() {
@@ -94,22 +68,17 @@ namespace cb0tProtocol
                             }));
                     }
                 }
-
-                //setting to null will revert back to 'ServerFormatter'
-                user.Socket.Formatter = null;
                 user.Extended.Remove("CustomFont");
                 user.Extended.Remove("SupportEmote");
                 user.Extended.Remove("VoiceIgnore");
                 user.Extended.Remove("CustomEmote");
             }
-
+            
             Server.SendAnnounce("cb0tProtocol plugin has been unloaded!!");
         }
 
         public override SupportFlags OnSendFeatures(IClient client, SupportFlags features)
         {
-            client.Socket.Formatter = formatter;
-
             if ((features & SupportFlags.ROOM_SCRIBBLES) != SupportFlags.ROOM_SCRIBBLES) {
                 features |= SupportFlags.ROOM_SCRIBBLES;
             }
@@ -117,7 +86,7 @@ namespace cb0tProtocol
             if ((features & SupportFlags.PRIVATE_SCRIBBLES) != SupportFlags.PRIVATE_SCRIBBLES) {
                 features |= SupportFlags.PRIVATE_SCRIBBLES;
             }
-
+            
             return features;
         }
 
@@ -166,6 +135,28 @@ namespace cb0tProtocol
             return true;
         }
 
+        public override bool OnTextCommand(IClient client, string cmd, string args)
+        {
+            switch (cmd) {
+                case "scribble":
+                    var scribble = RoomScribble.GetScribble(client);
+                    if (Uri.TryCreate(args, UriKind.Absolute, out Uri uri)) {
+                        if (uri.IsFile)
+                            Server.SendAnnounce((s) => s.Vroom == client.Vroom, "File uri is not suppored by the scribble command.");
+
+                        else if (uri.IsWellFormedOriginalString()) {
+
+                            scribble.Download(uri, (s) => {
+                                SendRoomScribble((c) => c.Vroom == client.Vroom, client.Name, scribble);
+                            },
+                            uri);
+                        }
+                    }
+                    return false;
+            }
+            return true;
+        }
+
         public override bool OnBeforePacket(IClient client, IPacket packet)
         {
             if ((AresId)packet.Id == AresId.MSG_CHAT_CLIENT_CUSTOM_DATA) {
@@ -185,22 +176,10 @@ namespace cb0tProtocol
 
         public override void OnAfterPacket(IClient client, IPacket packet)
         {
-            switch ((AresId)packet.Id) {
-                case AresId.MSG_CHAT_CLIENT_PUBLIC:
-                    ClientPublic pub = (ClientPublic)packet;
-                    if (pub.Message.StartsWith("#"))
-                        OnCommand(client, pub.Message.Substring(1));
-                    break;
-                case AresId.MSG_CHAT_CLIENT_COMMAND:
-                    Command cmd = (Command)packet;
-                    OnCommand(client, cmd.Message);
-                    break;
-            }
-
-            if ((AdvancedId)packet.Id == AdvancedId.MSG_CHAT_ADVANCED_FEATURES_PROTOCOL) {
+            if (packet.Id == (byte)AresId.MSG_CHAT_ADVANCED_FEATURES_PROTOCOL) {
 
                 if (!(((Advanced)packet).Payload is AdvancedPacket advanced)) 
-                    return;
+                    return;// could be "Unknown" type
 
                 switch ((AdvancedId)advanced.Id) {
                     case AdvancedId.MSG_CHAT_CLIENT_CUSTOM_ADD_TAGS:
@@ -385,7 +364,9 @@ namespace cb0tProtocol
                                     }));
                         }
                         else {
-                            Server.SendPacket((s) => s.Vroom == client.Vroom && (bool)s.Extended["SupportEmote"],
+                            Server.SendPacket((s) => 
+                                    s.Vroom == client.Vroom && 
+                                    (bool)s.Extended["SupportEmote"],
                                     new Advanced(new ServerEmoteItem() {
                                         Username = client.Name,
                                         Shortcut = item.Shortcut,
@@ -420,42 +401,8 @@ namespace cb0tProtocol
                         break;
                 }
             }
-            else {
-                //string text = Json.Serialize(packet);
-                //if (text == "{\"data\":\"\"}") { 
-                    
-                //}
-                //Server.SendAnnounce(text);
-            }
         }
 
-        private void OnCommand(IClient client, string text)
-        {
-            if (text.Length > 9 && text.Substring(0, 9) == "scribble ") {
-                
-                var scribble = RoomScribble.GetScribble(client);
-
-                if (Uri.TryCreate(text.Substring(9), UriKind.Absolute, out Uri uri)) {
-                    if (uri.IsFile)
-                        Server.SendAnnounce((s) => s.Vroom == client.Vroom, "File uri is not suppored by the scribble command.");
-                    
-                    else if (uri.IsWellFormedOriginalString()) {
-
-                        scribble.Download(uri, (s) => {
-                            SendRoomScribble((c) => c.Vroom == client.Vroom, client.Name, scribble);
-                        },
-                        uri);
-                    }
-                }
-            }
-
-        }
-        /*
-        private void OnScribbleDownload(object state)
-        {
-
-        }
-        */
         private void OnScribbleFirst(IClient client, ClientScribbleFirst first)
         {
             var scribble = RoomScribble.GetScribble(client);
@@ -485,51 +432,6 @@ namespace cb0tProtocol
                 (s) => s != client && s.Vroom == client.Vroom,
                 client.Name,
                 scribble);
-        }
-
-        //Used for Sending scribble objects from javascript
-        //
-        internal void SendRoomScribble(string name, RoomScribble scribble)
-        {
-            byte[] buffer;
-            if (scribble.Size <= 4000) {
-                Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
-            }
-            else {
-                scribble.Index = 0;
-                buffer = scribble.Read();
-
-                Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
-
-                while (scribble.Remaining > 0) {
-                    buffer = scribble.Read();
-
-                    if (scribble.Remaining > 0)
-                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
-                    else
-                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
-                }
-            }
-
-            var ib0ts = Server.Users.Where(s => s.Socket.Isib0tSocket);
-            if (ib0ts.Count() > 0) {
-                buffer = Zlib.Decompress(scribble.RawImage());
-
-                int height = RoomScribble.GetHeight(buffer);
-                string base64 = Convert.ToBase64String(buffer);
-
-                string[] chunks = new string[(int)Math.Round((double)(base64.Length / 1024), MidpointRounding.AwayFromZero)];
-
-                for (int i = 0; i < chunks.Length; i++)
-                    chunks[i] = base64.Substring(i * 1024, 1024);
-
-                ib0ts.ForEach(s => s.SendPacket(new ScribbleHead(name, height, chunks.Length)));
-
-                foreach (string chunk in chunks)
-                    ib0ts.ForEach(s => s.SendPacket(new ScribbleBlock(chunk)));
-            }
         }
 
         internal void SendRoomScribble(Predicate<IClient> pred, string name, RoomScribble scribble)

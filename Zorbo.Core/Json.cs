@@ -17,7 +17,8 @@ namespace Zorbo.Core
         static Json() {
             Converters = new JsonConverter[] {
                 JsonByteArrayConverter.Default,
-                JsonIPAddressConverter.Default
+                JsonIPAddressConverter.Default,
+                JsonSecureStringConverter.Default
             };
         }
 

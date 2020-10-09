@@ -33,6 +33,15 @@ namespace Zorbo.Core.Server
         void SendPacket(IClient user, IPacket packet);
         void SendPacket(Predicate<IClient> match, IPacket packet);
 
+        void SendToAdmin(string message);
+        void SendToAdmin(IPacket packet);
+        void SendToAdmin(AdminLevel level, string message);
+        void SendToAdmin(AdminLevel minlevel, IPacket packet);
+
+        void SendAnnounce(string text);
+        void SendAnnounce(IClient target, string text);
+        void SendAnnounce(Predicate<IClient> target, string text);
+
         void SendText(string sender, string text);
         void SendText(IClient sender, string text);
         void SendText(string target, string sender, string text);
@@ -55,9 +64,6 @@ namespace Zorbo.Core.Server
         void SendPrivate(Predicate<IClient> match, string sender, string text);
         void SendPrivate(Predicate<IClient> match, IClient sender, string text);
 
-        void SendAnnounce(string text);
-        void SendAnnounce(IClient target, string text);
-        void SendAnnounce(Predicate<IClient> target, string text);
         //sends configured website
         void SendWebsite();
         //sends custom website

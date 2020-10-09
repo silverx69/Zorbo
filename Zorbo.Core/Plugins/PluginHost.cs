@@ -8,11 +8,11 @@ using Zorbo.Core.Models;
 
 namespace Zorbo.Core.Plugins
 {
-    public abstract class PluginHost<THost, TPlugin> :
-        ModelList<LoadedPlugin<THost, TPlugin>>,
-        IEnumerable<LoadedPlugin<THost, TPlugin>>,
-        IPluginHost<THost, TPlugin>,
-        IEnumerable where TPlugin : IPlugin<THost>
+    public abstract class PluginHost<TPlugin> :
+        ModelList<LoadedPlugin<TPlugin>>,
+        IEnumerable<LoadedPlugin<TPlugin>>,
+        IPluginHost<TPlugin>,
+        IEnumerable where TPlugin : IPlugin
     {
         public override int Count {
             get { return this.Count(s => s.Enabled); }
@@ -33,7 +33,7 @@ namespace Zorbo.Core.Plugins
             return LoadPlugin(name, true);
         }
 
-        internal bool LoadPlugin(string name, bool enable)
+        protected virtual bool LoadPlugin(string name, bool enable)
         {
             string lowname = name.ToLower();
 
@@ -51,22 +51,24 @@ namespace Zorbo.Core.Plugins
                 }
             }
 
-            string dir = Path.Combine(BaseDirectory, name);
-            string file = Path.Combine(dir, name + ".dll");
-
-            if (!Directory.Exists(dir) || !File.Exists(file))
-                return false;
-
             try {
-                var assembly = Assembly.LoadFrom(file);
+                var context = GetPluginContext(name);
+                if (context == null) return false;
 
-                var pluginType = typeof(TPlugin);
-                var impl = assembly.GetExportedTypes().Find(s => pluginType.IsAssignableFrom(s));
+                var assembly = context.LoadFromAssemblyPath(context.FilePath);
+
+                Type impl = null;
+                Type pluginType = typeof(TPlugin);
+
+                foreach (var type in assembly.GetExportedTypes()) {
+                    if (pluginType.IsAssignableFrom(type))
+                        impl = type;
+                }
 
                 if (impl == null)
                     throw new PluginLoadException("Specified plugin does not contain a valid IPlugin implementation.");
 
-                var plugin = new LoadedPlugin<THost, TPlugin>(name, (TPlugin)Activator.CreateInstance(impl));
+                var plugin = new LoadedPlugin<TPlugin>(name, (TPlugin)Activator.CreateInstance(impl));
 
                 lock (SyncRoot) this.Add(plugin);
                 if (enable) EnablePlugin(plugin);
@@ -77,52 +79,27 @@ namespace Zorbo.Core.Plugins
                 OnError(GetType().Name, nameof(LoadPlugin), plex);
             }
             catch (Exception ex) {
-                OnError(GetType().Name, nameof(LoadPlugin), new PluginLoadException("The plugin failed to load (See inner exception for details).", ex));
+                OnError(GetType().Name, nameof(LoadPlugin), ex);
             }
             return false;
         }
 
-        private void EnablePlugin(LoadedPlugin<THost, TPlugin> plugin)
+        protected void EnablePlugin(LoadedPlugin<TPlugin> plugin)
         {
-            if (!plugin.Enabled) {
-                plugin.Enabled = true;
-                RaisePropertyChanged(nameof(Count));
-                OnPluginLoaded(plugin);
-            }
+            if (plugin.Enabled) 
+                DisablePlugin(plugin);
+            plugin.Enabled = true;
+            RaisePropertyChanged(nameof(Count));
+            OnPluginLoaded(plugin);
         }
 
-        private void DisablePlugin(LoadedPlugin<THost, TPlugin> plugin)
+        protected void DisablePlugin(LoadedPlugin<TPlugin> plugin)
         {
             if (plugin.Enabled) {
                 plugin.Enabled = false;
                 RaisePropertyChanged(nameof(Count));
                 OnPluginKilled(plugin);
             }
-        }
-
-        public bool ImportPlugin(string path)
-        {
-            if (File.Exists(path)) {
-                try {
-                    FileInfo info = new FileInfo(path);
-
-                    if (info.Extension != ".dll")
-                        throw new FileLoadException("Invalid plugin file specified. Plugin must be a Class Library (.dll).");
-
-                    string plugin_path = Path.Combine(BaseDirectory, info.Name);
-
-                    if (!Directory.Exists(plugin_path))
-                        Directory.CreateDirectory(plugin_path);
-
-                    info.CopyTo(plugin_path, true);
-                    return LoadPlugin(info.Name);
-                }
-                catch (Exception ex) {
-                    OnError(GetType().Name, nameof(ImportPlugin), ex);
-                }
-            }
-
-            return false;
         }
 
         public void KillPlugin(string name)
@@ -137,12 +114,18 @@ namespace Zorbo.Core.Plugins
         }
 
 
-        protected abstract void OnPluginLoaded(LoadedPlugin<THost, TPlugin> plugin);
+        protected virtual PluginContext GetPluginContext(string dllname)
+        {
+            return new PluginContext(Path.Combine(BaseDirectory, dllname, dllname + ".dll"));
+        }
 
-        protected abstract void OnPluginKilled(LoadedPlugin<THost, TPlugin> plugin);
+
+        protected abstract void OnPluginLoaded(LoadedPlugin<TPlugin> plugin);
+
+        protected abstract void OnPluginKilled(LoadedPlugin<TPlugin> plugin);
 
 
-        protected virtual void OnError(LoadedPlugin<THost, TPlugin> plugin, string method, Exception ex)
+        protected virtual void OnError(LoadedPlugin<TPlugin> plugin, string method, Exception ex)
         {
             OnError(plugin.Name, method, ex);
         }
@@ -164,17 +147,17 @@ namespace Zorbo.Core.Plugins
         }
 
 
-        protected void RaisePluginLoaded(LoadedPlugin<THost, TPlugin> plugin)
+        protected void RaisePluginLoaded(LoadedPlugin<TPlugin> plugin)
         {
             Loaded?.Invoke(this, plugin);
         }
 
-        protected void RaisePluginKilled(LoadedPlugin<THost, TPlugin> plugin)
+        protected void RaisePluginKilled(LoadedPlugin<TPlugin> plugin)
         {
             Killed?.Invoke(this, plugin);
         }
 
-        public event PluginEventHandler<THost, TPlugin> Loaded;
-        public event PluginEventHandler<THost, TPlugin> Killed;
+        public event PluginEventHandler<TPlugin> Loaded;
+        public event PluginEventHandler<TPlugin> Killed;
     }
 }

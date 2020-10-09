@@ -9,7 +9,7 @@
     <Product>Zorbo.Server.WPF.Plugins</Product>
     <Company>Cloud3d Games</Company>
     <Authors>SilverX (silverx69)</Authors>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <PackageProjectUrl>https://github.com/silverx69/Zorbo</PackageProjectUrl>
     <RepositoryUrl>https://github.com/silverx69/Zorbo</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>

@@ -42,7 +42,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         public Redirect(IChannel hash, String message) {
             Name = hash.Name;
             Port = hash.Port;
-            LocalIp = hash.LocalIp;
+            LocalIp = hash.InternalIp;
             ExternalIp = hash.ExternalIp;
             Message = message;
         }

@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Zorbo.Ares.Packets
+﻿namespace Zorbo.Ares.Packets
 {
     /// <summary>
     /// An enumeration containing the basic set of Ares packet ID numbers. 
     /// This is not exhaustive. Plugins have the ability to handle packets with unknown IDs. 
-    /// See demo 'cb0tProtocol' plugin for an example of extending the protocol.
     /// </summary>
     public enum AresId : byte
     {
@@ -91,5 +85,6 @@ namespace Zorbo.Ares.Packets
         MSG_CHAT_SERVER_CUSTOM_DATA = 200,
         MSG_CHAT_CLIENT_CUSTOM_DATA = 200,
         MSG_CHAT_CLIENT_CUSTOM_DATA_ALL = 201,
+        MSG_CHAT_ADVANCED_FEATURES_PROTOCOL = 250
     }
 }

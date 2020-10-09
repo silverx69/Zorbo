@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -25,7 +27,6 @@ namespace Zorbo.Ares.Sockets
     {
         SslStream sslStream;
         NetworkStream stream;
-        X509Certificate sslCert;
 
         readonly bool should_mask;
 
@@ -40,6 +41,8 @@ namespace Zorbo.Ares.Sockets
 
         readonly IPacketFormatter orgFormatter;
 
+        EventHandler<IOTaskCompleteEventArgs<SocketSendTask>> sendHandler;
+        EventHandler<IOTaskCompleteEventArgs<SocketReceiveTask>> recvHandler;
 
         public Socket Socket { get; private set; }
 
@@ -55,7 +58,7 @@ namespace Zorbo.Ares.Sockets
         [Obsolete("The ib0t protocol is currently deprecated and will be removed in the future.")]
         public virtual bool Isib0tSocket { get; set; }
 
-        public virtual bool IsTLSEnabled { get; private set; }
+        public virtual bool IsTLSEnabled => sslStream != null;
 
 
         public IPEndPoint LocalEndPoint {
@@ -98,26 +101,27 @@ namespace Zorbo.Ares.Sockets
         private WebSocketMessageType MessageType { get; set; } = WebSocketMessageType.Binary;
 
 
-        public AresTcpSocket()
-            : this(new ServerFormatter()) { }
-
-        public AresTcpSocket(IPacketFormatter formatter) {
-            Monitor = new IOMonitor();
-            Monitor.Start();
-            outQueue = new ConcurrentQueue<IPacket>();
+        public AresTcpSocket(IPacketFormatter formatter) 
+            : this() {
             Socket = SocketManager.CreateTcp();
             Formatter = orgFormatter = formatter;
         }
 
         //called by Listener methods
-        private AresTcpSocket(IPacketFormatter formatter, Socket socket)
-        {
+        protected AresTcpSocket(IPacketFormatter formatter, Socket socket)
+            : this() {
             should_mask = false;
+            Socket = socket;
+            Formatter = orgFormatter = formatter;
+        }
+
+        protected AresTcpSocket() 
+        {
+            outQueue = new ConcurrentQueue<IPacket>();
+            sendHandler = SendComplete;
+            recvHandler = ReceiveCompleted;
             Monitor = new IOMonitor();
             Monitor.Start();
-            outQueue = new ConcurrentQueue<IPacket>();
-            this.Socket = socket;
-            Formatter = orgFormatter = formatter;
         }
 
         #region " Listen "
@@ -156,10 +160,9 @@ namespace Zorbo.Ares.Sockets
 
         protected virtual void AcceptComplete(object sender, IOTaskCompleteEventArgs<SocketAcceptTask> e)
         {
-            if (e.Task.Exception == null) {
+            if (e.Task.Exception == null)
                 Accepted?.Invoke(this, new AcceptEventArgs(new AresTcpSocket(Formatter, e.Task.AcceptSocket)));
-            }
-            
+
             if (Socket != null) Socket.QueueAccept(e.Task);
         }
 
@@ -229,7 +232,7 @@ namespace Zorbo.Ares.Sockets
             if (!disconnecting) {
                 disconnecting = true;
                 await Task.Run(async () => {
-                    Socket.QueueSend(EncodedPacket(WebSocketOpCode.Close, BitConverter.GetBytes((ushort)status)));
+                    SendBytes(EncodedPacket(WebSocketOpCode.Close, BitConverter.GetBytes((ushort)status)));
                     await Task.Delay(300);
                     DisconnectFromWebSocket();
                 });
@@ -247,7 +250,7 @@ namespace Zorbo.Ares.Sockets
 
         }
 
-        public virtual void Disconnect(Object state)
+        public virtual void Disconnect(object state)
         {
             if (!disconnecting) {
                 disconnecting = true;
@@ -287,6 +290,18 @@ namespace Zorbo.Ares.Sockets
             SendPacket(packet);
         }
 
+        public virtual void SendBytes(byte[] bytes)
+        {
+            var task = new SocketSendTask() {  };
+
+            task.SslStream = sslStream;
+            task.Data = bytes;
+            task.Count = task.Data.Length;
+            task.Completed += sendHandler;
+
+            if (IsConnected) Socket.QueueSend(task);
+        }
+
         //meant for the udp adaptation of ISocket but usable anyway
         public virtual void SendAsync(IPacket packet, IPEndPoint endpoint)
         {
@@ -315,8 +330,6 @@ namespace Zorbo.Ares.Sockets
                     if (!IsWebSocket)
                         throw new InvalidOperationException("Can only send text packets on WebSockets.");
 
-                    string id_ = $"|{packet.Id}|";
-
                     if (ping != null)
                         payload = ping.RawBytes;
                     else {
@@ -333,13 +346,17 @@ namespace Zorbo.Ares.Sockets
                 case WebSocketMessageType.Binary: {
                     if (ping != null)
                         payload = ping.RawBytes;
-                    else
+                    else {
                         payload = Formatter.Format(packet);
-
-                    if (IsWebSocket) {
-                        payload = payload.Skip(2).ToArray();
-                        payload = EncodedPacket(ping != null ? WebSocketOpCode.Pong : WebSocketOpCode.Binary, payload);
+                        if (payload == null) {
+                            if (IsConnected) SendQueue();
+                            return;
+                        }
+                        if (IsWebSocket) 
+                            payload = payload.Skip(2).ToArray();
                     }
+                    if (IsWebSocket)
+                        payload = EncodedPacket(ping != null ? WebSocketOpCode.Pong : WebSocketOpCode.Binary, payload);
 
                     task.Data = payload;
                     break;
@@ -348,7 +365,7 @@ namespace Zorbo.Ares.Sockets
 
             task.SslStream = sslStream;
             task.Count = task.Data.Length;
-            task.Completed += SendComplete;
+            task.Completed += sendHandler;
 
             if (IsConnected) Socket.QueueSend(task);
         }
@@ -392,19 +409,13 @@ namespace Zorbo.Ares.Sockets
 
         protected virtual void SendComplete(object sender, IOTaskCompleteEventArgs<SocketSendTask> e)
         {
-            e.Task.Completed -= SendComplete;
-
+            e.Task.Completed -= sendHandler;
             var msg = (IPacket)e.Task.UserToken;
-            if (msg.Id == (byte)AresId.MSG_CHAT_SERVER_HTML) { 
-                
-            }
 
             if (e.Task.Exception == null) {
                 Monitor.AddOutput(e.Task.Transferred);
                 try {
-                    
                     PacketSent?.Invoke(this, new PacketEventArgs(msg, MessageType, e.Task.Transferred));
-
                     if (IsConnected) SendQueue();
                 }
                 catch (Exception ex) {
@@ -422,10 +433,11 @@ namespace Zorbo.Ares.Sockets
         {
             if (receiving)
                 throw new InvalidOperationException("Socket is already receiving.");
+
             receiving = true;
 
             var task = new SocketReceiveTask(HeaderLength);
-            task.Completed += ReceiveCompleted;
+            task.Completed += recvHandler;
 
             ReceiveAsyncInternal(task);
         }
@@ -468,6 +480,8 @@ namespace Zorbo.Ares.Sockets
                 }
             }
             else OnException(e.Task.Exception);
+
+            if (!IsConnected) e.Task.Completed -= recvHandler;
         }
 
         protected virtual void HandlePacketHeader(IOTaskCompleteEventArgs<SocketReceiveTask> e) 
@@ -530,6 +544,7 @@ namespace Zorbo.Ares.Sockets
                     length == 20304) { //"PO"
 
                     var token = new HttpRequestState();
+
                     token.Buffer.AddRange(e.Buffer.Buffer.Skip(e.Buffer.Offset).Take(2));
 
                     State = ReceiveStatus.Request_Head;
@@ -558,11 +573,8 @@ namespace Zorbo.Ares.Sockets
             int terminator = temp.IndexOf("\r\n\r\n");
             if (terminator == -1) {
                 //still need the rest of the header
-                if (Socket.Available == 0) {
-                    //no data available... wait longer?
-                }
                 e.Task.UserToken = token;
-                e.Task.Count = Socket.Available;
+                e.Task.Count = Socket.Available == 0 ? 1 : Socket.Available;
                 if (IsConnected) Socket.QueueReceive(e.Task);
             }
             else {
@@ -701,7 +713,7 @@ namespace Zorbo.Ares.Sockets
                         byte[] buffer = new byte[e.Task.Transferred - mask_length];
                         Array.Copy(e.Buffer.Buffer, e.Buffer.Offset, buffer, 0, buffer.Length);
 
-                        var ping = new PingPongPacket(buffer);
+                        var ping = new PingPongPacket(buffer) { IsPing = true };
                         
                         OnBinaryPacketReceived(ping, e.Task.Transferred);
                         SendAsync(ping);
@@ -788,57 +800,59 @@ namespace Zorbo.Ares.Sockets
 
         #region " SSL / TLS "
 
-        public void ActivateTLS(string pvt_file, string pub_file)
+        public void AuthenticateAsClient(string host)
         {
             if (sslStream != null)
                 throw new InvalidOperationException("TLS has already been activated on this Socket.");
             try {
                 activating = true;
 
-                stream = new NetworkStream(Socket, false);
-                sslStream = new SslStream(stream, true, CertificateValidation);
+                stream = new NetworkStream(Socket, FileAccess.ReadWrite, false);
+                sslStream = new SslStream(stream, true);
 
-                CreateCertificate(pvt_file, pub_file);
-
-                sslCert = new X509Certificate2(pvt_file);
-                sslStream.AuthenticateAsServer(sslCert, false, SslProtocols.None, false);
+                sslStream.AuthenticateAsClient(host);
 
                 activating = false;
+                SendQueue();
             }
             catch (Exception ex) {
                 OnException(ex);
             }
         }
 
-        private void CreateCertificate(string pvt_file, string pub_file)
+        public void AuthenticateAsServer(string certificate, string password)
         {
-            if (!File.Exists(pvt_file)) {
-                using RSA parent = RSA.Create(2048);
-
-                CertificateRequest parentReq = new CertificateRequest(
-                    $"CN={Path.GetFileNameWithoutExtension(pvt_file)}",
-                    parent,
-                    HashAlgorithmName.SHA256,
-                    RSASignaturePadding.Pkcs1);
-
-                using X509Certificate2 parentCert = parentReq.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddDays(-45),
-                    DateTimeOffset.UtcNow.AddDays(365));
-
-                File.WriteAllBytes(pvt_file, parentCert.Export(X509ContentType.Pfx));
-                File.WriteAllText(pub_file, string.Format(
-                    "{0}\r\n{1}\r\n{2}",
-                    "-----BEGIN CERTIFICATE-----",
-                    Convert.ToBase64String(parentCert.Export(X509ContentType.Cert), Base64FormattingOptions.InsertLineBreaks),
-                    "-----END CERTIFICATE-----"));
-            }
+            using var cert = new X509Certificate2(certificate, password);
+            AuthenticateAsServer(cert);
         }
 
-        private bool CertificateValidation(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        public void AuthenticateAsServer(string certificate, SecureString password)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None ||
-                sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors) return true; //we don't have a proper certificate tree
-            return false;
+            using var cert = new X509Certificate2(certificate, password);
+            AuthenticateAsServer(cert);
+        }
+
+        public void AuthenticateAsServer(X509Certificate certificate)
+        {
+            if (certificate == null)
+                throw new ArgumentNullException("certificate");
+
+            if (sslStream != null)
+                throw new InvalidOperationException("TLS has already been activated on this Socket.");
+            try {
+                activating = true;
+
+                stream = new NetworkStream(Socket, FileAccess.ReadWrite, false);
+                sslStream = new SslStream(stream, true);
+
+                sslStream.AuthenticateAsServer(certificate);
+
+                activating = false;
+                SendQueue();
+            }
+            catch (Exception ex) {
+                OnException(ex);
+            }
         }
 
         #endregion
@@ -846,11 +860,6 @@ namespace Zorbo.Ares.Sockets
         public virtual void Close()
         {
             Monitor.Stop();
-
-            if (sslCert != null) {
-                sslCert.Dispose();
-                sslCert = null;
-            }
 
             if (sslStream != null) {
                 sslStream.Dispose();
@@ -873,6 +882,8 @@ namespace Zorbo.Ares.Sockets
             Close();
             Socket = null;
             Formatter = null;
+            sendHandler = null;
+            recvHandler = null;
             Exception = null;
             Accepted = null;
             Connected = null;

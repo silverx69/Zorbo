@@ -5,7 +5,7 @@ using Zorbo.Core.Client;
 namespace Zorbo.Core.Plugins.Client
 {
     public class ChatClientPluginHost : 
-        PluginHost<IChatClient, ChatClientPlugin>,
+        PluginHost<ChatClientPlugin>,
         IChatClientPluginHost
     {
         public IChatClient Client {
@@ -19,7 +19,7 @@ namespace Zorbo.Core.Plugins.Client
             Client = client;
         }
 
-        protected override void OnPluginLoaded(LoadedPlugin<IChatClient, ChatClientPlugin> plugin)
+        protected override void OnPluginLoaded(LoadedPlugin<ChatClientPlugin> plugin)
         {
             try {
                 plugin.Plugin.Directory = Path.Combine(BaseDirectory, plugin.Name);
@@ -37,7 +37,7 @@ namespace Zorbo.Core.Plugins.Client
             }
         }
 
-        protected override void OnPluginKilled(LoadedPlugin<IChatClient, ChatClientPlugin> plugin)
+        protected override void OnPluginKilled(LoadedPlugin<ChatClientPlugin> plugin)
         {
             try {
                 plugin.Plugin.OnPluginKilled();

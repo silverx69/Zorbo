@@ -6,7 +6,6 @@ using System.Text;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,9 +15,9 @@ namespace Javascript.Objects
 
         public new class Constructor : ClrFunction
         {
-            readonly JScript script = null;
+            readonly Script script = null;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "ReadOnlyList", new ReadOnlyList(script)) {
 
                 this.script = script;
@@ -46,21 +45,21 @@ namespace Javascript.Objects
             get { return items.Count; }
         }
 
-        internal ReadOnlyList(JScript script)
+        internal ReadOnlyList(Script script)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.items = new List<Object>();
             this.PopulateFunctions();
         }
 
-        public ReadOnlyList(JScript script, List list)
+        public ReadOnlyList(Script script, List list)
             : base(script, ((ClrFunction)script.Engine.Global["ReadOnlyList"]).InstancePrototype) {
 
             this.items = list.Items;
             this.PopulateFunctions();
         }
 
-        public ReadOnlyList(JScript script, List list, ObjectInstance prototype)
+        public ReadOnlyList(Script script, List list, ObjectInstance prototype)
             : base(script, prototype) {
 
             this.items = list.Items;

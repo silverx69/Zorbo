@@ -10,17 +10,17 @@ namespace Zorbo.Ares.Server
 {
     public static class Captcha
     {
-        public static int Create(AresClient client) {
+        public static int Create(AresClient client)
+        {
             int total = 40;
-            int top = Utils.Random.Next(1, 10);
             int emote = Utils.Random.Next(0, emoticons.Length);
             int count = Utils.Random.Next(5, 12);
-            
+
             string name = names[emote];
             string noun = nouns[Utils.Random.Next(0, nouns.Length)];
             string end = ends[Utils.Random.Next(0, ends.Length)];
 
-            string question = String.Format("How many {0} {1} {2}?", name, noun, end);
+            string question = String.Format("\x000314How many \x0006{0}\x0006 {1} {2}?", name, noun, end);
 
             int[] random = new int[count];
 
@@ -34,13 +34,8 @@ namespace Zorbo.Ares.Server
                 random[i] = index;
             }
 
-            client.Socket.SendAsync(new Announce("Welcome to the room " + client.Name));
-            client.Socket.SendAsync(new Announce("Please answer the following question:"));
-
-            if (top < 5) {
-                client.Socket.SendAsync(new Announce(""));
-                client.Socket.SendAsync(new Announce(question));
-            }
+            client.Socket.SendAsync(new Announce("\x000314Welcome to the room " + client.Name));
+            client.Socket.SendAsync(new Announce("\x000314Please answer the following question:"));
 
             client.Socket.SendAsync(new Announce(""));
             StringBuilder sb = new StringBuilder();
@@ -72,10 +67,8 @@ namespace Zorbo.Ares.Server
             if (current > 0)
                 client.Socket.SendAsync(new Announce(sb.ToString()));
 
-            if (top >= 5) {
-                client.Socket.SendAsync(new Announce(""));
-                client.Socket.SendAsync(new Announce(question));
-            }
+            client.Socket.SendAsync(new Announce(""));
+            client.Socket.SendAsync(new Announce(question));
 
             return count;
         }

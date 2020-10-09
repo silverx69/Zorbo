@@ -21,6 +21,7 @@ namespace Zorbo.Core
             get { return sha1 ??= SHA1.Create(); }
         }
 
+
         public static Random Random = new Random();
 
 
@@ -89,6 +90,7 @@ namespace Zorbo.Core
                 Array.Reverse(input);
             return input;
         }
+
 
         public static IEnumerable<IPAddress> GetLocalAddresses()
         {

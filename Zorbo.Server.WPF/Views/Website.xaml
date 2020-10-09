@@ -4,12 +4,23 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Zorbo.Server.WPF"
-             mc:Ignorable="d" d:DesignHeight="56" d:DesignWidth="438">
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
+             mc:Ignorable="d" 
+             d:DesignHeight="56" 
+             d:DesignWidth="438">
     <Grid>
-        <Label Content="URL Caption:" Height="28" HorizontalAlignment="Left" VerticalAlignment="Top" />
-        <Label Content="URL Address:" Height="28" Margin="0,29,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
-        <TextBox Text="{Binding Caption, Mode=TwoWay}" Height="22" Margin="102,2,0,0" VerticalAlignment="Top" />
-        <TextBox Text="{Binding Address, Mode=TwoWay}" Height="22" Margin="102,31,0,0" VerticalAlignment="Top" />
+        <Label Height="28" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelUrlCaption}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label Height="28" Margin="0,29,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelUrlAddress}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <TextBox Text="{Binding Path=Caption, Mode=TwoWay}" Height="22" Margin="102,2,0,0" VerticalAlignment="Top" />
+        <TextBox Text="{Binding Path=Address, Mode=TwoWay}" Height="22" Margin="102,31,0,0" VerticalAlignment="Top" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="87,4,0,0" Text="?" local:Help.HelpText="The caption of the server's website url" MouseUp="Help_MouseUp" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="87,33,0,0" Text="?" local:Help.HelpText="The server's website url address" MouseUp="Help_MouseUp" />
     </Grid>

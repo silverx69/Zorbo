@@ -9,15 +9,11 @@ namespace Zorbo.Core
 {
     public interface IServerRecord : INotifyPropertyChanged
     {
-        ushort Port { get; set; }
-        
-        uint AckCount { get; set; }
-        uint TryCount { get; set; }
-        
-        DateTime LastAcked { get; set; }
-        DateTime LastSendIPs { get; set; }
-        DateTime LastAskedFirewall { get; set; }
+        string Domain { get; set; }
 
         IPAddress ExternalIp { get; set; }
+        IPAddress InternalIp { get; set; }
+
+        ushort Port { get; set; }
     }
 }

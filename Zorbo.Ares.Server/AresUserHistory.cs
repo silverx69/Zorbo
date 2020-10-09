@@ -73,11 +73,12 @@ namespace Zorbo.Ares.Server
         }
 
         public Record Add(IClient client) {
+            bool isnew = false;
             var record = Records.Find((s) => s.Equals(client));
 
             if (record == null) {
+                isnew = true;
                 record = new Record();
-                Records.Add(record);
             }
 
             record.ClientId = client.ClientId;
@@ -87,6 +88,8 @@ namespace Zorbo.Ares.Server
 
             if (record.Trusted && client.IsCaptcha)
                 record.Trusted = false;
+
+            if (isnew) Records.Add(record);
 
             return record;
         }

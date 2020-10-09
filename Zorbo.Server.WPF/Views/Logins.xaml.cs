@@ -14,6 +14,8 @@ namespace Zorbo.Server.WPF.Views
     /// </summary>
     public partial class Logins : UserControl
     {
+        LoginWin logins;
+
         public AresUserHistory History {
             get { return (AresUserHistory)DataContext; }
         }
@@ -43,10 +45,15 @@ namespace Zorbo.Server.WPF.Views
         }
 
         private void BtnNew_Click(object sender, RoutedEventArgs e) {
-            LoginWin win = new LoginWin((AresUserHistory)DataContext) {
-                Owner = this.FindVisualAnscestor<Window>()
-            };
-            win.ShowDialog();
+            if (logins == null) {
+                logins = new LoginWin((AresUserHistory)DataContext) {
+                    //Owner = this.FindVisualAnscestor<SettingsWin>()
+                };
+            }
+            if (logins.IsVisible)
+                logins.Activate();
+            else
+                logins.Show();
         }
 
         private void BtnDelete_Click(object sender, RoutedEventArgs e) {

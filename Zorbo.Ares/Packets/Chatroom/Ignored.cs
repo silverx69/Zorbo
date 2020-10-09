@@ -19,7 +19,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         public bool Ignore { get; set; }
 
         [JsonProperty("username", Required = Required.AllowNull)]
-        [PacketItem(1)]
+        [PacketItem(1, MaxLength = 20)]
         public string Username { get; set; }
     }
 }

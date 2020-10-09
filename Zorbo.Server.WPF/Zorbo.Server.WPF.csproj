@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>App.manifest</ApplicationManifest>
     <ApplicationIcon>Zorbo.ico</ApplicationIcon>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>SilverX (silverx69)</Authors>
     <Company>Cloud3d Games</Company>
     <Product>Zorbo.Server.WPF</Product>
@@ -35,8 +35,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.8" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Zorbo.Ares.Server\Zorbo.Ares.Server.csproj" />
     <ProjectReference Include="..\Zorbo.Ares\Zorbo.Ares.csproj" />
+    <ProjectReference Include="..\Zorbo.Core.NetCore\Zorbo.Core.NetCore.csproj" />
     <ProjectReference Include="..\Zorbo.Core\Zorbo.Core.csproj" />
     <ProjectReference Include="..\Zorbo.Server.WPF.Plugins\Zorbo.Server.WPF.Plugins.csproj" />
   </ItemGroup>
@@ -46,6 +52,33 @@
     <Resource Include="Images\app.png" />
     <Resource Include="Images\banner.png" />
     <Resource Include="Zorbo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\AppStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AppStrings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\AppStrings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>AppStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
 </Project>

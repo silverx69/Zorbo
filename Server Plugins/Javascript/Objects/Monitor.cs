@@ -1,7 +1,6 @@
 ﻿using Jurassic.Library;
 using Zorbo.Core;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -33,7 +32,7 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "Monitor", new Monitor(script)) {
             }
 
@@ -50,17 +49,17 @@ namespace Javascript.Objects
 
         #endregion
 
-        private Monitor(JScript script)
+        private Monitor(Script script)
             : base(script.Engine) {
             this.PopulateFunctions();
         }
 
-        protected Monitor(JScript script, ObjectInstance proto)
+        protected Monitor(Script script, ObjectInstance proto)
             : base(script.Engine, proto) {
             this.PopulateFunctions();
         }
 
-        public Monitor(JScript script, IMonitor monitor)
+        public Monitor(Script script, IMonitor monitor)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["Monitor"]).InstancePrototype) {
             this.monitor = monitor;
             this.PopulateFunctions();

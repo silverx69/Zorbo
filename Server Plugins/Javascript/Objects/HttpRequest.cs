@@ -10,7 +10,6 @@ using System.Text;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -57,9 +56,9 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script;
+            readonly Script script;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "HttpRequest", new HttpRequest(script)) {
 
                 this.script = script;
@@ -78,13 +77,13 @@ namespace Javascript.Objects
 
         #endregion
 
-        internal HttpRequest(JScript script)
+        internal HttpRequest(Script script)
             : base(script.Engine) {
             this.Headers = new List(script);
             this.PopulateFunctions();
         }
 
-        public HttpRequest(JScript script, string url)
+        public HttpRequest(Script script, string url)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["HttpRequest"]).InstancePrototype) {
             this.Uri = url;
             this.Headers = new List(script);

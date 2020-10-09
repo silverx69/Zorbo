@@ -12,9 +12,13 @@ namespace Zorbo.Core
     {
         string Name { get; set; }
         string Topic { get; set; }
+        string Version { get; set; }
+        
+        ushort Users { get; }
 
-        ushort Users { get; set; }
+        bool WebSockets { get; }
+        bool SupportJson { get; }
 
-        IPAddress LocalIp { get; set; }
+        Language Language { get; }
     }
 }

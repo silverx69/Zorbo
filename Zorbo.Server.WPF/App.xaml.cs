@@ -19,16 +19,14 @@ namespace Zorbo.Server.WPF
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            if (e.Args.Length > 0) {
-                //ToDo: non-windows dependant IPC 
+            if (e.Args.Length > 0) { 
                 try {
-
                     switch (e.Args[0]) {
                         case "-start_server":
-                            
+                            //ToDo
                             break;
                         case "-stop_server":
-
+                            //ToDo
                             break;
                         case "-add_start_win": {
                             using RegistryKey key = Registry.CurrentUser.OpenSubKey(RunPath, true);
@@ -42,16 +40,14 @@ namespace Zorbo.Server.WPF
                         }
                     }
                 }
-                catch {
-                    Application.Current.Shutdown(-1);
+                catch {  
+                    Current.Shutdown(-1);
+                    return;
                 }
 
-                Application.Current.Shutdown(0);
+                Current.Shutdown(0);
             }
-            else {
-
-                AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-            }
+            else { AppDomain.CurrentDomain.UnhandledException += OnUnhandledException; }
         }
 
         protected virtual void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

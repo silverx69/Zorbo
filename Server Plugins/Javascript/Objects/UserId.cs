@@ -3,7 +3,6 @@ using System;
 using System.Net;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -34,9 +33,9 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script;
+            readonly Script script;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "UserId", new UserId(script)) {
 
                 this.script = script;
@@ -61,17 +60,17 @@ namespace Javascript.Objects
         #endregion
 
 
-        private UserId(JScript script)
+        private UserId(Script script)
             : base(script.Engine) { }
 
-        public UserId(JScript script, ClientId id)
+        public UserId(Script script, ClientId id)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["UserId"]).InstancePrototype)
         {
             client_id = id;
             this.PopulateFunctions();
         }
 
-        public UserId(JScript script, Guid guid, IPAddress address)
+        public UserId(Script script, Guid guid, IPAddress address)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["UserId"]).InstancePrototype) 
         {
             client_id = new ClientId(guid, address);

@@ -35,14 +35,6 @@ namespace Zorbo.Ares.Sockets
             IO.QueueDisconnect(task);
         }
 
-        public static void QueueSend(this Socket socket, byte[] buffer) {
-            QueueSend(socket, buffer, 0, buffer.Length);
-        }
-
-        public static void QueueSend(this Socket socket, byte[] buffer, int offset, int count) {
-            QueueSend(socket, new SocketSendTask(buffer, offset, count));
-        }
-
         public static void QueueSend(this Socket socket, SocketSendTask task) {
             task.Socket = socket ?? throw new ArgumentNullException("socket", "socket cannot be null");
             task.Exception = null;

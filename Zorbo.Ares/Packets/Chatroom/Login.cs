@@ -43,7 +43,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         public int Skipped2 { get; set; }
 
         [JsonProperty("username", Required = Required.AllowNull)]
-        [PacketItem(7, MaxLength = 20)]
+        [PacketItem(7, MaxLength = 60)]
         public string Username { get; set; }
 
         [JsonProperty("version", Required = Required.AllowNull)]

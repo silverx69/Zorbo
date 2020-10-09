@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -10,7 +9,7 @@ namespace Javascript.Objects
     {
         readonly Type m_enumType;
 
-        public Enum(JScript script, Type enumType)
+        public Enum(Script script, Type enumType)
             : base(script.Engine) {
             m_enumType = enumType;
             var m_names = System.Enum.GetNames(m_enumType);

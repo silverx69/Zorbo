@@ -140,5 +140,14 @@ namespace Zorbo.Ares.Resources {
                 return ResourceManager.GetString("Rejected", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This chatroom is currently full. Please try again later.
+        /// </summary>
+        public static string RoomFull {
+            get {
+                return ResourceManager.GetString("RoomFull", resourceCulture);
+            }
+        }
     }
 }

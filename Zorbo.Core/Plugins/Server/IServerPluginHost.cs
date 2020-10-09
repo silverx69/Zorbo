@@ -2,7 +2,8 @@
 
 namespace Zorbo.Core.Plugins.Server
 {
-    public interface IServerPluginHost : IPluginHost<IServer, ServerPlugin>
+    public interface IServerPluginHost : IPluginHost<ServerPlugin>
     {
+        IServer Server { get; set; }
     }
 }

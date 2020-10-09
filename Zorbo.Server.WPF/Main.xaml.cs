@@ -2,15 +2,20 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Shell;
+using Zorbo.Ares;
 using Zorbo.Ares.Server;
 using Zorbo.Core;
 using Zorbo.Core.Models;
+using Zorbo.Core.Plugins.Server;
+using Zorbo.Server.WPF.Resources;
 
 namespace Zorbo.Server.WPF
 {
@@ -22,24 +27,31 @@ namespace Zorbo.Server.WPF
         bool forced;
 
         readonly AresServer server;
+
+        SettingsWin settings;
         System.Windows.Forms.NotifyIcon icon;
 
-        public Main() {
+        public Main()
+        {
             InitializeComponent();
 
             if (!DesignerProperties.GetIsInDesignMode(this)) {
 
-                var directories = new Directories();
+                var directories = new Directories() { 
+                    //AppData = "Custom Data Location"
+                };
 
+                directories.EnsureExists();
                 Logging.LogDirectory = directories.Logs;
 
                 var config = Persistence.LoadModel<Configuration>(Path.Combine(directories.AppData, "config.json"));
 
-                //supplying custom directories
                 config.Directories = directories;
                 config.PropertyChanged += Config_PropertyChanged;
 
                 server = new AresServer(config);
+
+                server.PluginHost = new ServerPluginHostCore(server);
                 server.PropertyChanged += Server_PropertyChanged;
 
                 DataContext = server;
@@ -50,14 +62,14 @@ namespace Zorbo.Server.WPF
                 };
 
                 list.JumpItems.Add(new JumpTask() {
-                    Title = "Start server",
+                    Title = AppStrings.LabelStartServer,
                     Arguments = "-start_server",
                     ApplicationPath = App.Filename,
                     WorkingDirectory = Directories.BaseDirectory,
                 });
 
                 list.JumpItems.Add(new JumpTask() {
-                    Title = "Stop server",
+                    Title = AppStrings.LabelStopServer,
                     Arguments = "-stop_server",
                     ApplicationPath = App.Filename,
                     WorkingDirectory = Directories.BaseDirectory,
@@ -66,13 +78,13 @@ namespace Zorbo.Server.WPF
                 list.JumpItems.Add(new JumpTask() {
                     Title = "Logs",
                     ApplicationPath = config.Directories.Logs,
-                    CustomCategory = "Places"
+                    CustomCategory = AppStrings.JumpCategory
                 });
 
                 list.JumpItems.Add(new JumpTask() {
                     Title = "Plugins",
                     ApplicationPath = config.Directories.Plugins,
-                    CustomCategory = "Places"
+                    CustomCategory = AppStrings.JumpCategory
                 });
 
                 JumpList.SetJumpList(Application.Current, list);
@@ -92,13 +104,14 @@ namespace Zorbo.Server.WPF
 
         private void Server_PropertyChanged(object sender, PropertyChangedEventArgs e) 
         {
-            if (e.PropertyName == "Running") {
+            if (Dispatcher.Thread != Thread.CurrentThread)
+                Dispatcher.InvokeAsync(() => Server_PropertyChanged(sender, e));
 
+            else if (e.PropertyName == nameof(server.Running)) {
                 if (server.Running)
-                    btnStart.Content = "Stop";
-
+                    btnStart.Content = AppStrings.BtnStop;
                 else {
-                    btnStart.Content = "Start";
+                    btnStart.Content = AppStrings.BtnStart;
                     server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
                 }
             }
@@ -107,26 +120,30 @@ namespace Zorbo.Server.WPF
         private bool is_resetting;
         private async void Config_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "LoadWithWindows" && sender is Configuration config) {
-                if (config.LoadWithWindows) {
-                    if (!await LaunchAdminCommand("-add_start_win")) {
-                        is_resetting = true;
-                        config.LoadWithWindows = false;
+            switch(e.PropertyName) {
+                case nameof(Configuration.LoadWithWindows):
+                    var config = (Configuration)server.Config;
+                    if (config.LoadWithWindows) {
+                        if (!await LaunchAdminCommand("-add_start_win")) {
+                            is_resetting = true;
+                            config.LoadWithWindows = false;
+                        }
                     }
-                }
-                else if (!is_resetting)
-                    await LaunchAdminCommand("-rem_start_win");
+                    else if (!is_resetting)
+                        await LaunchAdminCommand("-rem_start_win");
 
-                else is_resetting = false;
+                    else is_resetting = false;
+                    break;
             }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e) {
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
             icon = new System.Windows.Forms.NotifyIcon();
 
             System.Windows.Forms.ContextMenuStrip cm = new System.Windows.Forms.ContextMenuStrip();
 
-            cm.Items.Add("Close", null, (s, a) => { ForceClose(); });
+            cm.Items.Add(AppStrings.LabelClose, null, (s, a) => { ForceClose(); });
 
             icon.ContextMenuStrip = cm;
             icon.MouseClick += (s, args) => {
@@ -138,7 +155,7 @@ namespace Zorbo.Server.WPF
                 }
             };
             
-            var stream = Application.GetResourceStream(
+            using var stream = Application.GetResourceStream(
                 new Uri("/Zorbo.Server.WPF;component/Zorbo.ico", UriKind.Relative)).Stream;
 
             if (stream != null)
@@ -172,7 +189,7 @@ namespace Zorbo.Server.WPF
 
         private void BtnStart_Click(object sender, RoutedEventArgs e) {
 
-            if (btnStart.Content.ToString() == "Start") {
+            if (btnStart.Content.ToString() == AppStrings.BtnStart) {
                 if (!server.Running)
                     server.Start();
             }
@@ -183,18 +200,21 @@ namespace Zorbo.Server.WPF
         }
 
         private void BtnOptions_Click(object sender, RoutedEventArgs e) {
-            var settings = new Settings(server);
-
-            settings.Closed += Settings_Closed;
-            settings.Owner = this;
-            settings.ShowDialog();
+            if (settings == null) {
+                settings = new SettingsWin(server);
+                settings.IsVisibleChanged += Settings_IsVisibleChanged;
+                //settings.Owner = this;
+            }
+            if (settings.IsVisible)
+                settings.Activate();
+            else
+                settings.Show();
         }
 
-        private void Settings_Closed(object sender, EventArgs e) {
-            var settings = (Settings)sender;
-            settings.Closed -= Settings_Closed;
-
-            server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
+        private void Settings_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!settings.IsVisible)// "Closed"
+                server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
         }
 
         private static async Task<bool> LaunchAdminCommand(params string[] args)

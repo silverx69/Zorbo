@@ -1,6 +1,5 @@
 ﻿using Jurassic.Library;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -98,7 +97,7 @@ namespace Javascript.Objects
 
         public new class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "RoomStats", new RoomStats(script)) {
             }
 
@@ -115,12 +114,12 @@ namespace Javascript.Objects
 
         #endregion
 
-        protected RoomStats(JScript script)
+        protected RoomStats(Script script)
             : base(script, ((ClrFunction)script.Engine.Global["Monitor"]).InstancePrototype) {
             this.PopulateFunctions();
         }
 
-        public RoomStats(JScript script, IServerStats stats)
+        public RoomStats(Script script, IServerStats stats)
             : base(script, stats) {
 
             this.stats = stats;

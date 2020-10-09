@@ -15,7 +15,7 @@ namespace Zorbo.Core
             using var zlib = new DeflaterOutputStream(mem);
 
             zlib.Write(input, 0, input.Length);
-            zlib.Flush();
+            zlib.Finish();
 
             return mem.ToArray();
         }
@@ -25,8 +25,9 @@ namespace Zorbo.Core
             using var zlib = new DeflaterOutputStream(stream);
 
             zlib.IsStreamOwner = false;
+
             zlib.Write(input, 0, input.Length);
-            zlib.Flush();
+            zlib.Finish();
         }
 
         public static byte[] Decompress(byte[] input)
@@ -65,7 +66,6 @@ namespace Zorbo.Core
 
             int count = 0;
             long start = output.Position;
-            long orglen = output.Length;
 
             byte[] buffer = new byte[2048];
 
@@ -73,11 +73,6 @@ namespace Zorbo.Core
                 output.Write(buffer, 0, count);
 
             output.Flush();
-            output.Position = start;
-
-            byte[] tmp = new byte[output.Length - orglen];
-            output.Read(tmp, 0, tmp.Length);
-
             output.Position = start;
         }
     }

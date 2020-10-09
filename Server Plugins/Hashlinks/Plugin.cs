@@ -18,37 +18,33 @@ namespace Hashlinks
             Server.SendAnnounce("Hashlinks plugin has been unloaded!");
         }
 
-        public override bool OnBeforePacket(IClient client, IPacket packet) {
-
-            switch ((AresId)packet.Id) {
-                case AresId.MSG_CHAT_CLIENT_PUBLIC:
-                    ClientPublic pub = (ClientPublic)packet;
-
-                    if (pub.Message.StartsWith("#hashlink")) {
-
-                        Server.SendAnnounce("\\\\arlnk://" +
-                            Zorbo.Core.Hashlinks.ToHashlinkString(new AresChannel() {
-                                Name = Server.Config.Name,
-                                Port = Server.Config.Port,
-                                LocalIp = Server.InternalIp,
-                                ExternalIp = Server.ExternalIp,
-                                SupportJson = true
-                            }));
-                    }
-                    else if (pub.Message.Length > 9 && pub.Message.StartsWith("#decrypt ")) {
-
-                        var hash = Zorbo.Core.Hashlinks.FromHashlinkString<AresChannel>(pub.Message.Substring(9));
-
-                        Server.SendAnnounce(string.Format("Name: {0}", hash.Name));
-                        Server.SendAnnounce(string.Format("Port: {0}", hash.Port));
-                        Server.SendAnnounce(string.Format("External Ip: {0}", hash.ExternalIp));
-                        Server.SendAnnounce(string.Format("Local Ip: {0}", hash.LocalIp));
-                        Server.SendAnnounce(string.Format("JSON: {0}", hash.SupportJson));
-                    }
-
+        public override bool OnTextCommand(IClient client, string cmd, string args)
+        {
+            switch (cmd) {
+                case "hashlink": {
+                    Server.SendAnnounce("\\\\arlnk://" +
+                        Zorbo.Core.Hashlinks.ToHashlinkString(new AresChannel() {
+                            Name = Server.Config.Name,
+                            Port = Server.Config.Port,
+                            InternalIp = Server.InternalIp,
+                            ExternalIp = Server.ExternalIp,
+                            WebSockets = Server.Config.UseWebSockets,
+                            SupportJson = Server.Config.UseWebSockets,
+                            Domain = Server.Config.DomainName
+                        }));
                     break;
+                }
+                case "decrypt": {
+                    var hash = Zorbo.Core.Hashlinks.FromHashlinkString<AresChannel>(args);
+                    Server.SendAnnounce(string.Format("Name: {0}", hash.Name));
+                    Server.SendAnnounce(string.Format("Port: {0}", hash.Port));
+                    Server.SendAnnounce(string.Format("Domain: {0}", string.IsNullOrEmpty(hash.Domain) ? "Not configured" : hash.Domain));
+                    Server.SendAnnounce(string.Format("External Ip: {0}", hash.ExternalIp));
+                    Server.SendAnnounce(string.Format("Local Ip: {0}", hash.InternalIp));
+                    Server.SendAnnounce(string.Format("JSON: {0}", hash.SupportJson));
+                    break;
+                }
             }
-
             return true;
         }
     }

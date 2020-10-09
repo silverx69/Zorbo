@@ -5,6 +5,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Zorbo.Ares.Mars;
 using Zorbo.Core;
+using Zorbo.Core.Data;
 using Zorbo.Core.Data.Packets;
 using Zorbo.Core.Models;
 
@@ -21,6 +22,7 @@ namespace Zorbo.Ares
         string name = "";
         string topic = "";
         string version = "";
+        string domain = "";
 
         ushort port = 0;
         ushort users = 0;
@@ -60,6 +62,12 @@ namespace Zorbo.Ares
             set { OnPropertyChanged(() => version, value); }
         }
 
+        [JsonProperty("domain", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string Domain {
+            get { return domain; }
+            set { OnPropertyChanged(() => domain, value); }
+        }
+
         [JsonProperty("port", Required = Required.Always)]
         public ushort Port {
             get { return port; }
@@ -73,12 +81,12 @@ namespace Zorbo.Ares
         }
 
         [JsonProperty("local_ip", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public IPAddress LocalIp {
+        public IPAddress InternalIp {
             get { return localIp; }
             set { OnPropertyChanged(() => localIp, value); }
         }
 
-        [JsonProperty("external_ip", Required = Required.Always)]
+        [JsonProperty("external_ip", Required = Required.AllowNull)]
         public IPAddress ExternalIp {
             get { return externalIp; }
             set { OnPropertyChanged(() => externalIp, value); }
@@ -103,37 +111,37 @@ namespace Zorbo.Ares
         }
 
         [JsonProperty("acks", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public uint AckCount {
+        internal uint AckCount {
             get { return ackcount; }
             set { OnPropertyChanged(() => ackcount, value); }
         }
 
         [JsonProperty("tries", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public uint TryCount {
+        internal uint TryCount {
             get { return trycount; }
             set { OnPropertyChanged(() => trycount, value); }
         }
 
         [JsonProperty("last_ack", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DateTime LastAcked {
+        internal DateTime LastAcked {
             get { return lastAck; }
             set { OnPropertyChanged(() => lastAck, value); }
         }
 
         [JsonProperty("last_try", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DateTime LastSendIPs {
+        internal DateTime LastSendIPs {
             get { return lastTry; }
             set { OnPropertyChanged(() => lastTry, value); }
         }
 
         [JsonProperty("last_info", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DateTime LastSendInfo {
+        internal DateTime LastSendInfo {
             get { return lastInfo; }
             set { OnPropertyChanged(() => lastInfo, value); }
         }
 
         [JsonProperty("last_fw", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DateTime LastAskedFirewall {
+        internal DateTime LastAskedFirewall {
             get { return asked; }
             set { OnPropertyChanged(() => asked, value); }
         }
@@ -170,22 +178,87 @@ namespace Zorbo.Ares
         {
             Port = (ushort)other.Port;
             ExternalIp = IPAddress.Parse(other.ExternalIP);
-            LocalIp = IPAddress.Parse(other.LocalIP);
+            InternalIp = IPAddress.Parse(other.LocalIP);
             Name = other.Name;
             Topic = other.Topic;
             WebSockets = true;
         }
 
+        public void CopyFrom(ServerDbRecord other)
+        {
+            Port = other.Port;
+            ExternalIp = IPAddress.Parse(other.ExternalIp);
+            InternalIp = IPAddress.Parse(other.InternalIp);
+            Name = other.Name;
+            Topic = other.Topic;
+            Domain = other.Domain;
+            Users = other.Users;
+            Language = (Language)other.Language;
+            WebSockets = other.WebSockets;
+            SupportJson = other.SupportJson;
+        }
+
+        public byte[] ToByteArray() 
+        {
+            using PacketWriter writer = new PacketWriter();
+            writer.Write(HASH_HEADER);
+            writer.Write("CHATCHANNEL");
+            writer.Write(ExternalIp ?? IPAddress.Any);
+            writer.Write(Port);
+            writer.Write(InternalIp ?? IPAddress.Any);
+            writer.Write(Name);
+            writer.Write(SupportJson);
+            if (!string.IsNullOrEmpty(Domain))
+                writer.Write(Domain);
+            return writer.ToArray();
+        }
+
+        public void FromByteArray(byte[] bytes) 
+        {
+        #pragma warning disable IDE0017 // Simplify object initialization
+            using PacketReader reader = new PacketReader(bytes);
+        #pragma warning restore IDE0017 // Simplify object initialization
+            reader.Position = 20;
+            string ident = reader.ReadString().ToUpper();
+            if (ident != "CHATCHANNEL")
+                return; //Not encoded properly or not 'AresChannel'
+            ExternalIp = reader.ReadIPAddress();
+            Port = reader.ReadUInt16();
+            InternalIp = reader.ReadIPAddress();
+            Name = reader.ReadString();
+            SupportJson = WebSockets = reader.ReadBoolean();
+            Domain = reader.ReadString();
+        }
+
+        public string ToPlainText() {
+            return string.Format("Chatroom:{0}:{1}|{2}", ExternalIp.ToString(), Port, Name);
+            //return string.Format("Chatroom:{0}:{1}|{2}", string.IsNullOrEmpty(Domain) ? ExternalIp.ToString() : Domain, Port, Name);
+        }
+
+        public void FromPlainText(string text)
+        {
+            var match = Regex.Match(text, "Chatroom:(.+?):([0-9]+)\\|([^\\x20]+)");
+            if (match.Success) {
+                if (IPAddress.TryParse(match.Groups[1].Value, out IPAddress ip))
+                    ExternalIp = ip;
+                
+                if (int.TryParse(match.Groups[2].Value, out int port))
+                    Port = (ushort)port;
+
+                Name = match.Groups[3].Value;
+            }
+        }
+
         public bool Equals(AresChannel other)
         {
-            if (other == null)
-                return false;
-            return ExternalIp.Equals(other.ExternalIp) && Port == other.Port;
+            if (other is null) return false;
+            return ExternalIp.Equals(other.ExternalIp) && Name == other.Name;
         }
 
         public bool Equals(MarsChannel other)
         {
-            return ExternalIp.ToString() == other.ExternalIP && Port == (ushort)other.Port;
+            if (other is null) return false;
+            return ExternalIp.ToString() == other.ExternalIP && Name == other.Name;
         }
 
         public override bool Equals(object obj)
@@ -201,57 +274,7 @@ namespace Zorbo.Ares
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(ExternalIp, Port);
-        }
-
-        public byte[] ToByteArray() {
-
-            using PacketWriter writer = new PacketWriter();
-
-            writer.Write(HASH_HEADER);
-            writer.Write("CHATCHANNEL");
-            writer.Write(ExternalIp ?? IPAddress.Any);
-            writer.Write(Port);
-            writer.Write(LocalIp ?? IPAddress.Any);
-            writer.Write(Name);
-            writer.Write(SupportJson);
-
-            return writer.ToArray();
-        }
-
-        public void FromByteArray(byte[] bytes) {
-
-#pragma warning disable IDE0017 // Simplify object initialization
-            using PacketReader reader = new PacketReader(bytes);
-#pragma warning restore IDE0017 // Simplify object initialization
-
-            reader.Position = 20;
-
-            Debug.Assert(reader.ReadString().ToUpper() == "CHATCHANNEL");
-
-            ExternalIp = reader.ReadIPAddress();
-            Port = reader.ReadUInt16();
-            LocalIp = reader.ReadIPAddress();
-            Name = reader.ReadString();
-            SupportJson = WebSockets = reader.ReadBoolean();
-        }
-
-        public string ToPlainText() {
-            return string.Format("Chatroom:{0}:{1}|{2}", ExternalIp, Port, Name);
-        }
-
-        public void FromPlainText(string text)
-        {
-            var match = Regex.Match(text, "Chatroom:(.+?):([0-9]+)\\|([^\\x20]+)");
-            if (match.Success) {
-                if (IPAddress.TryParse(match.Groups[1].Value, out IPAddress ip))
-                    ExternalIp = ip;
-                
-                if (int.TryParse(match.Groups[2].Value, out int port))
-                    Port = (ushort)port;
-
-                Name = match.Groups[3].Value;
-            }
+            return HashCode.Combine(ExternalIp, Name);
         }
     }
 }

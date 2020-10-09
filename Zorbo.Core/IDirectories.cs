@@ -9,9 +9,11 @@ namespace Zorbo.Core
 {
     public interface IDirectories
     {
-        string AppData { get; }
+        string AppData { get; set; }
         string Logs { get; }
         string Plugins { get; }
         string Certificates { get; }
+
+        void EnsureExists();
     }
 }

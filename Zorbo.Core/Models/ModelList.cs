@@ -2,13 +2,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Zorbo.Core.Collections;
 
 namespace Zorbo.Core.Models
@@ -58,6 +53,12 @@ namespace Zorbo.Core.Models
 
         public ModelList(IEnumerable<T> collection) {
             m_list = new List<T>(collection);
+        }
+
+
+        public T Find(Predicate<T> match)
+        {
+            return m_list.Find(match);
         }
 
 
@@ -188,6 +189,11 @@ namespace Zorbo.Core.Models
         public virtual void Clear() {
             lock (SyncRoot) m_list.Clear();
             OnCollectionCleared();
+        }
+
+        public virtual T[] ToArray()
+        {
+            lock (SyncRoot) return m_list.ToArray();
         }
 
         public virtual void CopyTo(T[] array, int arrayIndex) {

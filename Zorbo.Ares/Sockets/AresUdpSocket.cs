@@ -9,8 +9,12 @@ namespace Zorbo.Ares.Sockets
 {
     public sealed class AresUdpSocket : ISocket, IDisposable
     {
+        volatile bool receiving;
+
         static readonly IPEndPoint receiveEp;
 
+        SocketReceiveTask recvTask;
+        EventHandler<IOTaskCompleteEventArgs<SocketSendTask>> sendHandler;
 
         public Socket Socket { 
             get;
@@ -69,6 +73,9 @@ namespace Zorbo.Ares.Sockets
             Formatter = formatter;
             Socket = SocketManager.CreateUdp();
             Monitor = new IOMonitor();
+            recvTask = new SocketReceiveTask(8192);
+            recvTask.Completed += ReceiveComplete;
+            sendHandler = new EventHandler<IOTaskCompleteEventArgs<SocketSendTask>>(SendComplete);
         }
 
 
@@ -90,13 +97,13 @@ namespace Zorbo.Ares.Sockets
                 RemoteEndPoint = remoteEp
             };
 
-            task.Completed += SendComplete;
+            task.Completed += sendHandler;
             if (Socket != null) Socket.QueueSend(task);
         }
 
         private void SendComplete(object sender, IOTaskCompleteEventArgs<SocketSendTask> e)
         {
-            e.Task.Completed -= SendComplete;
+            e.Task.Completed -= sendHandler;
 
             if (e.Task.Exception == null) {
                 
@@ -115,12 +122,13 @@ namespace Zorbo.Ares.Sockets
 
         public void ReceiveAsync()
         {
-            SocketReceiveTask task = new SocketReceiveTask(8192);
+            if (receiving)
+                throw new InvalidOperationException("Socket is already receiving.");
 
-            task.Completed += ReceiveComplete;
-            task.RemoteEndPoint = receiveEp;
+            receiving = true;
 
-            if (Socket != null) Socket.QueueReceive(task);
+            recvTask.RemoteEndPoint = receiveEp;
+            if (Socket != null) Socket.QueueReceive(recvTask);
         }
 
         private void ReceiveComplete(object sender, IOTaskCompleteEventArgs<SocketReceiveTask> e)
@@ -132,15 +140,18 @@ namespace Zorbo.Ares.Sockets
                     Monitor.AddInput(e.Task.Transferred);
                     OnPacketReceived(
                         e.Buffer.Buffer[e.Buffer.Offset], //id
-                        e.Buffer.Buffer, e.Buffer.Offset + 1, 
-                        e.Task.Transferred - 1, 
+                        e.Buffer.Buffer, e.Buffer.Offset + 1,
+                        e.Task.Transferred - 1,
                         e.Task.RemoteEndPoint);
 
                     e.Task.RemoteEndPoint = receiveEp;
                     if (Socket != null) Socket.QueueReceive(e.Task);
                 }
             }
-            else OnException(e.Task.Exception, e.Task.RemoteEndPoint);
+            else {
+                OnException(e.Task.Exception, e.Task.RemoteEndPoint);
+                if (Socket != null) Socket.QueueReceive(e.Task);
+            }
         }
 
 
@@ -163,9 +174,10 @@ namespace Zorbo.Ares.Sockets
         }
 
 
-
         public void Close()
         {
+            receiving = false;
+
             Socket.Destroy();
             Socket = null;
 
@@ -180,6 +192,9 @@ namespace Zorbo.Ares.Sockets
         {
             Close();
             Formatter = null;
+            sendHandler = null;
+            recvTask.Completed -= ReceiveComplete;
+            recvTask = null;
         }
 
 

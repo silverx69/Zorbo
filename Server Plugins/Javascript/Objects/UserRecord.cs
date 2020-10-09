@@ -2,7 +2,6 @@
 using System;
 using System.Net;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -18,7 +17,7 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "UserRecord", new UserRecord(script)) {
             }
 
@@ -35,12 +34,12 @@ namespace Javascript.Objects
 
         #endregion
 
-        private UserRecord(JScript script)
+        private UserRecord(Script script)
             : base(script.Engine) {
             this.PopulateFunctions();
         }
 
-        public UserRecord(JScript script, Record record)
+        public UserRecord(Script script, Record record)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["UserRecord"]).InstancePrototype) {
 
             this.record = record;

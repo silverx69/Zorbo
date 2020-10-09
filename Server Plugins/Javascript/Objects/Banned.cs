@@ -3,7 +3,6 @@ using Jurassic.Library;
 using System.Collections.Generic;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,7 +15,7 @@ namespace Javascript.Objects
             get { return this.history.Bans.Count; }
         }
 
-        public Banned(JScript script, IHistory history)
+        public Banned(Script script, IHistory history)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
             
             this.script = script;

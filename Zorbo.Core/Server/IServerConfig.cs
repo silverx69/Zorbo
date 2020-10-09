@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.Net;
+using System.Security;
 
 namespace Zorbo.Core.Server
 {
@@ -25,6 +26,10 @@ namespace Zorbo.Core.Server
         /// The port the server will listen for connections on
         /// </summary>
         ushort Port { get; }
+        /// <summary>
+        /// The port the server will listen for Tls connections on
+        /// </summary>
+        ushort TlsPort { get; set; }
         /// <summary>
         /// The ip address of the adapter that the socket will bind to, this is generally left as 0.0.0.0
         /// </summary>
@@ -70,13 +75,25 @@ namespace Zorbo.Core.Server
         /// </summary>
         bool UseTcpSockets { get; set; }
         /// <summary>
-        /// True if the server can use WebSockets, otherwise false.
-        /// </summary>
-        bool UseWebSockets { get; set; }
-        /// <summary>
         /// True if the server should listen for TLS connections (Port + 1), otherwise false.
         /// </summary>
         bool UseTlsSockets { get; set; }
+        /// <summary>
+        /// The domain name associated with the certificate. Often referred to as the Common Name, or CN.
+        /// </summary>
+        string DomainName { get; set; }
+        /// <summary>
+        /// Gets or sets the file location of the SSL certificate to use for TLS
+        /// </summary>
+        string Certificate { get; set; }
+        /// <summary>
+        /// Gets or sets the password that was used the secure the supplied SSL certificate
+        /// </summary>
+        SecureString CertificatePassword { get; set; }
+        /// <summary>
+        /// True if the server can use WebSockets, otherwise false.
+        /// </summary>
+        bool UseWebSockets { get; set; }
         /// <summary>
         /// True to show the channel on the channel list, otherwise false.
         /// </summary>

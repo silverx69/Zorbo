@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Zorbo.Ares.Formatters;
 using Zorbo.Ares.Packets;
 using Zorbo.Ares.Packets.Chatroom;
 using Zorbo.Ares.Packets.Formatters;
@@ -38,6 +39,8 @@ namespace Zorbo.Ares.Server
 
         List<PendingConnection> pending;
         List<IFloodRule> flood_rules;
+
+        ServerPluginHost plugins = null;
 #pragma warning restore IDE0044 // Add readonly modifier
 
         static readonly Comparison<IClient> sorter = (a, b) => (a.Id - b.Id);
@@ -146,7 +149,14 @@ namespace Zorbo.Ares.Server
         }
 
 
-        public ServerPluginHost PluginHost { get; }
+        public ServerPluginHost PluginHost {
+            get {
+                if (plugins == null)
+                    plugins = new ServerPluginHost(this);
+                return plugins;
+            }
+            set { OnPropertyChanged(() => plugins, value); }
+        }
 
         IServerPluginHost IServer.PluginHost {
             get { return PluginHost; }
@@ -164,7 +174,8 @@ namespace Zorbo.Ares.Server
             get { return flood_rules; }
         }
 
-        public AresServer(AresServerConfig config) {
+        public AresServer(AresServerConfig config) 
+        {
             this.Config = config ?? 
                 throw new ArgumentNullException("config", "Server configuration cannot be null.");
 
@@ -180,8 +191,6 @@ namespace Zorbo.Ares.Server
 
             if (Channels.Channels.Count == 0)
                 Channels.LoadFromDatFile();
-
-            PluginHost = new ServerPluginHost(this);
 
             idpool = new SortedStack<ushort>();
             idpool.SetSort((a, b) => (a - b));
@@ -226,13 +235,13 @@ namespace Zorbo.Ares.Server
 
                 LocalAddresses = Utils.GetLocalAddresses();
 
-                listener = new AresTcpSocket(new ClientFormatter());
+                listener = new AresTcpSocket(new AdvancedClientFormatter());
                 listener.Accepted += ClientAccepted;
                 listener.Bind(new IPEndPoint(Config.LocalIp, Config.Port));
                 listener.Listen(25);
 
                 if (Config.UseTlsSockets) {
-                    tlslistener = new AresTcpSocket(new ClientFormatter());
+                    tlslistener = new AresTcpSocket(new AdvancedClientFormatter());
                     tlslistener.Accepted += TLSClientAccepted;
                     tlslistener.Bind(new IPEndPoint(Config.LocalIp, Config.Port + 1));
                     tlslistener.Listen(25);
@@ -312,8 +321,10 @@ namespace Zorbo.Ares.Server
                         continue;
                     }
                 }
+                else if (user.FastPing && now.Subtract(user.LastPing).TotalSeconds >= 10)
+                    user.SendPacket(new FastPing());
 
-                if (now.Subtract(user.LastUpdate).TotalMinutes >= 5)
+                else if (now.Subtract(user.LastUpdate).TotalMinutes >= 5)
                     user.Disconnect();
             }
 
@@ -353,9 +364,8 @@ namespace Zorbo.Ares.Server
                         s.LoggedIn &&
                        !s.IsCaptcha &&
                         s.Vroom == user.Vroom) {
-
-                        s.SendPacket(join);
-                        user.SendPacket(new Userlist(s));
+                        if (s.CanSee(user)) s.SendPacket(join);
+                        if (user.CanSee(s)) user.SendPacket(new Userlist(s));
                     }
                 }
             }
@@ -366,7 +376,7 @@ namespace Zorbo.Ares.Server
 
         public void SendAvatars(IClient user)
         {
-            if (Config.Avatar != null)
+            if (!Config.Avatar.IsEmpty())
                 user.SendPacket(new ServerAvatar(Config.BotName, Config.Avatar));
 
             user.SendPacket(new ServerPersonal(Config.BotName, Strings.VersionLogin));
@@ -374,16 +384,20 @@ namespace Zorbo.Ares.Server
             foreach (var s in Users) {
 
                 if (!s.IsCaptcha && s.Vroom == user.Vroom) {
+                    if (s.CanSee(user)) {
+                        if (!string.IsNullOrEmpty(user.Message))
+                            s.SendPacket(new ServerPersonal(user.Name, user.Message));
 
-                    s.SendPacket(new ServerAvatar(user));
+                        if (!user.Avatar.IsEmpty() || !Config.Avatar.IsEmpty())
+                            s.SendPacket(new ServerAvatar(user));
+                    }
+                    if (user.CanSee(s)) {
+                        if (!string.IsNullOrEmpty(s.Message))
+                            user.SendPacket(new ServerPersonal(s.Name, s.Message));
 
-                    if (!String.IsNullOrEmpty(user.Message))
-                        s.SendPacket(new ServerPersonal(user.Name, user.Message));
-
-                    user.SendPacket(new ServerAvatar(s));
-
-                    if (!String.IsNullOrEmpty(s.Message))
-                        user.SendPacket(new ServerPersonal(s.Name, s.Message));
+                        if (!s.Avatar.IsEmpty() || !Config.Avatar.IsEmpty())
+                            user.SendPacket(new ServerAvatar(s));
+                    }
                 }
             }
         }
@@ -419,7 +433,7 @@ namespace Zorbo.Ares.Server
 
             var socket = (AresTcpSocket)e.Socket;
 
-            if (!Channels.FinishedTestingFirewall && 
+            if (!Channels.TestingFirewall && 
                  Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
 
                 socket.Dispose();
@@ -451,32 +465,37 @@ namespace Zorbo.Ares.Server
 
             var socket = (AresTcpSocket)e.Socket;
 
-            if (!Channels.FinishedTestingFirewall &&
+            if (!Channels.TestingFirewall &&
                  Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
 
                 socket.Dispose();
             }
             else if (Config.UseTlsSockets) {
+                if (!string.IsNullOrEmpty(Config.Certificate)) {
+                    socket.Exception += ClientException;
+                    socket.Disconnected += ClientDisconnected;
+                    socket.PacketSent += ClientPacketSent;
+                    socket.PacketReceived += ClientPacketReceived;
+                    socket.RequestReceived += ClientHttpRequestReceived;
 
-                socket.Exception += ClientException;
-                socket.Disconnected += ClientDisconnected;
-                socket.PacketSent += ClientPacketSent;
-                socket.PacketReceived += ClientPacketReceived;
-                socket.RequestReceived += ClientHttpRequestReceived;
-
-                lock (pending) pending.Add(new PendingConnection(socket, DateTime.Now));
-
-                string path = Config.Directories.Certificates;
-
-                socket.ActivateTLS(
-                    Path.Combine(path, Config.Name + ".pfx"), 
-                    Path.Combine(path, Config.Name + ".cer"));
-                socket.ReceiveAsync();
+                    lock (pending) pending.Add(new PendingConnection(socket, DateTime.Now));
+                    //Authenticate TLS as a Server
+                    socket.AuthenticateAsServer(Config.Certificate, Config.CertificatePassword);
+                    socket.ReceiveAsync();
+                }
+                else {
+                    Logging.Info(
+                    "AresServer",
+                    "Connection rejected from '{0}'. Chatroom does not have a certificate configured to allow TLS connections.",
+                    socket.RemoteEndPoint.Address
+                );
+                    socket.Dispose();
+                }
             }
             else {
                 Logging.Info(
                     "AresServer",
-                    "Connection rejected from '{0}'. Chatroom is not configured to allow TLS connections.",
+                    "Connection rejected from '{0}'. Chatroom has TLS sockets disabled.",
                     socket.RemoteEndPoint.Address
                 );
                 socket.Dispose();
@@ -534,26 +553,33 @@ namespace Zorbo.Ares.Server
 
                 if (user == null) {
                     if (HandlePending(socket)) {
-
-                        int id = idpool.Pop();
-                        var client = new AresClient(this, socket, (ushort)id);
-
-                        if (IPAddress.IsLoopback(client.ExternalIp) ||
-                            client.ExternalIp.Equals(ExternalIp) || 
-                            LocalAddresses.Contains(client.ExternalIp) || 
-                           (Config.LocalAreaIsHost && client.ExternalIp.IsLocalAreaNetwork()))
-                            client.LocalHost = true;
-
-                        lock (Users) {
-                            Users.Add(client);
-                            Users.Sort(sorter);
-                            Stats.PeakUsers = Math.Max(Users.Count, Stats.PeakUsers);
+                        if (idpool.Count == 0) {
+                            socket.SendAsync(new Announce(Errors.RoomFull));
+                            socket.Disconnect();
+                            Logging.Info(
+                                "AresServer", 
+                                "Chatroom has reached capacity ({0}). If this happens frequently consider raising Max Clients", 
+                                Config.MaxClients
+                            );
                         }
+                        else {
+                            int id = idpool.Pop();
+                            var client = new AresClient(this, socket, (ushort)id);
 
-                        client.HandleJoin(e);
-                    }
-                    else {
-                        socket.Disconnect();
+                            if (IPAddress.IsLoopback(client.ExternalIp) ||
+                                client.ExternalIp.Equals(ExternalIp) ||
+                                LocalAddresses.Contains(client.ExternalIp) ||
+                               (Config.LocalAreaIsHost && client.ExternalIp.IsLocalAreaNetwork()))
+                                client.LocalHost = true;
+
+                            lock (Users) {
+                                Users.Add(client);
+                                Users.Sort(sorter);
+                                Stats.PeakUsers = Math.Max(Users.Count, Stats.PeakUsers);
+                            }
+
+                            client.HandleJoin(e);
+                        }
                     }
                 }
                 else {
@@ -599,12 +625,7 @@ namespace Zorbo.Ares.Server
                         }
 
                         connection.Socket.IsWebSocket = true;
-
-                        //call into the socketmanager extension, SendComplete won't bubble back up, but that's ok.
-                        byte[] bytes = Http.WebSocketAcceptHeaderBytes(key, my_headers.ToArray());
-                        //add output to the monitor manually since we're calling the low level send
-                        connection.Socket.Monitor.AddOutput(bytes.Length);
-                        connection.Socket.Socket.QueueSend(bytes);
+                        connection.Socket.SendBytes(Http.WebSocketAcceptHeaderBytes(key, my_headers.ToArray()));
                     }
                     else {//websockets disabled
                         Logging.Info(
@@ -616,34 +637,28 @@ namespace Zorbo.Ares.Server
                         connection.Socket.Disconnect();
                     }
                 }
-                else {
-                    // Not sure what I am going to do here yet, 
-                    // but this would be considered a valid request from an anonymous connection.
-                    // Ares clients use this to download the room template. Currently not used in Zorbo.
+                else if (PluginHost.OnHttpRequest(socket, e)) {
                     Logging.Info(
                         "AresServer",
                         "Connection rejected from '{0}'. Unknown Http request has been initiated.",
                         socket.RemoteEndPoint.Address
                     );
-
                     connection.Socket.Disconnect();
                 }
             }
             else {
                 //Http request is not from a pending connection
                 IClient user = Users.Find(s => s.Socket == sender);
-
                 //if not pending, they have at least sent a login packet but are processing, 
                 if (user != null && user.LoggedIn) {
-                    Logging.Info(
-                        "AresServer",
-                        "Http request from '{0}' for resource '{1}'.",
-                        socket.RemoteEndPoint.Address,
-                        e.RequestUri
-                    );
-                    // Not sure what I am going to do here yet, 
-                    // but this would be considered a valid request from a user already connected.
-                    // user.Disconnect(); ????????
+                    if (PluginHost.OnHttpRequest(user, e)) {
+                        Logging.Info(
+                            "AresServer",
+                            "Http request from '{0}' for resource '{1}' denied.",
+                            socket.RemoteEndPoint.Address,
+                            e.RequestUri
+                        );
+                    }
                 }
                 else {
                     //this doesn't appear to happen typically, it would just be racing against !LoggedIn if it did.
@@ -674,7 +689,8 @@ namespace Zorbo.Ares.Server
 
                 SendPacket((s) =>
                     !s.Guid.Equals(user.Guid) && //ghost?
-                     s.Vroom == user.Vroom,
+                     s.Vroom == user.Vroom &&
+                     s.CanSee(user),
                      new Parted(user.Name));
             }
 
@@ -689,8 +705,10 @@ namespace Zorbo.Ares.Server
         protected virtual bool HandlePending(ISocket socket) {
             lock (pending) {
                 var conn = pending.Find((s) => s.Socket == socket);
-                if (conn == null) return false;
-
+                if (conn == null) {
+                    socket.Disconnect();
+                    return false;
+                }
                 pending.Remove(conn);
             }
             return true;
@@ -739,10 +757,12 @@ namespace Zorbo.Ares.Server
                 case nameof(Config.Avatar):
                     var allPacket = new ServerAvatar(Config.BotName, Config.Avatar);
                     foreach (var user in Users) {
-                        if (user.Avatar != null && user.Avatar.Equals(Config.Avatar)) {
+                        if (user.OrgAvatar.IsEmpty()) {
                             SendPacket(
-                                (s) => s.Vroom == user.Vroom,
-                                new ServerAvatar(user.Name, Config.Avatar));
+                                (s) => 
+                                    s.Vroom == user.Vroom &&
+                                    s.CanSee(user),
+                                new ServerAvatar(user));
                         }
                         SendPacket(user, allPacket);
                     }
@@ -754,6 +774,42 @@ namespace Zorbo.Ares.Server
         }
 
         #region " IServer Methods "
+
+        public void SendToAdmin(string message) {
+            SendToAdmin(AdminLevel.Moderator, message);
+        }
+
+        public void SendToAdmin(IPacket packet) {
+            SendToAdmin(AdminLevel.Moderator, packet);
+        }
+
+        public void SendToAdmin(AdminLevel minlevel, string message) {
+            SendAnnounce((s) => s.Admin >= minlevel, message);
+        }
+
+        public void SendToAdmin(AdminLevel minlevel, IPacket packet) {
+            SendPacket((s) => s.Admin >= minlevel, packet);
+        }
+
+        public void SendAnnounce(string text)
+        {
+            SendPacket(new Announce(text));
+        }
+
+        public void SendAnnounce(string target, string text)
+        {
+            SendPacket((s) => s.Name == target, new Announce(text));
+        }
+
+        public void SendAnnounce(IClient target, string text)
+        {
+            SendPacket((s) => s == target, new Announce(text));
+        }
+
+        public void SendAnnounce(Predicate<IClient> match, string text)
+        {
+            SendPacket(match, new Announce(text));
+        }
 
         public void SendText(string target, string sender, string text) {
             SendPacket((s) => s.Name == target, new ServerPublic(sender, text));
@@ -831,23 +887,6 @@ namespace Zorbo.Ares.Server
 
         public void SendPrivate(Predicate<IClient> match, IClient sender, string text) {
             SendPacket(match, new Private(sender.Name, text));
-        }
-
-
-        public void SendAnnounce(string text) {
-            SendPacket(new Announce(text));
-        }
-
-        public void SendAnnounce(string target, string text) {
-            SendPacket((s) => s.Name == target, new Announce(text));
-        }
-
-        public void SendAnnounce(IClient target, string text) {
-            SendPacket((s) => s == target, new Announce(text));
-        }
-
-        public void SendAnnounce(Predicate<IClient> match, string text) {
-            SendPacket(match, new Announce(text));
         }
 
 

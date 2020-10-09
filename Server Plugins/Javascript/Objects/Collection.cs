@@ -7,7 +7,6 @@ using System.Text;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -28,7 +27,7 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "Collection", new Collection(script)) {
             }
 
@@ -45,7 +44,7 @@ namespace Javascript.Objects
 
         #endregion
 
-        private Collection(JScript script)
+        private Collection(Script script)
             : base(script) {
 
             this.script = script;
@@ -54,7 +53,7 @@ namespace Javascript.Objects
             this.PopulateFunctions();
         }
 
-        public Collection(JScript script, ObjectInstance prototype)
+        public Collection(Script script, ObjectInstance prototype)
             : base(script, prototype) {
 
             this.script = script;

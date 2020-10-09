@@ -6,12 +6,12 @@ using Zorbo.Core.Server;
 namespace Zorbo.Core.Plugins.Server
 {
     public class ServerPluginHost : 
-        PluginHost<IServer, ServerPlugin>,
+        PluginHost<ServerPlugin>,
         IServerPluginHost
     {
         public IServer Server {
             get;
-            private set;
+            set;
         }
 
         public ServerPluginHost(IServer server) 
@@ -19,11 +19,29 @@ namespace Zorbo.Core.Plugins.Server
             Server = server;
         }
 
-        protected override void OnPluginLoaded(LoadedPlugin<IServer, ServerPlugin> plugin)
+        public string GetTrigger(string text)
+        {
+            foreach (var plugin in this) {
+                try {
+                    if (plugin.Enabled && plugin.Plugin.CustomTriggers != null)
+                        foreach (string trigger in plugin.Plugin.CustomTriggers) {
+                            if (text.StartsWith(trigger))
+                                return trigger;
+                        }
+                }
+                catch (Exception ex) {
+                    OnError(plugin, nameof(OnCaptcha), ex);
+                }
+            }
+            return null;
+        }
+
+        protected override void OnPluginLoaded(LoadedPlugin<ServerPlugin> plugin)
         {
             try {
+                plugin.Plugin.Server = Server;
                 plugin.Plugin.Directory = Path.Combine(BaseDirectory, plugin.Name);
-                plugin.Plugin.OnPluginLoaded(Server);
+                plugin.Plugin.OnPluginLoaded();
             }
             catch (Exception ex) {
                 OnError(plugin, nameof(OnPluginLoaded), ex);
@@ -37,7 +55,7 @@ namespace Zorbo.Core.Plugins.Server
             }
         }
 
-        protected override void OnPluginKilled(LoadedPlugin<IServer, ServerPlugin> plugin)
+        protected override void OnPluginKilled(LoadedPlugin<ServerPlugin> plugin)
         {
             try {
                 plugin.Plugin.OnPluginKilled();
@@ -53,7 +71,6 @@ namespace Zorbo.Core.Plugins.Server
                 OnError(plugin, "Killed::EventHandler", ex);
             }
         }
-
 
         public void OnCaptcha(IClient client, CaptchaEvent @event)
         {
@@ -239,6 +256,20 @@ namespace Zorbo.Core.Plugins.Server
             return ret;
         }
 
+        public bool OnTextCommand(IClient client, string cmd, string args)
+        {
+            foreach (var plugin in this) {
+                try {
+                    if (plugin.Enabled && !plugin.Plugin.OnTextCommand(client, cmd, args))
+                        return false;
+                }
+                catch (Exception ex) {
+                    OnError(plugin, nameof(OnHelp), ex);
+                }
+            }
+            return true;
+        }
+
         public bool OnFileReceived(IClient client, ISharedFile file)
         {
             bool ret = true;
@@ -298,6 +329,34 @@ namespace Zorbo.Core.Plugins.Server
                     OnError(plugin, nameof(OnAfterPacket), ex);
                 }
             }
+        }
+
+        public bool OnHttpRequest(ISocket socket, RequestEventArgs e)
+        {
+            foreach (var plugin in this) {
+                try {
+                    if (plugin.Enabled && !plugin.Plugin.OnHttpRequest(socket, e))
+                        return false;
+                }
+                catch (Exception ex) {
+                    OnError(plugin, nameof(OnAfterPacket), ex);
+                }
+            }
+            return true;
+        }
+
+        public bool OnHttpRequest(IClient socket, RequestEventArgs e)
+        {
+            foreach (var plugin in this) {
+                try {
+                    if (plugin.Enabled && !plugin.Plugin.OnHttpRequest(socket, e))
+                        return false;
+                }
+                catch (Exception ex) {
+                    OnError(plugin, nameof(OnAfterPacket), ex);
+                }
+            }
+            return true;
         }
 
         public bool OnFlood(IClient client, IFloodRule rule, IPacket packet)

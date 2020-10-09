@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -14,7 +13,7 @@ namespace Javascript.Objects
         ScriptObject, 
         IEquatable<TimeSpanInstance>
     {
-        readonly JScript script;
+        readonly Script script;
         readonly TimeSpan span;
 
         [JSProperty(Name = "days", IsEnumerable = true)]
@@ -54,9 +53,9 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script = null;
+            readonly Script script = null;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "TimeSpan", new TimeSpanInstance(script)) {
 
                 this.script = script;
@@ -97,13 +96,13 @@ namespace Javascript.Objects
 
         #endregion
 
-        private TimeSpanInstance(JScript script) 
+        private TimeSpanInstance(Script script) 
             : base(script.Engine) {
             this.script = script;
             this.PopulateFunctions();
         }
 
-        internal TimeSpanInstance(JScript script, TimeSpan span)
+        internal TimeSpanInstance(Script script, TimeSpan span)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["TimeSpan"]).InstancePrototype) {
 
             this.script = script;

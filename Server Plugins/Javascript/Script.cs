@@ -1,5 +1,4 @@
-﻿using cb0tProtocol;
-using Javascript.Objects;
+﻿using Javascript.Objects;
 using Jurassic;
 using Jurassic.Library;
 using System;
@@ -60,8 +59,8 @@ namespace Javascript
         }
 
         public Script(String name) {
-            this.Name = name;
-            this.Counters = new Dictionary<string, int>();
+            Name = name;
+            Counters = new Dictionary<string, int>();
 
             if (!System.IO.Directory.Exists(Directory))
                 System.IO.Directory.CreateDirectory(Directory);
@@ -74,7 +73,7 @@ namespace Javascript
             Counters.Add("html", 0);
             Counters.Add("json", 0);
 
-            this.Engine = new ScriptEngine();
+            Engine = new ScriptEngine();
 
             //ENUMERATIONS - ENUMERATED
             Engine.Global.DefineProperty("AresId",
@@ -109,49 +108,49 @@ namespace Javascript
 
             // INSTANCE CLASSES - NOT ENUMERATED 
             Engine.Global.DefineProperty("Error",
-                new PropertyDescriptor(new Objects.Error.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new Error.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("Collection",
-                new PropertyDescriptor(new Objects.Collection.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new Collection.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("List",
-                new PropertyDescriptor(new Objects.List.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new List.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("ReadOnlyList",
-                new PropertyDescriptor(new Objects.ReadOnlyList.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new ReadOnlyList.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("TimeSpan",
-                new PropertyDescriptor(new Objects.TimeSpanInstance.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new TimeSpanInstance.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("Monitor",
-                new PropertyDescriptor(new Objects.Monitor.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new Monitor.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("RoomStats",
-                new PropertyDescriptor(new Objects.RoomStats.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new RoomStats.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("HttpRequest",
-                new PropertyDescriptor(new Objects.HttpRequest.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new HttpRequest.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("Hashlink",
-                new PropertyDescriptor(new Objects.Hashlink.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new Hashlink.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("FloodRule",
-                new PropertyDescriptor(new Objects.FloodRule.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new FloodRule.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("EncodingInstance",
-                new PropertyDescriptor(new Objects.EncodingInstance.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new EncodingInstance.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("UserId",
-                new PropertyDescriptor(new Objects.UserId.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new UserId.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("User",
-                new PropertyDescriptor(new Objects.User.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new User.Constructor(this), PropertyAttributes.Sealed), true);
 
             Engine.Global.DefineProperty("UserRecord",
-                new PropertyDescriptor(new Objects.UserRecord.Constructor(this), PropertyAttributes.Sealed), true);
+                new PropertyDescriptor(new UserRecord.Constructor(this), PropertyAttributes.Sealed), true);
 
             // GLOBAL (STATIC) CLASSES
-            this.Room = new Room(this, JurassicPlugin.Self.Server);
+            Room = new Room(this, JurassicPlugin.Self.Server);
             // ease of use functions
             Engine.SetGlobalFunction("user", new Func<Object, User>(Room.FindUser));
             Engine.SetGlobalFunction("print", new Action<Object, Object>(Room.SendAnnounce));
@@ -166,25 +165,25 @@ namespace Javascript
                 new PropertyDescriptor(Room, PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Channels",
-                new PropertyDescriptor(new Objects.Channels(this, JurassicPlugin.Self.Server.Channels), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new Channels(this, JurassicPlugin.Self.Server.Channels), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("File",
-                new PropertyDescriptor(new Objects.File(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSFile(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Script",
-                new PropertyDescriptor(new Objects.Script(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSScript(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Hashlinks",
-                new PropertyDescriptor(new Objects.Hashlinks(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSHashlinks(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Encoding",
-                new PropertyDescriptor(new Objects.Encoding(this, true), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSEncoding(this, true), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("Base64",
-                new PropertyDescriptor(new Objects.Base64(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSBase64(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             Engine.Global.DefineProperty("BitConverter",
-                new PropertyDescriptor(new Objects.BitConverter(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
+                new PropertyDescriptor(new JSBitConverter(this), PropertyAttributes.Sealed | PropertyAttributes.Enumerable), true);
 
             foreach (var embedded in JurassicPlugin.Embedded) {
                 Engine.Global.DefineProperty(
@@ -196,16 +195,16 @@ namespace Javascript
         }
 
         public object Eval(string code) {
-            return this.Engine.Evaluate(code);
+            return Engine.Evaluate(code);
         }
 
         public T Eval<T>(string code) {
-            return this.Engine.Evaluate<T>(code);
+            return Engine.Evaluate<T>(code);
         }
 
         public void Unload() {
-            this.Room = null;
-            this.Engine = null;
+            Room = null;
+            Engine = null;
         }
 
         internal void ResetCounters() {

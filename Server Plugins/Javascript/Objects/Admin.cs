@@ -1,7 +1,6 @@
 ﻿using Jurassic.Library;
 using System.Collections.Generic;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -15,7 +14,7 @@ namespace Javascript.Objects
         }
 
 
-        public Admins(JScript script, IAdmins admin)
+        public Admins(Script script, IAdmins admin)
             : base(script) {
 
             this.admin = admin;

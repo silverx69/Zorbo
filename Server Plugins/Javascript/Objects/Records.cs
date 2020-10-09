@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -17,7 +16,7 @@ namespace Javascript.Objects
             get { return this.history.Records.Count; }
         }
 
-        public Records(JScript script, IHistory history)
+        public Records(Script script, IHistory history)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.history = history;

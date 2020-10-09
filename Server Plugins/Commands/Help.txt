@@ -10,19 +10,15 @@
 #unmuzzle <id,name> - allow a muzzled user to talk in the chatroom
 #ban <id,name> - bans a user from the chatroom
 #unban <banid,name> - unbans a user from the chatroom
-#listbans - displays a list of all user bans
-#listplugins - displays a list of currently loaded plugins
+#bans - displays a list of all user bans
+#plugins - displays a list of currently loaded plugins
 [Admin]
 #topic <topic> - sets the topic for the chatroom
 #redirect <id,name> <hashlink> - redirects a user to another chatroom
 #cbans - clears history of bans (users only)
-#bandns <pattern> - bans a dns name by matching the specified regular expression
-#unbandns <id,pattern> - unbans a dns name by removing the specified pattern
-#listdnsbans - displays a list of all banned dns name patterns
-#cdnsbans - clears all dns ban patterns
 #banrange <pattern> - bans an ip range by matching the specified regular expression
 #unbanrange <id,pattern> - unbans an ip range by removing the specified pattern
-#listrangebans - displays a list of all banned ip ranges
+#rbans - displays a list of all banned ip ranges
 #crangebans - clears all ip range patterns
 [Host]
 #grant <id,name> <level> - grants a user administrator priviledges

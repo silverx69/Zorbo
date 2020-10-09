@@ -105,18 +105,21 @@ namespace Zorbo.Ares.Sockets
         {
             int count = Math.Min(Count - Transferred, SocketManager.BufferSize);
             try {
-                if (Socket.Poll(0, SelectMode.SelectRead)) {
+                if (SslStream.CanRead) {
                     do {
-                        int recvd = await SslStream.ReadAsync(buffer.Buffer, buffer.Offset, count);
+                        int ret = await SslStream.ReadAsync(buffer.Buffer, buffer.Offset, count);
+                        if (ret == 0) throw new SocketException((int)SocketError.NoData);
 
-                        if (recvd == 0)
-                            throw new SocketException((int)SocketError.NotConnected);
-
-                        Transferred += recvd;
+                        Transferred += ret;
                     }
-                    while (Transferred < count);
+                    while (Transferred < Count);
+
+                    OnCompleted(buffer);
                 }
                 else OnContinue(buffer);
+            }
+            catch (ObjectDisposedException) {
+                OnCompleted(buffer);
             }
             catch (Exception ex) {
                 Exception = ex;

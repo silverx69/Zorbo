@@ -10,6 +10,7 @@ using Zorbo.Core.Server;
 using Zorbo.Core.Models;
 using Zorbo.Core.Plugins;
 using Zorbo.Core.Plugins.Server;
+using System;
 
 namespace Zorbo.Server.WPF.Views
 {
@@ -42,8 +43,8 @@ namespace Zorbo.Server.WPF.Views
                 }
             }
 
-            LoadedPlugin<IServer, ServerPlugin> plugin = null;
-            internal LoadedPlugin<IServer, ServerPlugin> Plugin {
+            LoadedPlugin<ServerPlugin> plugin = null;
+            internal LoadedPlugin<ServerPlugin> Plugin {
                 get { return plugin; }
                 set {
                     if (plugin != value) {
@@ -72,37 +73,49 @@ namespace Zorbo.Server.WPF.Views
             InitializeComponent();
             files = new ObservableCollection<AvailablePlugin>();
             base.SetValue(AvailablePropertyKey, files);
+            Loaded += UserControl_Loaded;
+            Unloaded += UserControl_Unloaded;
         }
 
+        
+
         void CheckAvailable() {
+            Dispatcher.Invoke(() => {
+                ServerPluginHost host = (ServerPluginHost)DataContext;
+                foreach (var dir in new DirectoryInfo(host.BaseDirectory).GetDirectories()) {
 
-            ServerPluginHost host = (ServerPluginHost)DataContext;
-            foreach (var dir in new DirectoryInfo(host.BaseDirectory).GetDirectories()) {
+                    string file = System.IO.Path.Combine(dir.FullName, dir.Name + ".dll");
 
-                string file = System.IO.Path.Combine(dir.FullName, dir.Name + ".dll");
+                    if (File.Exists(file)) {
 
-                if (File.Exists(file)) {
+                        var pname = files.Find((s) => s.Name == dir.Name);
 
-                    var pname = files.Find((s) => s.Name == dir.Name);
+                        if (pname == null) {
+                            pname = new AvailablePlugin(dir.Name);
+                            files.Add(pname);
+                        }
 
-                    if (pname == null) {
-                        pname = new AvailablePlugin(dir.Name);
-                        files.Add(pname);
+                        pname.Plugin = host.Find((s) => s.Name == dir.Name);
                     }
-
-                    pname.Plugin = host.Find((s) => s.Name == dir.Name);
                 }
-            }
+            });
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e) {
 
             if (!DesignerProperties.GetIsInDesignMode(this)) {
+
                 ServerPluginHost host = (ServerPluginHost)DataContext;
-                
                 host.CollectionChanged += Plugins_CollectionChanged;
+
                 CheckAvailable();
             }
+        }
+
+        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            ServerPluginHost host = (ServerPluginHost)DataContext;
+            host.CollectionChanged -= Plugins_CollectionChanged;
         }
 
         void Plugins_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {

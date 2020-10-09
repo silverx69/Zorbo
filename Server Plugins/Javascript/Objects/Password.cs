@@ -1,6 +1,5 @@
 ﻿using Jurassic.Library;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -24,7 +23,7 @@ namespace Javascript.Objects
             get { return password.Sha1Text; }
         }
 
-        public Password(JScript script, IPassword password)
+        public Password(Script script, IPassword password)
             : base(script.Engine) {
 
             this.password = password;

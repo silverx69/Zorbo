@@ -8,7 +8,6 @@ using Zorbo.Core;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -23,9 +22,9 @@ namespace Javascript.Objects
 
         public new  class Constructor : ClrFunction
         {
-            readonly JScript script = null;
+            readonly Script script = null;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "List", new List(script)) {
 
                 this.script = script;
@@ -56,14 +55,14 @@ namespace Javascript.Objects
 
         #endregion
 
-        public List(JScript script)
+        public List(Script script)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.items = new List<Object>();
             this.PopulateFunctions();
         }
 
-        public List(JScript script, object[] collection)
+        public List(Script script, object[] collection)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.items = new List<Object>();

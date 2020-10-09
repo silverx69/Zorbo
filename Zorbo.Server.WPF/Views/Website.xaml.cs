@@ -25,7 +25,7 @@ namespace Zorbo.Server.WPF.Views
 
         private void Help_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            Help help = this.FindVisualAnscestor<Settings>().Help;
+            Help help = this.FindVisualAnscestor<SettingsWin>().Help;
 
             help.Control = sender as UIElement;
             help.Text = Help.GetHelpText(help.Control);

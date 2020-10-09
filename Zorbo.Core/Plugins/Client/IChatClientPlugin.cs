@@ -2,7 +2,7 @@
 
 namespace Zorbo.Core.Plugins.Client
 {
-    public interface IChatClientPlugin : IPlugin<IChatClient>
+    public interface IChatClientPlugin : IPlugin
     {
     }
 }

@@ -4,25 +4,33 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:views="clr-namespace:Zorbo.Server.WPF.Views"
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
              mc:Ignorable="d" 
              d:DesignHeight="250" 
-             d:DesignWidth="390"
-             Loaded="UserControl_Loaded">
+             d:DesignWidth="390">
     
     <Grid>
-        <TextBlock Text="Available plugins:" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12,12,0,0" />
+        <TextBlock VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12,12,0,0">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelPlugins}"/><Run Text=":"/>
+            </TextBlock>
+        </TextBlock>
         
         <ListView Name="lvAvailable" 
                   ItemsSource="{Binding Path=Available, RelativeSource={RelativeSource AncestorType={x:Type views:Plugins}, Mode=FindAncestor}}" 
                   Margin="12,34,12,41" SelectionChanged="LvAvailable_SelectionChanged">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Path=Name}" Width="160"/>
-                    <GridViewColumn Header="State" DisplayMemberBinding="{Binding Path=State}" Width="130"/>
+                    <GridViewColumn Header="{x:Static resx:AppStrings.LabelPluginName}" DisplayMemberBinding="{Binding Path=Name}" Width="160"/>
+                    <GridViewColumn Header="{x:Static resx:AppStrings.LabelPluginState}" DisplayMemberBinding="{Binding Path=State}" Width="130"/>
                 </GridView>
             </ListView.View>
         </ListView>
-        <Button Content="Import..." Height="23" HorizontalAlignment="Right" Margin="0,0,93,12" Name="btnImport" VerticalAlignment="Bottom" Width="75" Click="BtnImport_Click" />
-        <Button Content="Load" Height="23" HorizontalAlignment="Right" Margin="0,0,12,12" Name="btnLoad" VerticalAlignment="Bottom" Width="75" Click="BtnLoad_Click" />
+        <Button Height="23" HorizontalAlignment="Right" Margin="0,0,93,12" Name="btnImport" VerticalAlignment="Bottom" Width="75" Click="BtnImport_Click">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.BtnImport}"/><Run Text="..."/>
+            </TextBlock>
+        </Button>
+        <Button Content="{x:Static resx:AppStrings.BtnLoad}" Height="23" HorizontalAlignment="Right" Margin="0,0,12,12" Name="btnLoad" VerticalAlignment="Bottom" Width="75" Click="BtnLoad_Click" />
     </Grid>
 </UserControl>

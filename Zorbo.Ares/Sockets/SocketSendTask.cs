@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-
+using Zorbo.Core;
 using Zorbo.Core.Data;
 
 namespace Zorbo.Ares.Sockets
@@ -58,25 +58,29 @@ namespace Zorbo.Ares.Sockets
         }
 
 
-        public SocketSendTask() {
+        public SocketSendTask()
+        {
             sendCallback = new AsyncCallback(ExecuteComplete);
         }
 
         public SocketSendTask(byte[] buffer)
-            : this() {
+            : this()
+        {
             Data = buffer;
             Count = Data.Length;
         }
 
         public SocketSendTask(byte[] buffer, int offset, int count)
-            : this() {
+            : this()
+        {
             Data = buffer;
             Offset = offset;
             Count = count;
         }
 
 
-        public void Execute(IOBuffer buffer) {
+        public void Execute(IOBuffer buffer)
+        {
             if (SslStream == null)
                 ExecuteSend(buffer);
             else
@@ -84,7 +88,7 @@ namespace Zorbo.Ares.Sockets
         }
 
 
-        private void ExecuteSend(IOBuffer buffer) 
+        private void ExecuteSend(IOBuffer buffer)
         {
             int count = Math.Min(Count - Transferred - Offset, SocketManager.BufferSize);
             Array.Copy(Data, Offset + Transferred, buffer.Buffer, buffer.Offset, count);
@@ -107,13 +111,13 @@ namespace Zorbo.Ares.Sockets
             }
         }
 
-        private async void ExecuteTLSSend(IOBuffer buffer) 
+        private async void ExecuteTLSSend(IOBuffer buffer)
         {
             int count = Math.Min(Count - Transferred - Offset, SocketManager.BufferSize);
             Array.Copy(Data, Offset + Transferred, buffer.Buffer, buffer.Offset, count);
-            try {
-                if (Socket.Poll(0, SelectMode.SelectWrite)) {
 
+            try {
+                if (SslStream.CanWrite) {
                     await SslStream.WriteAsync(buffer.Buffer, buffer.Offset, count);
                     OnCompleted(buffer);
                 }
@@ -128,7 +132,8 @@ namespace Zorbo.Ares.Sockets
             }
         }
 
-        private void ExecuteComplete(IAsyncResult ar) {
+        private void ExecuteComplete(IAsyncResult ar)
+        {
             IOBuffer args = (IOBuffer)ar.AsyncState;
 
             try {
@@ -163,21 +168,20 @@ namespace Zorbo.Ares.Sockets
         }
 
 
-        private void OnContinue(IOBuffer buffer) {
+        private void OnContinue(IOBuffer buffer)
+        {
             buffer.Release();
             Socket.QueueSend(this);
         }
 
-        private void OnCompleted(IOBuffer buffer) {
-            try {
-                Completed?.Invoke(Socket, new IOTaskCompleteEventArgs<SocketSendTask>(this, buffer));
-            }
-            catch { }
+        private void OnCompleted(IOBuffer buffer)
+        {
+            try { Completed?.Invoke(Socket, new IOTaskCompleteEventArgs<SocketSendTask>(this, buffer)); }
+            catch (Exception e) { Logging.Error("SocketSendTask", e); }
 
             Transferred = 0;
             buffer.Release();
         }
-
 
         public event EventHandler<IOTaskCompleteEventArgs<SocketSendTask>> Completed;
     }

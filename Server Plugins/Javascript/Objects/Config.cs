@@ -3,7 +3,6 @@ using Jurassic.Library;
 using System;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -11,7 +10,7 @@ namespace Javascript.Objects
     {
         readonly IServerConfig config = null;
 
-        public Config(JScript script, IServerConfig config)
+        public Config(Script script, IServerConfig config)
             : base(script.Engine) {
             this.config = config;
             this.PopulateFunctions();
@@ -51,8 +50,8 @@ namespace Javascript.Objects
 
         [JSProperty(Name = "avatar", IsEnumerable = true)]
         public ArrayInstance Avatar {
-            get { return config.Avatar.ToJSArray(Engine); }
-            set { config.Avatar = value.ToArray<byte>(); }
+            get { return config.Avatar?.ToJSArray(Engine); }
+            set { config.Avatar = value?.ToArray<byte>(); }
         }
 
         [JSProperty(Name = "orgAvatar", IsEnumerable = true)]

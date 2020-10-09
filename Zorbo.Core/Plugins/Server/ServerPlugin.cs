@@ -10,22 +10,16 @@ namespace Zorbo.Core.Plugins.Server
         /// <summary>
         /// Gets or sets the IServer instance hosting this plugin.
         /// </summary>
-        public IServer Server {
-            get;
-            protected set;
-        }
+        public IServer Server { get; set; }
+        /// <summary>
+        /// Gets or sets a value specifying custom command triggers
+        /// </summary>
+        public string[] CustomTriggers { get; protected set; }
         /// <summary>
         /// Gets / sets the full path to the directory the plugin was loaded from. 
         /// Set by the PluginHost so the IPlugin knows where it was loaded from, has no effect if modified.
         /// </summary>
         public string Directory { get; set; }
-        /// <summary>
-        /// Called when the plugin is loaded
-        /// </summary>
-        public void OnPluginLoaded(IServer server) { 
-            Server = server;
-            OnPluginLoaded();
-        }
         /// <summary>
         /// Called when the plugin is loaded. Not used by Host application, this is for simplicity purposes.
         /// </summary>
@@ -92,6 +86,10 @@ namespace Zorbo.Core.Plugins.Server
         /// </summary>
         public virtual bool OnFileReceived(IClient client, ISharedFile file) { return true; }
         /// <summary>
+        /// Occurs during processing of public text messages. These behave like built-in commands and cannot be overriden.
+        /// </summary>
+        public virtual bool OnTextCommand(IClient client, string cmd, string args) { return true; }
+        /// <summary>
         /// Occurs just before any packet (minus join, login, regiser), some packets (public, emote, personal, private, etc are
         /// overridable by returning false.
         /// </summary>
@@ -104,6 +102,16 @@ namespace Zorbo.Core.Plugins.Server
         /// Occurs after a packet is successfully send to a client
         /// </summary>
         public virtual void OnPacketSent(IClient client, IPacket packet) { }
+        /// <summary>
+        /// Occurs when an anonymous http(s) request occurs on the socket (A normal http(s) request).
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool OnHttpRequest(ISocket socket, RequestEventArgs args) { return true; }
+        /// <summary>
+        /// Occurs when a http(s) request occurs on the socket from an IClient already connected (This is not normal behaviour, but technically possible).
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool OnHttpRequest(IClient socket, RequestEventArgs args) { return true; }
         /// <summary>
         /// Occurs when a user floods the server with packets, returning false will prevent Zorbo from handling the packet. 
         /// It's up to the Plugin to determine any extra action taken when a flood rule is broken.

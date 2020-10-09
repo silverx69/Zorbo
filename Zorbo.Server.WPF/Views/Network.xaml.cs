@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +11,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Zorbo.Core;
+using Zorbo.Core.Server;
 
 namespace Zorbo.Server.WPF.Views
 {
@@ -25,7 +28,7 @@ namespace Zorbo.Server.WPF.Views
 
         private void Help_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            Help help = this.FindVisualAnscestor<Settings>().Help;
+            Help help = this.FindVisualAnscestor<SettingsWin>().Help;
 
             help.Control = sender as UIElement;
             help.Text = Help.GetHelpText(help.Control);

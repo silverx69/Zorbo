@@ -1,0 +1,41 @@
+﻿<UserControl x:Class="Zorbo.Server.WPF.Views.NetworkTLS"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Zorbo.Server.WPF"
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
+             mc:Ignorable="d" 
+             d:DesignHeight="250" 
+             d:DesignWidth="390">
+    <Grid>
+        <Label HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelTLSSockets}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,40,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelDomain}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,71,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelCertFile}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,101,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelCertPass}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <CheckBox x:Name="chkUseTls" IsChecked="{Binding UseTlsSockets}" HorizontalAlignment="Left" Margin="187,16,0,0" Height="15" VerticalAlignment="Top"/>
+        <TextBox Text="{Binding DomainName, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="22" Margin="117,43,10,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
+        <TextBox Text="{Binding Certificate, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="22" Margin="117,74,10,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
+        <PasswordBox x:Name="passBox" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" LostFocus="PassBox_LostFocus" Height="22" Margin="117,103,9,0" VerticalAlignment="Top" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="111,15,0,0" Text="?" local:Help.HelpText="Enable TLS encryption when available? (Not functional)" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="101,45,0,0" Text="?" local:Help.HelpText="Specify the domain name associated with your TLS certification" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="101,76,0,0" Text="?" local:Help.HelpText="Specify the private key file to use with TLS connections" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="102,106,0,0" Text="?" local:Help.HelpText="Specify the export password used to secure the TLS certification" MouseUp="Help_MouseUp" />
+    </Grid>
+</UserControl>

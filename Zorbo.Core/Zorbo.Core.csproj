@@ -11,13 +11,13 @@
     <RepositoryUrl>https://github.com/silverx69/Zorbo</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageIcon>app.png</PackageIcon>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="SharpZipLib" Version="1.2.0" />
-    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>

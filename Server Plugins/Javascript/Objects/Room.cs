@@ -1,11 +1,10 @@
-﻿using cb0tProtocol;
-using Jurassic;
+﻿using Jurassic;
 using Jurassic.Library;
 using System;
 using System.Text.RegularExpressions;
+using Zorbo.Ares.Formatters;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -14,7 +13,7 @@ namespace Javascript.Objects
 #pragma warning disable IDE0044 // Add readonly modifier
         Config config = null;
 
-        JScript script = null;
+        Script script = null;
         IServer server = null;
         List users = null;
 #pragma warning restore IDE0044 // Add readonly modifier
@@ -22,7 +21,7 @@ namespace Javascript.Objects
         //for converting from JSON to IPacket (requires reference to cb0tProtocol.Shared)
         internal static readonly AdvancedServerFormatter Formatter = new AdvancedServerFormatter();
 
-        public Room(JScript script, IServer server)
+        public Room(Script script, IServer server)
             : base(script.Engine) {
 
             this.script = script;

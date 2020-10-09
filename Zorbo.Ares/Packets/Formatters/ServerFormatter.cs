@@ -8,7 +8,7 @@ using Zorbo.Core.Data.Packets;
 namespace Zorbo.Ares.Packets.Formatters
 {
     /// <summary>
-    /// A CLIENT-side implementation of PacketFormatter&lt;PacketSerializer&gt; used for formatting packets to and from the server.
+    /// A CLIENT-side implementation of PacketFormatter&lt;PacketSerializer&gt; used for formatting packets from the server.
     /// </summary>
     public class ServerFormatter : PacketFormatter<PacketSerializer>
     {
@@ -53,6 +53,7 @@ namespace Zorbo.Ares.Packets.Formatters
                 AresId.MSG_CHAT_SERVER_URL => Json.Deserialize<ServerUrl>(data),
                 AresId.MSG_CHAT_SERVER_OFFLINEUSER => Json.Deserialize<Offline>(data),
                 AresId.MSG_CHAT_SERVER_ISIGNORINGYOU => Json.Deserialize<IgnoringYou>(data),
+                AresId.MSG_CHAT_SERVER_FASTPING => Json.Deserialize<FastPing>(data),
                 AresId.MSG_CHAT_CLIENT_CUSTOM_DATA => Json.Deserialize<ClientCustom>(data),
                 _ => new UnknownJson(id, data),
             };
@@ -82,6 +83,7 @@ namespace Zorbo.Ares.Packets.Formatters
                 AresId.MSG_CHAT_SERVER_URL => Serializer.Deserialize<ServerUrl>(data, index, count),
                 AresId.MSG_CHAT_SERVER_OFFLINEUSER => Serializer.Deserialize<Offline>(data,index,count),
                 AresId.MSG_CHAT_SERVER_ISIGNORINGYOU => Serializer.Deserialize<IgnoringYou>(data, index, count),
+                AresId.MSG_CHAT_SERVER_FASTPING => Serializer.Deserialize<FastPing>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_CUSTOM_DATA => Serializer.Deserialize<ClientCustom>(data, index, count),
                 _ => new Unknown(id, data.Skip(index).Take(count).ToArray()),
             };
@@ -102,6 +104,8 @@ namespace Zorbo.Ares.Packets.Formatters
                             "Internet",
                             login.Version
                         );
+                case AresId.MSG_CHAT_CLIENT_DUMMY:
+                case AresId.MSG_CHAT_CLIENT_FASTPING:
                 case AresId.MSG_CHAT_CLIENT_UPDATE_STATUS:
                     return string.Format("PING:");
                 case AresId.MSG_CHAT_CLIENT_PUBLIC:
@@ -166,6 +170,8 @@ namespace Zorbo.Ares.Packets.Formatters
                 case "NOSUCH":
                     values = Parseib0tMessage(content);
                     return new Announce(values[0]);
+                case "PING":
+                    return new FastPing();
                 case "PUBLIC":
                     values = Parseib0tMessage(content);
                     return new ServerPublic(values[0], values[1]);

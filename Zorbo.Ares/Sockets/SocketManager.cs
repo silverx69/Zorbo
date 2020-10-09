@@ -27,7 +27,7 @@ namespace Zorbo.Ares.Sockets
         public const int BufferSize = 8 * 1024;
         public const int MaxListeningSockets = 20;
 
-        public SocketManager(int maxOutgoingPackets, int stackSize = 60)
+        public SocketManager(int maxOutgoingPackets, int stackSize = 30)
             : base(stackSize, BufferSize)
         {
 

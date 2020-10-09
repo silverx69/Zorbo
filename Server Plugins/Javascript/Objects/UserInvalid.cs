@@ -178,6 +178,10 @@ namespace Javascript.Objects
             get { return DateTime.MinValue; }
         }
 
+        public DateTime LastPing {
+            get { return DateTime.MinValue; }
+        }
+
         public DateTime LastUpdate {
             get { return DateTime.MinValue; }
             set { }

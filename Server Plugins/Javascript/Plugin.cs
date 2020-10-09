@@ -3,8 +3,10 @@ using Jurassic;
 using Jurassic.Library;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Zorbo.Ares.Packets;
 using Zorbo.Ares.Packets.Chatroom;
+using Zorbo.Ares.Packets.Chatroom.ib0t;
 using Zorbo.Core;
 using Zorbo.Core.Models;
 using Zorbo.Core.Plugins.Server;
@@ -100,8 +102,8 @@ namespace Javascript
 
         public override void OnPluginLoaded() {
             Server.SendAnnounce("Jurassic plugin has been loaded!!");
-            if (Objects.Script.Load("autoload"))
-                Objects.Script.Kill("autoload");
+            if (JSScript.Load("autoload"))
+                JSScript.Kill("autoload");
         }
 
         public override void OnPluginKilled() {
@@ -342,46 +344,22 @@ namespace Javascript
             return ret;
         }
 
-        //This plugin function has been disabled from being passed to scripts.
-        //It can be pretty resource intensive and not recommended for performance reasons.
-        public override bool OnFileReceived(IClient client, ISharedFile file) {
-            bool ret = true;
-            /*
-            lock (scripts) {
-                foreach (var s in scripts) {
-
-                    User user = s.Room.Users.Items.Find((x) => x.Client == client);
-                    if (user == null) continue;
-
-                    try {
-                        bool b = s.Engine.CallGlobalFunction<bool>("onFileReceived", user, ifile);
-                        if (!b) ret = false;
-                    }
-                    catch (JavaScriptException jex) {
-                    }
+        public override bool OnTextCommand(IClient client, string cmd, string args)
+        {
+            if (client.Admin >= AdminLevel.Admin) {
+                switch (cmd) {
+                    case "loadscript":
+                        JSScript.Load(args);
+                        break;
+                    case "killscript":
+                        JSScript.Kill(args);
+                        break;
                 }
             }
-            */
-            return ret;
+            return true;
         }
 
         public override bool OnBeforePacket(IClient client, IPacket packet) {
-            switch ((AresId)packet.Id) {
-                case AresId.MSG_CHAT_CLIENT_PUBLIC:
-                    ClientPublic text = (ClientPublic)packet;
-
-                    if (text.Message.StartsWith("#"))
-                        HandleCommand(client, text.Message.Substring(1));
-
-                    break;
-                case AresId.MSG_CHAT_CLIENT_COMMAND:
-
-                    Command command = (Command)packet;
-                    HandleCommand(client, command.Message);
-
-                    break;
-            }
-
             bool ret = true;
 
             lock (Scripts) {
@@ -405,17 +383,6 @@ namespace Javascript
             return ret;
         }
 
-        private void HandleCommand(IClient client, String text) {
-            if (client.Admin >= AdminLevel.Admin) {
-
-                if (text.StartsWith("loadscript ") && text.Length > 11)
-                    Objects.Script.Load(text.Substring(11));
-                
-                else if (text.StartsWith("killscript ") && text.Length > 11)
-                    Objects.Script.Kill(text.Substring(11));
-            }
-        }
-
         public override void OnAfterPacket(IClient client, IPacket packet) {
             lock (Scripts) {
                 string strpacket = Zorbo.Core.Json.Serialize(packet);
@@ -436,7 +403,7 @@ namespace Javascript
         public override void OnPacketSent(IClient client, IPacket packet)
         {
             lock (Scripts) {
-                string strpacket = Zorbo.Core.Json.Serialize(packet);
+                string strpacket = Json.Serialize(packet);
                 foreach (var s in Scripts) {
                     User user = (User)s.Room.Users.Items.Find((x) => ((User)x).Client == client);
                     if (user == null) continue;
@@ -488,6 +455,95 @@ namespace Javascript
                     }
                     catch (JavaScriptException) { }
                 }
+            }
+        }
+
+        internal void SendRoomScribble(string name, RoomScribble scribble)
+        {
+            byte[] buffer;
+            if (scribble.Size <= 4000) {
+                Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
+                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
+            }
+            else {
+                scribble.Index = 0;
+                buffer = scribble.Read();
+
+                Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
+                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
+
+                while (scribble.Remaining > 0) {
+                    buffer = scribble.Read();
+
+                    if (scribble.Remaining > 0)
+                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
+                    else
+                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
+                }
+            }
+
+            var ib0ts = Server.Users.Where(s => s.Socket.Isib0tSocket);
+            if (ib0ts.Count() > 0) {
+                buffer = Zlib.Decompress(scribble.RawImage());
+
+                int height = RoomScribble.GetHeight(buffer);
+                string base64 = Convert.ToBase64String(buffer);
+
+                string[] chunks = new string[(int)Math.Round((double)(base64.Length / 1024), MidpointRounding.AwayFromZero)];
+
+                for (int i = 0; i < chunks.Length; i++)
+                    chunks[i] = base64.Substring(i * 1024, 1024);
+
+                ib0ts.ForEach(s => s.SendPacket(new ScribbleHead(name, height, chunks.Length)));
+
+                foreach (string chunk in chunks)
+                    ib0ts.ForEach(s => s.SendPacket(new ScribbleBlock(chunk)));
+            }
+        }
+
+        internal void SendRoomScribble(Predicate<IClient> pred, string name, RoomScribble scribble)
+        {
+            byte[] buffer;
+            if (scribble.Size <= 4000) {
+                Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
+                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
+            }
+            else {
+                scribble.Index = 0;
+
+                int length = Math.Min((int)scribble.Received, 4000);
+                buffer = scribble.Read();
+
+                Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
+                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
+
+                while (scribble.Remaining > 0) {
+                    buffer = scribble.Read();
+
+                    if (scribble.Remaining > 0)
+                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
+                    else
+                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
+                }
+            }
+
+            var ib0ts = Server.Users.Where(s => s.Socket.Isib0tSocket && pred(s));
+
+            if (ib0ts.Count() > 0) {
+                buffer = Zlib.Decompress(scribble.RawImage());
+
+                int height = RoomScribble.GetHeight(buffer);
+                string base64 = Convert.ToBase64String(buffer);
+
+                string[] chunks = new string[(int)Math.Round((double)(base64.Length / 1024), MidpointRounding.AwayFromZero)];
+
+                for (int i = 0; i < chunks.Length; i++)
+                    chunks[i] = base64.Substring(i * 1024, 1024);
+
+                ib0ts.ForEach(s => s.SendPacket(new ScribbleHead(name, height, chunks.Length)));
+
+                foreach (string chunk in chunks)
+                    ib0ts.ForEach(s => s.SendPacket(new ScribbleBlock(chunk)));
             }
         }
     }

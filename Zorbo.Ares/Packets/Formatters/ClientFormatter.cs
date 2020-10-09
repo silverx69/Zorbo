@@ -10,7 +10,7 @@ using Zorbo.Core.Data.Packets;
 namespace Zorbo.Ares.Packets.Formatters
 {
     /// <summary>
-    /// A SERVER-side implementation of PacketFormatter&lt;PacketSerializer&gt; used for formatting packets to and from the client.
+    /// A SERVER-side implementation of PacketFormatter&lt;PacketSerializer&gt; used for formatting packets from the client.
     /// </summary>
     public class ClientFormatter : PacketFormatter<PacketSerializer>
     {
@@ -39,7 +39,8 @@ namespace Zorbo.Ares.Packets.Formatters
                     AresId.MSG_CHAT_CLIENT_PVT => Json.Deserialize<Private>(data),
                     AresId.MSG_CHAT_CLIENT_PUBLIC => Json.Deserialize<ClientPublic>(data),
                     AresId.MSG_CHAT_CLIENT_EMOTE => Json.Deserialize<ClientEmote>(data),
-                    AresId.MSG_CHAT_CLIENT_FASTPING => Json.Deserialize<ClientFastPing>(data),
+                    AresId.MSG_CHAT_CLIENT_DUMMY => Json.Deserialize<Dummy>(data),
+                    AresId.MSG_CHAT_CLIENT_FASTPING => Json.Deserialize<FastPing>(data),
                     AresId.MSG_CHAT_CLIENT_COMMAND => Json.Deserialize<Command>(data),
                     AresId.MSG_CHAT_CLIENT_AUTHREGISTER => Json.Deserialize<AuthRegister>(data),
                     AresId.MSG_CHAT_CLIENT_AUTHLOGIN => Json.Deserialize<AuthLogin>(data),
@@ -69,7 +70,8 @@ namespace Zorbo.Ares.Packets.Formatters
                 AresId.MSG_CHAT_CLIENT_PVT => Serializer.Deserialize<Private>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_PUBLIC => Serializer.Deserialize<ClientPublic>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_EMOTE => Serializer.Deserialize<ClientEmote>(data, index, count),
-                AresId.MSG_CHAT_CLIENT_FASTPING => Serializer.Deserialize<ClientFastPing>(data, index, count),
+                AresId.MSG_CHAT_CLIENT_DUMMY => Serializer.Deserialize<Dummy>(data, index, count),
+                AresId.MSG_CHAT_CLIENT_FASTPING => Serializer.Deserialize<FastPing>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_COMMAND => Serializer.Deserialize<Command>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_AUTHREGISTER => Serializer.Deserialize<AuthRegister>(data, index, count),
                 AresId.MSG_CHAT_CLIENT_AUTHLOGIN => Serializer.Deserialize<AuthLogin>(data, index, count),
@@ -147,11 +149,14 @@ namespace Zorbo.Ares.Packets.Formatters
                 case AresId.MSG_CHAT_SERVER_URL:
                     var url = (ServerUrl)packet;
                     return string.Format("URL:{0},{1}:{2}{3}", url.Address.Length, url.Caption.Length, url.Address, url.Caption);
+                case AresId.MSG_CHAT_SERVER_FASTPING:
+                    return "PING:";
             }
 
             return null;
         }
 
+        //FROM an ib0t client
         protected virtual IPacket UnformatBasic(string message, string content)
         {
             string[] values;

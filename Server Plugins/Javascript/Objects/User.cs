@@ -4,13 +4,12 @@ using System;
 using System.Text.RegularExpressions;
 using Zorbo.Core;
 using Zorbo.Core.Server;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
     public class User : ScriptObject
     {
-        readonly JScript script = null;
+        readonly Script script = null;
 
         public IClient Client { get; } = null;
 
@@ -18,7 +17,7 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, "User", new User(script)) {
             }
 
@@ -35,7 +34,7 @@ namespace Javascript.Objects
 
         #endregion
 
-        private User(JScript script)
+        private User(Script script)
             : base(script.Engine) {
 
             this.script = script;
@@ -44,7 +43,7 @@ namespace Javascript.Objects
             this.PopulateFunctions();
         }
 
-        public User(JScript script, IClient client)
+        public User(Script script, IClient client)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["User"]).InstancePrototype) {
 
             this.script = script;
@@ -212,8 +211,8 @@ namespace Javascript.Objects
 
         [JSProperty(Name = "avatar", IsEnumerable = true)]
         public ArrayInstance Avatar {
-            get { return Client.Avatar.ToJSArray(Engine); }
-            set { Client.Avatar = value.ToArray<byte>(); }
+            get { return Client.Avatar?.ToJSArray(Engine); }
+            set { Client.Avatar = value?.ToArray<byte>(); }
         }
 
         [JSProperty(Name = "orgAvatar", IsEnumerable = true)]

@@ -3,7 +3,6 @@ using Jurassic.Library;
 using System;
 using System.Collections.Generic;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,7 +15,7 @@ namespace Javascript.Objects
             get { return rules.Count; }
         }
 
-        public FloodRules(JScript script, IList<IFloodRule> rules)
+        public FloodRules(Script script, IList<IFloodRule> rules)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.rules = rules;

@@ -5,24 +5,33 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Zorbo.Server.WPF"
              xmlns:views="clr-namespace:Zorbo.Server.WPF.Views"
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
              mc:Ignorable="d" 
              d:DesignHeight="250" d:DesignWidth="350">
     <Grid>
-        <Label Content="Bot Name:" Height="28" Margin="8,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+        <Label Height="28" Margin="8,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelBot}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
         <TextBox x:Name="txtName" Text="{Binding BotName, Mode=TwoWay}" Height="23" Margin="102,12,22,0" VerticalAlignment="Top" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="75,17,0,0" Text="?" local:Help.HelpText="The name of the default user, or &quot;bot&quot; of the chatroom" MouseUp="Help_MouseUp" />
-        <GroupBox Header="Avatar" Height="136" HorizontalAlignment="Left" Margin="12,37,0,0" VerticalAlignment="Top" Width="242">
+        <GroupBox Header="{x:Static resx:AppStrings.LabelAvatar}" Height="136" HorizontalAlignment="Left" Margin="12,37,0,0" VerticalAlignment="Top" Width="242">
             <Grid>
                 <Border BorderBrush="Black" BorderThickness="1" Width="96" Height="96" Margin="6,8,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Image Source="{Binding Path=Avatar, Converter={StaticResource AvatarToSourceConverter}}" Stretch="Fill" />
                 </Border>
-                <Label Content="Size:" Height="28" HorizontalAlignment="Left" Margin="109,79,0,0" VerticalAlignment="Top" />
+                <Label Height="28" HorizontalAlignment="Left" Margin="109,79,0,0" VerticalAlignment="Top">
+                    <TextBlock>
+                        <Run Text="{x:Static resx:AppStrings.LabelSize}"/><Run Text=":"/>
+                    </TextBlock>
+                </Label>
                 <StackPanel Height="28" Orientation="Horizontal" Margin="142,79,6,6">
                     <Label Content="{Binding Path=Avatar, Converter={StaticResource AvatarToSizeConverter}}" Padding="0,5,1,5"/>
                     <Label Content="bytes" Padding="1,5,0,5"/>
                 </StackPanel>
-                <Button x:Name="btnLoad" Content="Load" Height="23" HorizontalAlignment="Left" Margin="115,11,0,0" VerticalAlignment="Top" Width="75" Click="BtnLoad_Click" />
-                <Button x:Name="btnClear" Content="Clear" Height="23" HorizontalAlignment="Left" Margin="115,46,0,0" VerticalAlignment="Top" Width="75" Click="BtnClear_Click" />
+                <Button x:Name="btnLoad" Content="{x:Static resx:AppStrings.BtnLoad}" Height="23" HorizontalAlignment="Left" Margin="115,11,0,0" VerticalAlignment="Top" Width="75" Click="BtnLoad_Click" />
+                <Button x:Name="btnClear" Content="{x:Static resx:AppStrings.BtnClear}" Height="23" HorizontalAlignment="Left" Margin="115,46,0,0" VerticalAlignment="Top" Width="75" Click="BtnClear_Click" />
             </Grid>
         </GroupBox>
         <views:Website DataContext="{Binding Website}" Margin="8,180,8,0" Height="70" VerticalAlignment="Top"/>

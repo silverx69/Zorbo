@@ -55,6 +55,7 @@ namespace Zorbo.Core.Server
 
         DateTime JoinTime { get; }
         DateTime CaptchaTime { get; }
+        DateTime LastPing { get; }
         DateTime LastUpdate { get; set; }
 
         ClientFlags Features { get; set; }

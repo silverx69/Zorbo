@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security;
+using System.Text;
 using Zorbo.Ares.Resources;
 using Zorbo.Core;
 using Zorbo.Core.Models;
@@ -16,12 +18,17 @@ namespace Zorbo.Ares.Server
         IDirectories directories = null;
 
         ushort port = 34567;
+        ushort tlsport = 8080;
+
         IPAddress localIp = IPAddress.Any;
 
         string name = Strings.DefaultName;
         string botname = Strings.DefaultBotName;
         string topic = Strings.DefaultTopic;
         string orgTopic = string.Empty;
+        string domain = string.Empty;
+        string certificate = string.Empty;
+        SecureString certpassword = null;
 
         byte[] avatar = null;
         byte[] orgAvatar = null;
@@ -45,7 +52,7 @@ namespace Zorbo.Ares.Server
         bool muzzledPms = true;
         bool botProtection = true;
         bool useTcpSockets = true;
-        bool useTlsSockets = false;
+        bool useTlsSockets = true;
         bool useWebSockets = true;
         bool useUdpSockets = true;
         bool showOnChannelList = true;
@@ -103,10 +110,10 @@ namespace Zorbo.Ares.Server
         public byte[] Avatar {
             get { return avatar; }
             set {
-                if (avatar == null || !avatar.Equals(value)) {
+                if (avatar != value) {
                     avatar = value;
                     OnPropertyChanged();
-                    if (orgAvatar == null) 
+                    if (avatar != null && orgAvatar == null) 
                         orgAvatar = avatar;
                 }
             }
@@ -116,10 +123,12 @@ namespace Zorbo.Ares.Server
         public byte[] OrgAvatar {
             get { return orgAvatar; }
             set {
-                if (orgAvatar != null) return;
+                if (orgAvatar != null) 
+                    return;
                 orgAvatar = value;
                 OnPropertyChanged();
-                if (avatar == null) Avatar = orgAvatar;
+                if (orgAvatar != null && avatar == null)
+                    avatar = orgAvatar;
             }
         }
 
@@ -131,7 +140,13 @@ namespace Zorbo.Ares.Server
 
         [JsonIgnore]
         public IDirectories Directories {
-            get { return directories; }
+            get {
+                if (directories == null) {
+                    directories = new Directories();
+                    directories.EnsureExists();
+                }
+                return directories;
+            }
             set { OnPropertyChanged(() => directories, value); }
         }
 
@@ -252,6 +267,36 @@ namespace Zorbo.Ares.Server
             set { OnPropertyChanged(() => useTlsSockets, value); }
         }
 
+        [JsonProperty("tlsdomain")]
+        public string DomainName {
+            get { return domain; }
+            set { OnPropertyChanged(() => domain, value); }
+        }
+
+        [JsonProperty("tlsport")]
+        public ushort TlsPort {
+            get { return tlsport; }
+            set { OnPropertyChanged(() => tlsport, value); }
+        }
+
+        [JsonProperty("tlscert")]
+        public string Certificate {
+            get { return certificate; }
+            set { OnPropertyChanged(() => certificate, value); }
+        }
+
+        [JsonProperty("tlscert_password")]
+        public SecureString CertificatePassword {
+            get { return certpassword; }
+            set {
+                if (certpassword != null && value != null && 
+                    certpassword.ToNativeString() == value.ToNativeString()) 
+                    return;
+                certpassword = value;
+                OnPropertyChanged();
+            }
+        }
+
         [JsonProperty("usewebsockets")]
         public bool UseWebSockets {
             get { return useWebSockets; }
@@ -274,7 +319,7 @@ namespace Zorbo.Ares.Server
 
         public SupportFlags GetFeatures()
         {
-            SupportFlags ret = SupportFlags.NONE;
+            SupportFlags ret = SupportFlags.SHARING;
 
             if (AllowPrivate) ret |= SupportFlags.PRIVATE;
             if (AllowCompression) ret |= SupportFlags.COMPRESSION;

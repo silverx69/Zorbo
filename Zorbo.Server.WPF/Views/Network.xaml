@@ -4,27 +4,71 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Zorbo.Server.WPF"
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
              mc:Ignorable="d" 
              d:DesignHeight="250" 
              d:DesignWidth="390">
     <Grid>
-        <Label Content="LAN users are host:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-        <Label Content="Use Udp sockets:" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
-        <Label Content="Use Tcp sockets:" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top"/>
-        <Label Content="Use Web sockets:" HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top"/>
-        <Label Content="Use TLS sockets:" HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top"/>
-        <Label Content="Cert Location:" HorizontalAlignment="Left" Margin="10,165,0,0" VerticalAlignment="Top"/>
-        <CheckBox IsChecked="{Binding Path=LocalAreaIsHost}" HorizontalAlignment="Left" Margin="187,16,0,0" Height="15" VerticalAlignment="Top"/>
-        <CheckBox IsChecked="{Binding Path=UseUdpSockets}" HorizontalAlignment="Left" Margin="187,47,0,0" VerticalAlignment="Top" />
-        <CheckBox IsChecked="{Binding Path=UseTcpSockets}" HorizontalAlignment="Left" Margin="187,78,0,0" VerticalAlignment="Top" />
-        <CheckBox IsChecked="{Binding Path=UseWebSockets}" Margin="187,108,0,0"  Height="15" VerticalAlignment="Top" HorizontalAlignment="Left" Width="16"/>
-        <CheckBox IsChecked="{Binding Path=UseTlsSockets}" IsEnabled="False" HorizontalAlignment="Left" Margin="187,140,0,0" Height="15" VerticalAlignment="Top"/>
-        <TextBox IsEnabled="False" Margin="117,169,12,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,15,0,0" Text="?" local:Help.HelpText="All connections from the same network as the server will be granted Host admin" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="116,46,0,0" Text="?" local:Help.HelpText="Should the server use UDP sockets? (Ares channel list uses this)" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="113,77,0,0" Text="?" local:Help.HelpText="Allow connections from standard TCP sockets? (Sockets will listen unless both TCP and WebSockets are off, but then why have a server?)" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="116,108,0,0" Text="?" local:Help.HelpText="Allow connections from HTTP WebSockets? (Sockets will listen unless both TCP and WebSockets are off, but then why have a server?)" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="111,139,0,0" Text="?" local:Help.HelpText="Enable TLS encryption when available? (Not functional)" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="98,170,0,0" Text="?" local:Help.HelpText="Use Zorbo's self-signed SSL cert or specify your own" MouseUp="Help_MouseUp" />
+        <Label Height="28" Margin="10,4,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelShowChannel}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelLANUsers}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,66,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelUDPSockets}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,97,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelTCPSockets}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label HorizontalAlignment="Left" Margin="10,129,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelWebSockets}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label Height="28" HorizontalAlignment="Left" Margin="9,160,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelBanLength}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label Height="28" HorizontalAlignment="Left" Margin="187,159,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelBanLengthInfo}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label Height="28" HorizontalAlignment="Left" Margin="9,188,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelMaxClones}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <Label Height="28" HorizontalAlignment="Left" Margin="9,217,0,0" VerticalAlignment="Top">
+            <TextBlock>
+                <Run Text="{x:Static resx:AppStrings.LabelMaxClients}"/><Run Text=":"/>
+            </TextBlock>
+        </Label>
+        <CheckBox IsChecked="{Binding ShowChannel}" Height="16" Margin="0,12,0,0" HorizontalAlignment="Center"  VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding LocalAreaIsHost}" HorizontalAlignment="Center" Margin="0,42,0,0" Height="15" VerticalAlignment="Top"/>
+        <CheckBox IsChecked="{Binding UseUdpSockets}" HorizontalAlignment="Center" Margin="0,73,0,0" VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding UseTcpSockets}" HorizontalAlignment="Center" Margin="0,104,0,0" VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding UseWebSockets}"  Height="16" VerticalAlignment="Top" HorizontalAlignment="Center" Width="16" Margin="0,133,0,0"/>
+        <TextBox Text="{Binding BanLength, Mode=TwoWay}" Height="24" HorizontalAlignment="Left" Margin="126,160,0,0" VerticalAlignment="Top" Width="55" />
+        <TextBox Text="{Binding MaxClones, Mode=TwoWay}" Height="24" Margin="126,188,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="125" />
+        <TextBox Text="{Binding MaxClients, Mode=TwoWay}" Height="24" HorizontalAlignment="Left" Margin="126,217,0,0" VerticalAlignment="Top" Width="125" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,10,0,0" Text="?" local:Help.HelpText="Show the chatroom on the channel list?" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,40,0,0" Text="?" local:Help.HelpText="All connections from the same network as the server will be granted Host admin" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,71,0,0" Text="?" local:Help.HelpText="Should the server use UDP sockets? (Ares channel list uses this)" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,102,0,0" Text="?" local:Help.HelpText="Allow connections from standard TCP sockets? (Sockets will listen unless both TCP and WebSockets are off, but then why have a server?)" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="127,134,0,0" Text="?" local:Help.HelpText="Allow connections from HTTP WebSockets? (Sockets will listen unless both TCP and WebSockets are off, but then why have a server?)" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="81,165,0,0" Text="?" local:Help.HelpText="The length of time (in days) that a user ban lasts for" MouseUp="Help_MouseUp"/>
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="81,193,0,0" Text="?" local:Help.HelpText="Maximum number of clients that can be connected from the same computer" MouseUp="Help_MouseUp"/>
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="81,222,0,0" Text="?" local:Help.HelpText="Maximum number of users that can be connected at once" MouseUp="Help_MouseUp"/>
     </Grid>
 </UserControl>

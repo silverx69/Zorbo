@@ -4,7 +4,6 @@ using System;
 using System.Net;
 using Zorbo.Ares;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,9 +15,9 @@ namespace Javascript.Objects
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script = null;
+            readonly Script script = null;
 
-            public Constructor(JScript script)
+            public Constructor(Script script)
                 : base(script.Engine.Function.InstancePrototype, 
                       "Hashlink", 
                       new Hashlink(script)) {
@@ -39,7 +38,7 @@ namespace Javascript.Objects
                     Name = (!(a is Undefined)) ? TypeConverter.ConvertTo<String>(Engine, a) : "",
                     Port = (!(b is Undefined)) ? TypeConverter.ConvertTo<Int32>(Engine, b) : 0,
                     ExternalIp = (!(c is Undefined)) ? TypeConverter.ConvertTo<String>(Engine, c) : "",
-                    LocalIp = (!(d is Undefined)) ? TypeConverter.ConvertTo<String>(Engine, d) : ""
+                    InternalIp = (!(d is Undefined)) ? TypeConverter.ConvertTo<String>(Engine, d) : ""
                 };
             }
         }
@@ -58,12 +57,12 @@ namespace Javascript.Objects
             set { channel.Port = (ushort)value; }
         }
 
-        [JSProperty(Name = "localIp", IsEnumerable = true)]
-        public String LocalIp {
-            get { return channel.LocalIp.ToString(); }
+        [JSProperty(Name = "internalIp", IsEnumerable = true)]
+        public String InternalIp {
+            get { return channel.InternalIp.ToString(); }
             set {
                 if (IPAddress.TryParse(value, out IPAddress ip))
-                    channel.LocalIp = ip;
+                    channel.InternalIp = ip;
             }
         }
 
@@ -76,13 +75,13 @@ namespace Javascript.Objects
             }
         }
 
-        private Hashlink(JScript script)
+        private Hashlink(Script script)
             : base(script.Engine) {
 
             this.PopulateFunctions();
         }
 
-        protected Hashlink(JScript script, ObjectInstance proto)
+        protected Hashlink(Script script, ObjectInstance proto)
             : base(script.Engine, proto) {
 
             this.PopulateFunctions();

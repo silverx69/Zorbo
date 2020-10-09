@@ -5,8 +5,16 @@ using Zorbo.Core.Server;
 
 namespace Zorbo.Core.Plugins.Server
 {
-    public interface IServerPlugin : IPlugin<IServer>
+    public interface IServerPlugin : IPlugin
     {
+        /// <summary>
+        /// Gets or sets the IServer instance hosting this plugin.
+        /// </summary>
+        IServer Server { get; set; }
+        /// <summary>
+        /// Gets or sets a value specifying custom command triggers
+        /// </summary>
+        string[] CustomTriggers { get; }
         /// <summary>
         /// Occurs when a user enters, exits, answers, or gets banned by the captcha
         /// </summary>
@@ -66,6 +74,10 @@ namespace Zorbo.Core.Plugins.Server
         /// </summary>
         bool OnFileReceived(IClient client, ISharedFile file);
         /// <summary>
+        /// Occurs during processing of public text messages. These behave like built-in commands and cannot be overriden.
+        /// </summary>
+        bool OnTextCommand(IClient client, string cmd, string args);
+        /// <summary>
         /// Occurs just before any packet (minus join, login, regiser), some packets (public, emote, personal, private, etc are
         /// overridable by returning false.
         /// </summary>
@@ -78,6 +90,16 @@ namespace Zorbo.Core.Plugins.Server
         /// Occurs after a packet is successfully send to a client
         /// </summary>
         void OnPacketSent(IClient client, IPacket packet);
+        /// <summary>
+        /// Occurs when an anonymous http(s) request occurs on the socket (A normal http(s) request).
+        /// </summary>
+        /// <returns></returns>
+        bool OnHttpRequest(ISocket socket, RequestEventArgs args);
+        /// <summary>
+        /// Occurs when a http(s) request occurs on the socket from an IClient already connected (This is not normal behaviour, but technically possible).
+        /// </summary>
+        /// <returns></returns>
+        bool OnHttpRequest(IClient socket, RequestEventArgs args);
         /// <summary>
         /// Occurs when a user floods the server with packets
         /// </summary>

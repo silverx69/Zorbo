@@ -144,4 +144,7 @@
   <data name="Rejected" xml:space="preserve">
     <value>A plugin has denied you entry to this chatroom</value>
   </data>
+  <data name="RoomFull" xml:space="preserve">
+    <value>This chatroom is currently full. Please try again later</value>
+  </data>
 </root>

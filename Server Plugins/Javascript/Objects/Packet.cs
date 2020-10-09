@@ -5,7 +5,6 @@ using System.Net;
 using System.Reflection;
 using Zorbo.Core.Data.Packets;
 using Zorbo.Core;
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
@@ -16,7 +15,7 @@ namespace Javascript.Objects
             readonly IPacket packet = null;
             readonly PropertyInfo property = null;
 
-            public GetProperty(JScript script, IPacket packet, PropertyInfo prop)
+            public GetProperty(Script script, IPacket packet, PropertyInfo prop)
                 : base(script.Engine) {
 
                 this.packet = packet;
@@ -48,7 +47,7 @@ namespace Javascript.Objects
             readonly IPacket packet = null;
             readonly PropertyInfo property = null;
 
-            public SetProperty(JScript script, IPacket packet, PropertyInfo prop)
+            public SetProperty(Script script, IPacket packet, PropertyInfo prop)
                 : base(script.Engine) {
 
                 this.packet = packet;
@@ -92,7 +91,7 @@ namespace Javascript.Objects
         }
 
 
-        public Packet(JScript script, IPacket packet)
+        public Packet(Script script, IPacket packet)
             : base(script.Engine) {
 
             var props = TypeDictionary.GetRecord(packet.GetType());

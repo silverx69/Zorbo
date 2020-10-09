@@ -109,34 +109,19 @@ namespace Motd
             }
         }
 
-        public override bool OnBeforePacket(IClient client, IPacket packet) {
-
-            switch ((AresId)packet.Id) {
-                case AresId.MSG_CHAT_CLIENT_PUBLIC:
-                    ClientPublic text = (ClientPublic)packet;
-
-                    if (text.Message.StartsWith("#"))
-                        HandleCommand(client, text.Message.Substring(1));
-
-                    break;
-                case AresId.MSG_CHAT_CLIENT_COMMAND:
-                    Command command = (Command)packet;
-                    HandleCommand(client, command.Message);
-
-                    break;
-            }
-
-            return true;
-        }
-
-        private void HandleCommand(IClient client, String text) {
+        public override bool OnTextCommand(IClient client, string cmd, string args)
+        {
             if (client.Admin >= AdminLevel.Admin) {
-                if (text.StartsWith("loadmotd"))
-                    LoadMotd();
-
-                else if (text.StartsWith("viewmotd"))
-                    ShowMotd(client);
+                switch (cmd) {
+                    case "loadmotd":
+                        LoadMotd();
+                        break;
+                    case "viewmotd":
+                        ShowMotd(client);
+                        break;
+                }
             }
+            return true;
         }
     }
 }

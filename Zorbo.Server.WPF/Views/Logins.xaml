@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:views="clr-namespace:Zorbo.Server.WPF.Views"
+             xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
              mc:Ignorable="d" 
              d:DesignHeight="250" 
              d:DesignWidth="390">
@@ -29,8 +30,8 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <Button Content="Add" Height="23" HorizontalAlignment="Right" Margin="0,0,91,9" Name="btnNew" VerticalAlignment="Bottom" Width="75" Click="BtnNew_Click" />
-        <Button Content="Remove" HorizontalAlignment="Right" Margin="0,0,10,9" Name="btnDelete" Width="75" Height="23" VerticalAlignment="Bottom" Click="BtnDelete_Click" />
+        <Button Content="{x:Static resx:AppStrings.BtnAdd}" Height="23" HorizontalAlignment="Right" Margin="0,0,91,9" Name="btnNew" VerticalAlignment="Bottom" Width="75" Click="BtnNew_Click" />
+        <Button Content="{x:Static resx:AppStrings.BtnRemove}" HorizontalAlignment="Right" Margin="0,0,10,9" Name="btnDelete" Width="75" Height="23" VerticalAlignment="Bottom" Click="BtnDelete_Click" />
     </Grid>
     
 </UserControl>

@@ -39,6 +39,11 @@ namespace Zorbo.Core
             return new IPAddress(BitConverter.GetBytes(address));
         }
 
+        public static bool IsEmpty(this byte[] bytes)
+        {
+            return bytes == null || bytes.Length == 0;
+        }
+
         public static bool IsValidInternalIp(this IPAddress address)
         {
             return address != null && !Equals(address, IPAddress.Any);
@@ -69,6 +74,7 @@ namespace Zorbo.Core
 
         public static string ToNativeString(this SecureString secure)
         {
+            if (secure == null) return string.Empty;
             IntPtr ptr = IntPtr.Zero;
 
             try {
@@ -143,7 +149,7 @@ namespace Zorbo.Core
             };
         }
 
-        public static string StripColor(this string text)
+        public static string StripColor(this string text, bool allow_fg = false)
         {
             int lastMatch = 0;
             string text2 = string.Empty;
@@ -157,13 +163,14 @@ namespace Zorbo.Core
                 lastMatch = match.Index + match.Length;
                 switch (match.Value) {
                     case "\u0003":
-                        if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
-                            lastMatch += 7;
-                            break;
+                        if (!allow_fg) {
+                            if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
+                                lastMatch += 7;
+                                break;
+                            }
+                            if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _))
+                                lastMatch += 2;
                         }
-
-                        if (text.Length >= lastMatch + 2 && int.TryParse(text.Substring(lastMatch, 2), out _))
-                            lastMatch += 2;
                         break;
                     case "\u0005":
                         if (text.Length >= lastMatch + 7 && text[lastMatch] == '#') {
@@ -239,16 +246,21 @@ namespace Zorbo.Core
             return "anon_" + BitConverter.ToString(hash.Take(4).ToArray()).Replace("-", string.Empty);
         }
 
-        public static string FormatUsername(this String @string)
+        public static string FormatUsername(this string @string)
         {
-            string result = Regex.Replace(
+            return Regex.Replace(
                 @string,
-                "￼|­|\"|'|`|/|\\\\|www'.",
-                "").Replace('_', ' ');
-
-            return result;
+                "￼|­|\"|'|`|/|\\\\|www\\.",
+                "")
+                .Replace('_', ' ');
         }
 
+        public static string LimitByteCount(this string @string, int count)
+        {
+            byte[] tmp = Encoding.UTF8.GetBytes(@string);
+            if (tmp.Length > count) Encoding.UTF8.GetString(tmp, 0, count);
+            return @string;
+        }
 
         public static string Repeat(this string @string, int count)
         {

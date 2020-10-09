@@ -1,13 +1,16 @@
 ﻿<Window x:Class="Zorbo.Server.WPF.Views.LoginWin"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Zorbo - Add New Login" 
+        xmlns:view="clr-namespace:Zorbo.Server.WPF.Views"
+        xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
+        Title="{x:Static resx:AppStrings.TitleLogins}" 
         Height="266" 
         Width="450" 
-        FontFamily="Tahoma"
+        FontFamily="Tahoma" 
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
-    <Grid Background="WhiteSmoke">
+    <Grid Background="WhiteSmoke"
+          DataContext="{Binding Path=Records, RelativeSource={RelativeSource AncestorType={x:Type view:LoginWin}, Mode=FindAncestor}}">
 
         <Path Data="{StaticResource BezierGeometry}"
 	          Fill="{StaticResource BezierBrush}"
@@ -22,7 +25,7 @@
             </Path.Effect>
         </Path>
 
-        <ListBox ItemsSource="{Binding Path=Records}" Margin="12,51,0,12" x:Name="listBox1" HorizontalAlignment="Left" Width="211">
+        <ListBox ItemsSource="{Binding }" Margin="12,51,0,12" x:Name="listBox1" HorizontalAlignment="Left" Width="211">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock>
@@ -42,36 +45,30 @@
             </Grid.RowDefinitions>
 
             <TextBlock Height="23" VerticalAlignment="Top">
-                <Run Text="Name:      "/> 
+                <Run Text="{x:Static resx:AppStrings.LabelName}"/><Run Text=":      "/>
                 <Run Text="{Binding Path=SelectedItem.Name, ElementName=listBox1}"/>
             </TextBlock>
             
             <TextBlock Grid.Row="1" Height="23" VerticalAlignment="Top">
-                <Run Text="Password: " BaselineAlignment="Center"/> 
+                <Run Text="{x:Static resx:AppStrings.LabelPassword}" BaselineAlignment="Center"/><Run Text=": " BaselineAlignment="Center"/>
                 <PasswordBox Name="passBox" Width="128" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </TextBlock>
 
             <TextBlock Grid.Row="2" Height="23" VerticalAlignment="Top">
-                <Run BaselineAlignment="Center" Text="Level:       " /> 
+                <Run Text="{x:Static resx:AppStrings.LabelLevel}" BaselineAlignment="Center"/><Run Text=":       " BaselineAlignment="Center"/> 
                 <ComboBox Name="cbLevel" Width="129" HorizontalAlignment="Right">
-                    <ComboBoxItem Content="Moderator"/>
-                    <ComboBoxItem Content="Administrator"/>
-                    <ComboBoxItem Content="Host"/>
+                    <ComboBoxItem Content="{x:Static resx:AppStrings.LabelModerator}"/>
+                    <ComboBoxItem Content="{x:Static resx:AppStrings.LabelAdmin}"/>
+                    <ComboBoxItem Content="{x:Static resx:AppStrings.LabelHost}"/>
                 </ComboBox>
             </TextBlock>
         </Grid>
 
-        
-
-        
-
-        
-
-        <Button Content="OK" Height="23" HorizontalAlignment="Right" Margin="0,0,116,13" x:Name="button1" VerticalAlignment="Bottom" Width="75" Click="Button1_Click" />
-        <Button Content="Cancel" Height="23" HorizontalAlignment="Right" Margin="0,0,15,13" x:Name="button2" VerticalAlignment="Bottom" Width="75" Click="Button2_Click" />
+        <Button Content="{x:Static resx:AppStrings.BtnOK}" Height="23" HorizontalAlignment="Right" Margin="0,0,116,13" x:Name="button1" VerticalAlignment="Bottom" Width="75" Click="Button1_Click" />
+        <Button Content="{x:Static resx:AppStrings.BtnCancel}" Height="23" HorizontalAlignment="Right" Margin="0,0,15,13" x:Name="button2" VerticalAlignment="Bottom" Width="75" Click="Button2_Click" />
 
         <TextBlock Height="23" HorizontalAlignment="Left" Margin="19,20,0,0" x:Name="textBlock4" VerticalAlignment="Top">
-            <Run Text="Find: " BaselineAlignment="Center"/> 
+            <Run Text="{x:Static resx:AppStrings.LabelFind}" BaselineAlignment="Center"/><Run Text=": " BaselineAlignment="Center"/>
             <TextBox Name="txtSearch" FontSize="14" Width="130" TextChanged="TextBox_TextChanged" />
         </TextBlock>
     </Grid>

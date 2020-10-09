@@ -1,6 +1,6 @@
 ﻿namespace Zorbo.Core.Plugins
 {
-    public interface IPlugin<T>
+    public interface IPlugin
     {
         /// <summary>
         /// Sets the full path to the directory the plugin was loaded from. 
@@ -10,7 +10,7 @@
         /// <summary>
         /// Called when the plugin is loaded
         /// </summary>
-        void OnPluginLoaded(T host);
+        void OnPluginLoaded();
         /// <summary>
         /// Called when the plugin is killed
         /// </summary>

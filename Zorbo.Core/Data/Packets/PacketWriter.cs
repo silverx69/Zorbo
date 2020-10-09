@@ -27,9 +27,20 @@ namespace Zorbo.Core.Data.Packets
         public PacketWriter()
             : this(new MemoryStream()) { }
 
-        public PacketWriter(Stream input)
-            : base(input, Encoding.UTF8) { }
+        public PacketWriter(Encoding encoding)
+            : base(new MemoryStream(), encoding) { }
 
+        public PacketWriter(Stream input)
+            : this(input, Encoding.UTF8) { }
+
+        public PacketWriter(Stream input, Encoding encoding)
+            : base(input, encoding) { }
+
+
+        public void Clear()
+        {
+            BaseStream.SetLength(0);
+        }
 
         public byte[] ToArray() {
             long i = Position;

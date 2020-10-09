@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:local="clr-namespace:Zorbo.Server.WPF"
+                    xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
                     xmlns:convert="clr-namespace:Zorbo.Server.WPF.Converters">
 
     <PathGeometry x:Key="BezierGeometry">
@@ -18,14 +19,13 @@
         </PathGeometry.Figures>
     </PathGeometry>
 
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
     <convert:StopGoBrushConverter x:Key="NetworkOKConverter"/>
+    <convert:ReadableTopicConverter x:Key="ReadableTopicConverter"/>
     <convert:AvatarToSizeConverter x:Key="AvatarToSizeConverter"/>
     <convert:AvatarToSourceConverter x:Key="AvatarToSourceConverter"/>
     <convert:LanguageToInt32Converter x:Key="LanguageToInt32Converter"/>
     <convert:ClientIdToUsernameConverter x:Key="ClientIdToUsernameConverter"/>
-    <convert:ReadableTopicConverter x:Key="ReadableTopicConverter"/>
-
-    <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
 
     <DropShadowEffect x:Key="PopupShadow" BlurRadius="5" ShadowDepth="1" Opacity=".7" />
 

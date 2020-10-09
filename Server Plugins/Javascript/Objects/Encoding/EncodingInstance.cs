@@ -8,22 +8,21 @@ using Zorbo;
 using Jurassic;
 using Jurassic.Library;
 
-using JScript = Javascript.Script;
 
 namespace Javascript.Objects
 {
     public class EncodingInstance : ScriptObject
     {
-        readonly JScript script;
+        readonly Script script;
         protected System.Text.Encoding encoding;
 
         #region " Constructor "
 
         public class Constructor : ClrFunction
         {
-            readonly JScript script;
+            readonly Script script;
 
-            public Constructor(JScript script) :
+            public Constructor(Script script) :
                 base(script.Engine.Function.InstancePrototype, "EncodingInstance", new EncodingInstance(script)) {
 
                 this.script = script;
@@ -45,15 +44,15 @@ namespace Javascript.Objects
 
                     switch (a.ToString().ToLower()) {
                         case "ascii":
-                            return new ASCII(script);
+                            return new JSASCII(script);
                         case "utf7":
-                            return new UTF7(script);
+                            return new JSUTF7(script);
                         case "utf8":
-                            return new UTF8(script);
+                            return new JSUTF8(script);
                         case "utf16":
-                            return new UTF16(script);
+                            return new JSUTF16(script);
                         case "utf32":
-                            return new UTF32(script);
+                            return new JSUTF32(script);
                     }
                 }
 
@@ -63,7 +62,7 @@ namespace Javascript.Objects
 
         #endregion
 
-        public EncodingInstance(JScript script)
+        public EncodingInstance(Script script)
             : base(script.Engine) {
 
             this.script = script;
@@ -72,7 +71,7 @@ namespace Javascript.Objects
             this.PopulateFunctions();
         }
 
-        public EncodingInstance(JScript script, System.Text.Encoding encoding)
+        public EncodingInstance(Script script, System.Text.Encoding encoding)
             : base(script.Engine, ((ClrFunction)script.Engine.Global["EncodingInstance"]).InstancePrototype) {
 
             this.script = script;
