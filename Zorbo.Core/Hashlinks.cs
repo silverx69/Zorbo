@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
-
+using System.Linq;
+using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
@@ -8,6 +9,8 @@ namespace Zorbo.Core
 {
     public static class Hashlinks
     {
+        public static readonly byte[] HASH_HEADER = Encoding.UTF8.GetBytes("\0".Repeat(20) + "CHATCHANNEL\0");
+
         public static T FromHashlinkString<T>(string base64hash) where T : IHashlink
         {
             base64hash = base64hash.TrimStart('\\');

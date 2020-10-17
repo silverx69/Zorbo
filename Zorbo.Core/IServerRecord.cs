@@ -10,6 +10,7 @@ namespace Zorbo.Core
     public interface IServerRecord : INotifyPropertyChanged
     {
         string Domain { get; set; }
+        ushort TlsPort { get; set; }
 
         IPAddress ExternalIp { get; set; }
         IPAddress InternalIp { get; set; }

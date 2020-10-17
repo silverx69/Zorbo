@@ -151,7 +151,7 @@ namespace Zorbo.Core
         }
     }
 
-    public class RequestEventArgs : EventArgs
+    public class HttpRequestEventArgs : EventArgs
     {
         readonly HttpRequestState state;
 
@@ -167,7 +167,7 @@ namespace Zorbo.Core
 
         public int Transferred { get { return state.Total; } }
 
-        public RequestEventArgs(HttpRequestState state)
+        public HttpRequestEventArgs(HttpRequestState state)
         {
             this.state = state;
         }

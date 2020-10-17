@@ -26,23 +26,22 @@ namespace Zorbo.Ares.Sockets
             internal set;
         }
 
-
-        public Socket Socket {
-            get;
-            internal set;
-        }
-
-        public SslStream SslStream {
-            get;
-            internal set;
-        }
-
         public Object UserToken {
             get;
             set;
         }
 
         public Exception Exception {
+            get;
+            internal set;
+        }
+
+        public Socket Socket {
+            get;
+            internal set;
+        }
+
+        public SocketTlsStreams TlsStreams {
             get;
             internal set;
         }
@@ -81,7 +80,7 @@ namespace Zorbo.Ares.Sockets
 
         public void Execute(IOBuffer buffer)
         {
-            if (SslStream == null)
+            if (TlsStreams == null)
                 ExecuteSend(buffer);
             else
                 ExecuteTLSSend(buffer);
@@ -117,8 +116,9 @@ namespace Zorbo.Ares.Sockets
             Array.Copy(Data, Offset + Transferred, buffer.Buffer, buffer.Offset, count);
 
             try {
-                if (SslStream.CanWrite) {
-                    await SslStream.WriteAsync(buffer.Buffer, buffer.Offset, count);
+                if (Socket.Poll(0, SelectMode.SelectWrite)) {
+
+                    await TlsStreams.SslStream.WriteAsync(buffer.Buffer, buffer.Offset, count);
                     OnCompleted(buffer);
                 }
                 else OnContinue(buffer);

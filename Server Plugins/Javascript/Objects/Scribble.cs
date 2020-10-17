@@ -130,14 +130,14 @@ namespace Javascript.Objects
             var plugin = JurassicPlugin.Self;
 
             if (a is Undefined) {
-                plugin.SendRoomScribble(plugin.Server.Config.BotName, scribble);
+                plugin.SendRoomScribble("Javascript", scribble);
             }
             else if (a is int || a is double) {
                 int x  = (int)a;
-                plugin.SendRoomScribble((s) => s.Vroom == x, plugin.Server.Config.BotName, scribble);
+                plugin.SendRoomScribble((s) => s.Vroom == x, "Javascript", scribble);
             }
             else if (a is User user) {
-                plugin.SendRoomScribble((s) => s == user.Client, plugin.Server.Config.BotName, scribble);
+                plugin.SendRoomScribble((s) => s == user.Client, "Javascript", scribble);
             }
         }
 

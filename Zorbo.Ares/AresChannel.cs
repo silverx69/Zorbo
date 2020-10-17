@@ -25,8 +25,9 @@ namespace Zorbo.Ares
         string domain = "";
 
         ushort port = 0;
+        ushort tlsport = 0;
         ushort users = 0;
-
+        
         uint ackcount = 0;
         uint trycount = 0;
 
@@ -60,12 +61,6 @@ namespace Zorbo.Ares
         public string Version {
             get { return version; }
             set { OnPropertyChanged(() => version, value); }
-        }
-
-        [JsonProperty("domain", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public string Domain {
-            get { return domain; }
-            set { OnPropertyChanged(() => domain, value); }
         }
 
         [JsonProperty("port", Required = Required.Always)]
@@ -102,6 +97,18 @@ namespace Zorbo.Ares
         public bool SupportJson {
             get { return json; }
             set { OnPropertyChanged(() => json, value); }
+        }
+
+        [JsonProperty("domain", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string Domain {
+            get { return domain; }
+            set { OnPropertyChanged(() => domain, value); }
+        }
+
+        [JsonProperty("tlsport", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ushort TlsPort {
+            get { return tlsport; }
+            set { OnPropertyChanged(() => tlsport, value); }
         }
 
         [JsonProperty("language", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -146,7 +153,7 @@ namespace Zorbo.Ares
             set { OnPropertyChanged(() => asked, value); }
         }
 
-        public static readonly byte[] HASH_HEADER = new byte[20];
+        
 
         /// <summary>
         /// constructor used by serializer
@@ -192,6 +199,7 @@ namespace Zorbo.Ares
             Name = other.Name;
             Topic = other.Topic;
             Domain = other.Domain;
+            TlsPort = other.TlsPort;
             Users = other.Users;
             Language = (Language)other.Language;
             WebSockets = other.WebSockets;
@@ -201,15 +209,16 @@ namespace Zorbo.Ares
         public byte[] ToByteArray() 
         {
             using PacketWriter writer = new PacketWriter();
-            writer.Write(HASH_HEADER);
-            writer.Write("CHATCHANNEL");
+            writer.Write(Hashlinks.HASH_HEADER);
             writer.Write(ExternalIp ?? IPAddress.Any);
             writer.Write(Port);
             writer.Write(InternalIp ?? IPAddress.Any);
             writer.Write(Name);
             writer.Write(SupportJson);
-            if (!string.IsNullOrEmpty(Domain))
+            if (!string.IsNullOrEmpty(Domain)) {
                 writer.Write(Domain);
+                writer.Write(TlsPort);
+            }
             return writer.ToArray();
         }
 
@@ -228,10 +237,12 @@ namespace Zorbo.Ares
             Name = reader.ReadString();
             SupportJson = WebSockets = reader.ReadBoolean();
             Domain = reader.ReadString();
+            TlsPort = (reader.Remaining >= 2) ? reader.ReadUInt16() : (ushort)0;
         }
 
         public string ToPlainText() {
             return string.Format("Chatroom:{0}:{1}|{2}", ExternalIp.ToString(), Port, Name);
+            //future?
             //return string.Format("Chatroom:{0}:{1}|{2}", string.IsNullOrEmpty(Domain) ? ExternalIp.ToString() : Domain, Port, Name);
         }
 

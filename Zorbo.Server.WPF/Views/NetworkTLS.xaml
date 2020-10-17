@@ -24,18 +24,21 @@
                 <Run Text="{x:Static resx:AppStrings.LabelCertFile}"/><Run Text=":"/>
             </TextBlock>
         </Label>
-        <Label HorizontalAlignment="Left" Margin="10,101,0,0" VerticalAlignment="Top">
+        <Label HorizontalAlignment="Left" Margin="10,105,0,0" VerticalAlignment="Top">
             <TextBlock>
                 <Run Text="{x:Static resx:AppStrings.LabelCertPass}"/><Run Text=":"/>
             </TextBlock>
         </Label>
-        <CheckBox x:Name="chkUseTls" IsChecked="{Binding UseTlsSockets}" HorizontalAlignment="Left" Margin="187,16,0,0" Height="15" VerticalAlignment="Top"/>
-        <TextBox Text="{Binding DomainName, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="22" Margin="117,43,10,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
+        <CheckBox x:Name="chkUseTls" IsChecked="{Binding UseTlsSockets}" HorizontalAlignment="Left" Margin="144,16,0,0" Height="15" VerticalAlignment="Top"/>
+        <TextBox Text="{Binding Domain, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="22" Margin="117,43,10,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
         <TextBox Text="{Binding Certificate, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="22" Margin="117,74,10,0" TextWrapping="NoWrap" VerticalAlignment="Top" />
-        <PasswordBox x:Name="passBox" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" LostFocus="PassBox_LostFocus" Height="22" Margin="117,103,9,0" VerticalAlignment="Top" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="111,15,0,0" Text="?" local:Help.HelpText="Enable TLS encryption when available? (Not functional)" MouseUp="Help_MouseUp" />
+        <PasswordBox x:Name="passBox" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" LostFocus="PassBox_LostFocus" Height="22" Margin="117,105,10,0" VerticalAlignment="Top" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="111,15,0,0" Text="?" local:Help.HelpText="Enable TLS encryption when available? (Listens on Room Port + 1)" MouseUp="Help_MouseUp" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="101,45,0,0" Text="?" local:Help.HelpText="Specify the domain name associated with your TLS certification" MouseUp="Help_MouseUp" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="101,76,0,0" Text="?" local:Help.HelpText="Specify the private key file to use with TLS connections" MouseUp="Help_MouseUp" />
-        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="102,106,0,0" Text="?" local:Help.HelpText="Specify the export password used to secure the TLS certification" MouseUp="Help_MouseUp" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="101,110,0,0" Text="?" local:Help.HelpText="Specify the export password used to secure the TLS certification" MouseUp="Help_MouseUp" />
+        <Label Content="TLS Port:" Height="28" Margin="182,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+        <TextBox Text="{Binding TlsPort, Mode=TwoWay}" IsEnabled="{Binding Path=IsChecked, ElementName=chkUseTls}" Height="23" Margin="259,11,10,0" VerticalAlignment="Top" />
+        <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="243,14,0,0" Text="?" local:Help.HelpText="The network port the chatroom server will use for TLS connections" MouseUp="Help_MouseUp" />
     </Grid>
 </UserControl>

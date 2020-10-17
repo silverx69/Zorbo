@@ -22,7 +22,7 @@ namespace Zorbo.Core.Server
         IChannelList Channels { get; }
         IServerPluginHost PluginHost { get; }
         IObservableCollection<IClient> Users { get; }
-        IList<IFloodRule> FloodRules { get; }
+        IObservableCollection<IFloodRule> FloodRules { get; }
 
         void Start();
         void Stop();

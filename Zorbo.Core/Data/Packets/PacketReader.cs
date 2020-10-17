@@ -10,7 +10,7 @@ namespace Zorbo.Core.Data.Packets
 {
     public class PacketReader : BinaryReader
     {
-        readonly Encoding Encoding = Encoding.UTF8;
+        static readonly Encoding Encoding = Encoding.UTF8;
 
         public long Length {
             get { return BaseStream.Length; }
@@ -31,8 +31,8 @@ namespace Zorbo.Core.Data.Packets
         public PacketReader(byte[] input, int offset, int count)
             : this(new MemoryStream(input, offset, count)) { }
 
-        public PacketReader(Stream input)
-            : base(input) { }
+        public PacketReader(Stream input, bool leaveOpen = false)
+            : base(input, Encoding, leaveOpen) { }
 
 
         public virtual Guid ReadGuid() {
@@ -90,15 +90,17 @@ namespace Zorbo.Core.Data.Packets
             return obj;
         }
 
-        private IPacket ReadPacket(IPacketFormatter formatter) {
+        private IPacket ReadPacket(IPacketFormatter formatter, bool len_prefix = true) {
             try {
-                ushort len = ReadUInt16();
+                int len = -1;
 
+                if (len_prefix)
+                    len = ReadUInt16();
                 if (Remaining < len + 1)
                     throw new EndOfStreamException();
 
                 byte id = ReadByte();
-                byte[] payload = ReadBytes(len);
+                byte[] payload = ReadBytes((len == -1) ? (int)Remaining : len);
 
                 return formatter?.Unformat(id, payload);
             }
@@ -255,7 +257,7 @@ namespace Zorbo.Core.Data.Packets
                         return ReadIPAddress();
                     }
                     else if (typeof(IPacket).IsAssignableFrom(ptype))
-                        if (Remaining >= 3) return ReadPacket(formatter);
+                        return ReadPacket(formatter, prop.Attribute.LengthPrefix);
 
                     throw new NotSupportedException("This data type is not supported by the serializer");
             }

@@ -239,6 +239,19 @@ namespace Zorbo.Core.Plugins.Server
             }
         }
 
+        public void OnLogout(IClient client)
+        {
+            foreach (var plugin in this) {
+                try {
+                    if (plugin.Enabled)
+                        plugin.Plugin.OnLogout(client);
+                }
+                catch (Exception ex) {
+                    OnError(plugin, nameof(OnLogout), ex);
+                }
+            }
+        }
+
         public bool OnRegister(IClient client, IPassword password)
         {
             bool ret = true;
@@ -331,7 +344,7 @@ namespace Zorbo.Core.Plugins.Server
             }
         }
 
-        public bool OnHttpRequest(ISocket socket, RequestEventArgs e)
+        public bool OnHttpRequest(ISocket socket, HttpRequestEventArgs e)
         {
             foreach (var plugin in this) {
                 try {
@@ -345,7 +358,7 @@ namespace Zorbo.Core.Plugins.Server
             return true;
         }
 
-        public bool OnHttpRequest(IClient socket, RequestEventArgs e)
+        public bool OnHttpRequest(IClient socket, HttpRequestEventArgs e)
         {
             foreach (var plugin in this) {
                 try {

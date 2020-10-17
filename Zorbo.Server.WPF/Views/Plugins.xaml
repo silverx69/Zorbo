@@ -12,7 +12,7 @@
     <Grid>
         <TextBlock VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12,12,0,0">
             <TextBlock>
-                <Run Text="{x:Static resx:AppStrings.LabelPlugins}"/><Run Text=":"/>
+                <Run Text="{x:Static resx:AppStrings.LabelPluginTitle}"/><Run Text=":"/>
             </TextBlock>
         </TextBlock>
         

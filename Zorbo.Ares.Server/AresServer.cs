@@ -38,7 +38,7 @@ namespace Zorbo.Ares.Server
         SortedStack<ushort> idpool;
 
         List<PendingConnection> pending;
-        List<IFloodRule> flood_rules;
+        ModelList<IFloodRule> flood_rules;
 
         ServerPluginHost plugins = null;
 #pragma warning restore IDE0044 // Add readonly modifier
@@ -76,12 +76,16 @@ namespace Zorbo.Ares.Server
 
             public void Dispose() {
                 if (Socket != null)
-                    Socket.Dispose();
+                    Socket.Disconnect();
             }
         }
 
         public ISocket Socket {
             get { return listener; }
+        }
+
+        public ISocket TlsSocket {
+            get { return tlslistener; }
         }
 
         public bool Running {
@@ -170,7 +174,7 @@ namespace Zorbo.Ares.Server
         }
 
 
-        public IList<IFloodRule> FloodRules {
+        public IObservableCollection<IFloodRule> FloodRules {
             get { return flood_rules; }
         }
 
@@ -196,10 +200,11 @@ namespace Zorbo.Ares.Server
             idpool.SetSort((a, b) => (a - b));
 
             pending = new List<PendingConnection>();
-            flood_rules = new List<IFloodRule>();
+            flood_rules = new ModelList<IFloodRule>();
 
             History = Persistence.LoadModel<AresUserHistory>(Path.Combine(config.Directories.AppData, "history.json"));
             History.Admin.Load(this);
+            //History.Admin.
 
             Logging.WriteLines(
                 LogLevel.Info,
@@ -222,6 +227,8 @@ namespace Zorbo.Ares.Server
         public void Start() {
             Stats.Start();
 
+            LocalAddresses = Utils.GetLocalAddresses();
+
             Channels.PropertyChanged += OnChannelsPropertyChanged;
             Channels.Server = this;
             Channels.Start(Config.Port);
@@ -231,21 +238,18 @@ namespace Zorbo.Ares.Server
 
             Config.PropertyChanged += Config_PropertyChanged;
 
-            if (Config.UseTcpSockets || Config.UseWebSockets) {
-
-                LocalAddresses = Utils.GetLocalAddresses();
-
+            if (Config.UseTcpSockets) {
                 listener = new AresTcpSocket(new AdvancedClientFormatter());
                 listener.Accepted += ClientAccepted;
                 listener.Bind(new IPEndPoint(Config.LocalIp, Config.Port));
                 listener.Listen(25);
+            }
 
-                if (Config.UseTlsSockets) {
-                    tlslistener = new AresTcpSocket(new AdvancedClientFormatter());
-                    tlslistener.Accepted += TLSClientAccepted;
-                    tlslistener.Bind(new IPEndPoint(Config.LocalIp, Config.Port + 1));
-                    tlslistener.Listen(25);
-                }
+            if (Config.UseTlsSockets) {
+                tlslistener = new AresTcpSocket(new AdvancedClientFormatter());
+                tlslistener.Accepted += TLSClientAccepted;
+                tlslistener.Bind(new IPEndPoint(Config.LocalIp, Config.TlsPort));
+                tlslistener.Listen(25);
             }
 
             Running = true;
@@ -321,8 +325,10 @@ namespace Zorbo.Ares.Server
                         continue;
                     }
                 }
-                else if (user.FastPing && now.Subtract(user.LastPing).TotalSeconds >= 10)
+                else if (user.FastPing && now.Subtract(user.LastPing).TotalSeconds >= 10) {
+                    user.LastPing = now;
                     user.SendPacket(new FastPing());
+                }
 
                 else if (now.Subtract(user.LastUpdate).TotalMinutes >= 5)
                     user.Disconnect();
@@ -350,14 +356,15 @@ namespace Zorbo.Ares.Server
         {
             Join join = new Join(user);
 
-            if (!user.IsCaptcha) {
-
+            if (Config.ShowBot) {
                 user.SendPacket(new Userlist() {
                     Username = Config.BotName,
                     FileCount = 420,
                     Level = AdminLevel.Host,
                 });
+            }
 
+            if (!user.IsCaptcha) {
                 foreach (var s in Users) {
                     if (s != user &&
                         s.Connected &&
@@ -376,11 +383,12 @@ namespace Zorbo.Ares.Server
 
         public void SendAvatars(IClient user)
         {
-            if (!Config.Avatar.IsEmpty())
-                user.SendPacket(new ServerAvatar(Config.BotName, Config.Avatar));
+            if (Config.ShowBot) {
+                if (!Config.Avatar.IsEmpty())
+                    user.SendPacket(new ServerAvatar(Config.BotName, Config.Avatar));
 
-            user.SendPacket(new ServerPersonal(Config.BotName, Strings.VersionLogin));
-
+                user.SendPacket(new ServerPersonal(Config.BotName, Strings.VersionLogin));
+            }
             foreach (var s in Users) {
 
                 if (!s.IsCaptcha && s.Vroom == user.Vroom) {
@@ -433,29 +441,18 @@ namespace Zorbo.Ares.Server
 
             var socket = (AresTcpSocket)e.Socket;
 
-            if (!Channels.TestingFirewall && 
-                 Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
-
+            if (Channels.TestingFirewall && 
+                Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
                 socket.Dispose();
             }
-            else if (Config.UseTcpSockets || Config.UseWebSockets) { 
-
+            else { 
                 socket.Exception += ClientException;
                 socket.Disconnected += ClientDisconnected;
                 socket.PacketSent += ClientPacketSent;
                 socket.PacketReceived += ClientPacketReceived;
                 socket.RequestReceived += ClientHttpRequestReceived;
-
                 lock(pending) pending.Add(new PendingConnection(socket, DateTime.Now));
-
                 socket.ReceiveAsync();
-            }
-            else {
-                Logging.Info(
-                    "AresServer", 
-                    "Connection rejected from '{0}'. Chatroom is not configured to allow TCP connections.", 
-                    socket.RemoteEndPoint.Address
-                );
             }
         }
 
@@ -465,37 +462,26 @@ namespace Zorbo.Ares.Server
 
             var socket = (AresTcpSocket)e.Socket;
 
-            if (!Channels.TestingFirewall &&
-                 Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
-
+            if (Channels.TestingFirewall &&
+                Channels.IsCheckingMyFirewall(socket.RemoteEndPoint)) {
                 socket.Dispose();
             }
-            else if (Config.UseTlsSockets) {
-                if (!string.IsNullOrEmpty(Config.Certificate)) {
-                    socket.Exception += ClientException;
-                    socket.Disconnected += ClientDisconnected;
-                    socket.PacketSent += ClientPacketSent;
-                    socket.PacketReceived += ClientPacketReceived;
-                    socket.RequestReceived += ClientHttpRequestReceived;
+            else if (!string.IsNullOrEmpty(Config.Certificate)) {
 
-                    lock (pending) pending.Add(new PendingConnection(socket, DateTime.Now));
-                    //Authenticate TLS as a Server
-                    socket.AuthenticateAsServer(Config.Certificate, Config.CertificatePassword);
-                    socket.ReceiveAsync();
-                }
-                else {
-                    Logging.Info(
-                    "AresServer",
-                    "Connection rejected from '{0}'. Chatroom does not have a certificate configured to allow TLS connections.",
-                    socket.RemoteEndPoint.Address
-                );
-                    socket.Dispose();
-                }
+                socket.Exception += ClientException;
+                socket.Disconnected += ClientDisconnected;
+                socket.PacketSent += ClientPacketSent;
+                socket.PacketReceived += ClientPacketReceived;
+                socket.RequestReceived += ClientHttpRequestReceived;
+                lock (pending) pending.Add(new PendingConnection(socket, DateTime.Now));
+                //Authenticate TLS as a Server
+                socket.AuthenticateAsServer(Config.Certificate, Config.CertificatePassword);
+                socket.ReceiveAsync();
             }
             else {
                 Logging.Info(
                     "AresServer",
-                    "Connection rejected from '{0}'. Chatroom has TLS sockets disabled.",
+                    "Connection rejected from '{0}'. Chatroom does not have a certificate configured to allow TLS connections.",
                     socket.RemoteEndPoint.Address
                 );
                 socket.Dispose();
@@ -504,18 +490,12 @@ namespace Zorbo.Ares.Server
 
         protected virtual void ClientException(object sender, ExceptionEventArgs e) 
         {
-            if (!(sender is ISocket socket)) return;
-
-            IClient user = Users.Find(s => s.Socket == sender);
-
-            if (user == null) {
-                Socket.Disconnect();
+            if (!(sender is ISocket socket)) 
                 return;
-            }
 
-            Logging.Error("AresServer", user, e.Exception);
+            Logging.Error("AresServer", socket, e.Exception);
 
-            user.Disconnect();
+            socket.Disconnect();
         }
 
         protected virtual void ClientPacketSent(object sender, PacketEventArgs e) 
@@ -529,9 +509,7 @@ namespace Zorbo.Ares.Server
                 return;
 
             IClient user = Users.Find(s => s.Socket == sender);
-
-            if (user != null) 
-                PluginHost.OnPacketSent(user, e.Packet);
+            if (user != null) PluginHost.OnPacketSent(user, e.Packet);
         }
 
         protected virtual void ClientPacketReceived(object sender, PacketEventArgs e) 
@@ -540,9 +518,9 @@ namespace Zorbo.Ares.Server
 
             Stats.PacketsReceived++;
             Stats.AddInput(e.Transferred);
-
+            
             //only allow connections from WebSockets?
-            if (!Config.UseTcpSockets && !socket.IsWebSocket) {
+            if (Config.UseWebSockets && !Config.UseTcpSockets && !socket.IsWebSocket) {
                 socket.Disconnect();
                 return;
             }
@@ -595,7 +573,7 @@ namespace Zorbo.Ares.Server
         /// <summary>
         /// AresTcpSocket can also act as a miniature WebServer and can handle HEAD/GET/POST requests
         /// </summary>
-        private void ClientHttpRequestReceived(object sender, RequestEventArgs e)
+        private void ClientHttpRequestReceived(object sender, HttpRequestEventArgs e)
         {
             if (!(sender is ISocket socket)) return;
 
@@ -640,8 +618,9 @@ namespace Zorbo.Ares.Server
                 else if (PluginHost.OnHttpRequest(socket, e)) {
                     Logging.Info(
                         "AresServer",
-                        "Connection rejected from '{0}'. Unknown Http request has been initiated.",
-                        socket.RemoteEndPoint.Address
+                        "Http request from '{0}' for resource '{1}' denied.",
+                        socket.RemoteEndPoint.Address,
+                        e.RequestUri
                     );
                     connection.Socket.Disconnect();
                 }
@@ -654,8 +633,9 @@ namespace Zorbo.Ares.Server
                     if (PluginHost.OnHttpRequest(user, e)) {
                         Logging.Info(
                             "AresServer",
-                            "Http request from '{0}' for resource '{1}' denied.",
-                            socket.RemoteEndPoint.Address,
+                            "Http request from '{0}' ({1}) for resource '{2}' denied.",
+                            user.Name,
+                            user.ExternalIp,
                             e.RequestUri
                         );
                     }
@@ -714,26 +694,19 @@ namespace Zorbo.Ares.Server
             return true;
         }
 
-        protected internal virtual bool CheckCounters(IClient user, IPacket packet) {
+        protected internal virtual bool CheckCounters(IClient user, IPacket packet) 
+        {
+            DateTime now = DateTime.Now;
 
-            var rules = flood_rules.FindAll((s) => s.Id == packet.Id);
+            foreach (var rule in flood_rules.Where((s) => s.Id == packet.Id)) {
 
-            foreach(var rule in rules) {
-
-                IFloodCounter counter = null;
-                DateTime now = DateTime.Now;
-
-                if (!user.Counters.ContainsKey(packet.Id)) {
-
+                if (!user.Counters.TryGetValue(packet.Id, out IFloodCounter counter)) {
                     counter = new FloodCounter(0, now);
                     user.Counters.Add(packet.Id, counter);
                 }
-                else {
-                    counter = user.Counters[packet.Id];
 
-                    if (now.Subtract(counter.Last).TotalMilliseconds > rule.Timeout)
-                        counter.Count = 0;
-                }
+                if (now.Subtract(counter.Last).TotalMilliseconds > rule.Timeout)
+                    counter.Count = 0;
 
                 if (++counter.Count >= rule.Count) {
                     Stats.FloodsTriggered++;
@@ -755,7 +728,9 @@ namespace Zorbo.Ares.Server
                     SendPacket(new Topic(Config.Topic));
                     break;
                 case nameof(Config.Avatar):
-                    var allPacket = new ServerAvatar(Config.BotName, Config.Avatar);
+                    ServerAvatar allPacket = null;
+                    if (Config.ShowBot)
+                        allPacket = new ServerAvatar(Config.BotName, Config.Avatar);
                     foreach (var user in Users) {
                         if (user.OrgAvatar.IsEmpty()) {
                             SendPacket(
@@ -764,7 +739,7 @@ namespace Zorbo.Ares.Server
                                     s.CanSee(user),
                                 new ServerAvatar(user));
                         }
-                        SendPacket(user, allPacket);
+                        if (Config.ShowBot) SendPacket(user, allPacket);
                     }
                     break;
                 case nameof(Config.Website):

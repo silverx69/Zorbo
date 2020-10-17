@@ -13,7 +13,7 @@ namespace Zorbo.Ares.Packets.Chatroom
         }
 
         [JsonProperty("payload", Required = Required.AllowNull)]
-        [PacketItem(0)]
+        [PacketItem(0, LengthPrefix = true)]
         public IPacket Payload { get; set; }
 
         public Advanced() { }

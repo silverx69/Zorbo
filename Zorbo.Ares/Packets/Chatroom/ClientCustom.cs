@@ -8,7 +8,7 @@ using Zorbo.Core.Data.Packets;
 
 namespace Zorbo.Ares.Packets.Chatroom
 {
-    public sealed class ClientCustom : AresPacket
+    public class ClientCustom : AresPacket
     {
         public override AresId Id {
             get { return AresId.MSG_CHAT_CLIENT_CUSTOM_DATA; }

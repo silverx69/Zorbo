@@ -32,6 +32,7 @@ namespace Zorbo.Ares.Server
 
         bool logged = false;
         bool local = false;
+        bool modern = false;
         bool browse = false;
         bool cloaked = false;
         bool muzzled = false;
@@ -58,9 +59,8 @@ namespace Zorbo.Ares.Server
         IPAddress localip;
 
         DateTime jointime;
-        ClientFlags features = ClientFlags.NONE;
 
-        Dictionary<byte, FloodCounter> counters;
+        ClientFlags features = ClientFlags.NONE;
         Dictionary<string, object> extended_props;
 
 #pragma warning restore IDE0044 // Add readonly modifier
@@ -149,6 +149,11 @@ namespace Zorbo.Ares.Server
         public bool LocalHost {
             get { return local; }
             set { OnPropertyChanged(() => local, value); }
+        }
+
+        public bool IsModern {
+            get { return modern; }
+            set { OnPropertyChanged(() => modern, value); }
         }
 
         public bool Browsable {
@@ -352,10 +357,9 @@ namespace Zorbo.Ares.Server
 
         public DateTime LastUpdate { get; set; }
 
-        internal Dictionary<byte, FloodCounter> Counters { get; set; }
-
-        IDictionary<byte, IFloodCounter> IClient.Counters {
-            get { return (IDictionary<byte,IFloodCounter>)Counters; }
+        public IDictionary<byte, IFloodCounter> Counters { 
+            get; 
+            private set; 
         }
 
         #endregion
@@ -374,16 +378,13 @@ namespace Zorbo.Ares.Server
             this.LastUpdate = this.jointime;
 
             this.Ignored = new ModelList<string>();
-            this.counters = new Dictionary<byte, FloodCounter>();
+            this.Counters = new Dictionary<byte, IFloodCounter>();
             this.extended_props = new Dictionary<string, object>();
         }
 
 
         public void SendPacket(IPacket packet)
         {
-            if (packet is FastPing)
-                LastPing = DateTime.Now;
-
             if (Connected && LoggedIn)
                 Socket.SendAsync(packet);
         }
@@ -1028,8 +1029,8 @@ namespace Zorbo.Ares.Server
             localip = null;
             nodeip = null;
 
-            counters.Clear();
-            counters = null;
+            Counters.Clear();
+            Counters = null;
 
             Ignored.Clear();
             Ignored = null;

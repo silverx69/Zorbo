@@ -51,6 +51,7 @@ namespace Javascript
             default_script.AppendLine("function onLogin(userobj, passobj) { }");
             default_script.AppendLine("function onRegister(userobj, passobj) { return true;}");
             default_script.AppendLine("function onFileReceived(userobj, file) { return true;}");
+            default_script.AppendLine("function onTextCommand(userobj, cmd, args) { return true;}");
             default_script.AppendLine("function onBeforePacket(userobj, jsonpacket) { return true;}");
             default_script.AppendLine("function onAfterPacket(userobj, jsonpacket) { }");
             default_script.AppendLine("function onPacketSent(userobj, jsonpacket) { }");
@@ -148,6 +149,9 @@ namespace Javascript
 
             Engine.Global.DefineProperty("UserRecord",
                 new PropertyDescriptor(new UserRecord.Constructor(this), PropertyAttributes.Sealed), true);
+
+            Engine.Global.DefineProperty("Scribble",
+                new PropertyDescriptor(new Scribble.Constructor(this), PropertyAttributes.Sealed), true);
 
             // GLOBAL (STATIC) CLASSES
             Room = new Room(this, JurassicPlugin.Self.Server);

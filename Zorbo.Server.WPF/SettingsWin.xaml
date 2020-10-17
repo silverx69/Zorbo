@@ -5,12 +5,12 @@
         xmlns:views="clr-namespace:Zorbo.Server.WPF.Views"
         xmlns:resx="clr-namespace:Zorbo.Server.WPF.Resources"
         Title="Zorbo - Settings Manager" 
-        Height="345"
+        Height="350"
         Width="640"
         FontFamily="Tahoma"
         Icon="/Zorbo.Server.WPF;component/Zorbo.ico" 
         ResizeMode="CanResize" 
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterScreen">
 
     <Grid Background="WhiteSmoke">
         <Path Data="{StaticResource BezierGeometry}"

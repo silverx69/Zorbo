@@ -30,7 +30,8 @@ namespace Hashlinks
                             ExternalIp = Server.ExternalIp,
                             WebSockets = Server.Config.UseWebSockets,
                             SupportJson = Server.Config.UseWebSockets,
-                            Domain = Server.Config.DomainName
+                            Domain = Server.Config.Domain,
+                            TlsPort = Server.Config.TlsPort
                         }));
                     break;
                 }

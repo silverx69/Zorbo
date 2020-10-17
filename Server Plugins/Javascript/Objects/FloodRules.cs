@@ -8,14 +8,14 @@ namespace Javascript.Objects
 {
     public class FloodRules : Collection 
     {
-        readonly IList<IFloodRule> rules;
+        readonly IObservableCollection<IFloodRule> rules;
 
         [JSProperty(Name = "count", IsEnumerable = true)]
         public override int Count {
             get { return rules.Count; }
         }
 
-        public FloodRules(Script script, IList<IFloodRule> rules)
+        public FloodRules(Script script, IObservableCollection<IFloodRule> rules)
             : base(script, ((ClrFunction)script.Engine.Global["Collection"]).InstancePrototype) {
 
             this.rules = rules;

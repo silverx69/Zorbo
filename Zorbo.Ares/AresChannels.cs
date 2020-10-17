@@ -50,7 +50,7 @@ namespace Zorbo.Ares
         uint checkfire = 0;
 
         bool firewall = false;
-        bool firewallTest = false;
+        bool firewallTest = true;
         bool isDownloading = false;
 
         volatile bool running = false;
@@ -308,7 +308,7 @@ namespace Zorbo.Ares
             }
 
             FirewallOpen = false;
-            TestingFirewall = false;
+            TestingFirewall = true;
         }
 
 
@@ -409,7 +409,7 @@ namespace Zorbo.Ares
         {
             if (running) {
 
-                if (!TestingFirewall)
+                if (TestingFirewall)
                     CheckFirewall();
 
                 else if (Listing) {
@@ -482,51 +482,52 @@ namespace Zorbo.Ares
             }
         }
 
-        private async void UpdateZorbo() 
+        private async void UpdateZorbo()
         {
-            if (server.Config.UseTlsSockets && 
-                !string.IsNullOrWhiteSpace(Server.Config.DomainName)) {
+            const string zorbo = "https://zorbo.ca/api/Channels/update";
 
-                const string zorbo = "https://zorbo.ca/api/Channels/update";
+            var record = new ServerDbRecord() {
+                Name = Server.Config.Name.StripColor(),
+                Topic = Server.Config.Topic.ToBase64(),
+                Port = Server.Config.Port,
+                Users = (ushort)(Server.Users.Count + 1),
+                ExternalIp = Server.ExternalIp.ToString(),
+                InternalIp = Server.InternalIp.ToString(),
+                WebSockets = Server.Config.UseWebSockets,
+                SupportJson = server.Config.UseWebSockets,
+                Language = (byte)server.Config.Language,
+                Version = Strings.VersionChannels
+            };
 
-                string data = Json.Serialize(new ServerDbRecord() { 
-                    Name = Server.Config.Name.StripColor(),
-                    Topic = Server.Config.Topic.ToBase64(),
-                    Port = Server.Config.Port,
-                    Users = (ushort)(Server.Users.Count + 1),
-                    Domain = Server.Config.DomainName,
-                    ExternalIp = Server.ExternalIp.ToString(),
-                    InternalIp = Server.InternalIp.ToString(),
-                    WebSockets = Server.Config.UseWebSockets,
-                    SupportJson = server.Config.UseWebSockets,
-                    Language = (byte)server.Config.Language,
-                    Version = Strings.VersionChannels
-                });
+            if (!string.IsNullOrEmpty(Server.Config.Domain)) {
+                record.Domain = Server.Config.Domain;
+                record.TlsPort = Server.Config.TlsPort;
+            }
 
-                byte[] body = Encoding.UTF8.GetBytes(data);
-                try {
-                    var request = WebRequest.CreateHttp(zorbo);
+            byte[] body = Encoding.UTF8.GetBytes(Json.Serialize(record));
 
-                    request.Method = "POST";
-                    request.ContentLength = body.Length;
-                    request.ContentType = "application/json";
+            try {
+                var request = WebRequest.CreateHttp(zorbo);
 
-                    using var stream = await request.GetRequestStreamAsync();
+                request.Method = "POST";
+                request.ContentLength = body.Length;
+                request.ContentType = "application/json";
 
-                    await stream.WriteAsync(body, 0, body.Length);
-                    await stream.FlushAsync();
+                using var stream = await request.GetRequestStreamAsync();
 
-                    using var response = await request.GetResponseAsync();
-                    using var reader = new StreamReader(response.GetResponseStream());
+                await stream.WriteAsync(body, 0, body.Length);
+                await stream.FlushAsync();
 
-                    string message = await reader.ReadToEndAsync();
+                using var response = await request.GetResponseAsync();
+                using var reader = new StreamReader(response.GetResponseStream());
 
-                    if (message != "OK") System.Diagnostics.Debug.WriteLine(message);
-                }
-                catch {
-                    lastmars = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
-                    Logging.Warning("AresChannels", "Unable to send room update to {0}", zorbo);
-                }
+                string message = await reader.ReadToEndAsync();
+
+                if (message != "OK") System.Diagnostics.Debug.WriteLine(message);
+            }
+            catch {
+                lastmars = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
+                Logging.Warning("AresChannels", "Unable to send room update to {0}", zorbo);
             }
         }
 
@@ -548,7 +549,7 @@ namespace Zorbo.Ares
                     new CheckFirewallWanted(channel.Port),
                     new IPEndPoint(ip, channel.Port));
             }
-            else { TestingFirewall = true; }
+            else { TestingFirewall = false; }
         }
 
         private void PurgeOld()
@@ -578,6 +579,7 @@ namespace Zorbo.Ares
         private void ParseServers(byte[] input)
         {
             using var reader = new PacketReader(input);
+
             lock (Channels) {
                 while (reader.Remaining >= 6) {
 
@@ -669,9 +671,9 @@ namespace Zorbo.Ares
             if (!FirewallOpen) {
                 lock (myfirewalltests) {
 
-                    TestingFirewall = myfirewalltests.Contains((s) => s.ExternalIp.Equals(endpoint.Address));
+                    TestingFirewall = !myfirewalltests.Contains((s) => s.ExternalIp.Equals(endpoint.Address));
 
-                    if (TestingFirewall) {
+                    if (!TestingFirewall) {
 
                         FirewallOpen = true;
                         myfirewalltests.Clear();

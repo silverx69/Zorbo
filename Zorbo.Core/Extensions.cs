@@ -23,7 +23,7 @@ namespace Zorbo.Core
             string emote_pat = BuildEmoteRegex();
             string strip_pat = "\u0003|\u0005|\u0006|\a|\t";
             string link_pat = "arlnk://|www\\.|https?://|ftps?://|wss?://";
-            ReadRegex = new Regex("\u0002(3|5|6|7|9)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            ReadRegex = new Regex("(?:\u0002|\u25A1)(3|5|6|7|9)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
             StripRegex = new Regex(strip_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
             TopicRegex = new Regex(strip_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
             FullRegex = new Regex(strip_pat + "|" + link_pat + "|" + emote_pat, RegexOptions.Singleline | RegexOptions.IgnoreCase);
@@ -211,15 +211,13 @@ namespace Zorbo.Core
         {
             int lastMatch = 0;
             string text2 = string.Empty;
-
             if (string.IsNullOrEmpty(text))
                 return string.Empty;
-
             Match match = StripRegex.Match(text);
             while (match.Success) {
                 text2 += text[lastMatch..match.Index];
                 lastMatch = match.Index + match.Length;
-                text2 += string.Format("\u0002{0}", (int)match.Value[0]);
+                text2 += string.Format("\u25A1{0}", (int)match.Value[0]);
                 match = StripRegex.Match(text, lastMatch);
             }
             text2 += text[lastMatch..];

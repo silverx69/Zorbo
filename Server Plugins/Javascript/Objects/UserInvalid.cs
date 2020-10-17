@@ -54,6 +54,11 @@ namespace Javascript.Objects
             set { }
         }
 
+        public bool IsModern {
+            get { return false; }
+            set { }
+        }
+
         public bool Browsable {
             get { return false; }
         }
@@ -180,6 +185,7 @@ namespace Javascript.Objects
 
         public DateTime LastPing {
             get { return DateTime.MinValue; }
+            set { }
         }
 
         public DateTime LastUpdate {

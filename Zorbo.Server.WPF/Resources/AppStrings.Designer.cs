@@ -313,6 +313,15 @@ namespace Zorbo.Server.WPF.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Logs.
+        /// </summary>
+        public static string LabelLogs {
+            get {
+                return ResourceManager.GetString("LabelLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Max clients.
         /// </summary>
         public static string LabelMaxClients {
@@ -367,7 +376,7 @@ namespace Zorbo.Server.WPF.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Available Plugins.
+        ///   Looks up a localized string similar to Plugins.
         /// </summary>
         public static string LabelPlugins {
             get {
@@ -381,6 +390,15 @@ namespace Zorbo.Server.WPF.Resources {
         public static string LabelPluginState {
             get {
                 return ResourceManager.GetString("LabelPluginState", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available Plugins.
+        /// </summary>
+        public static string LabelPluginTitle {
+            get {
+                return ResourceManager.GetString("LabelPluginTitle", resourceCulture);
             }
         }
         

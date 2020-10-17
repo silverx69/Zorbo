@@ -157,23 +157,6 @@ namespace cb0tProtocol
             return true;
         }
 
-        public override bool OnBeforePacket(IClient client, IPacket packet)
-        {
-            if ((AresId)packet.Id == AresId.MSG_CHAT_CLIENT_CUSTOM_DATA) {
-
-                var custom = (ClientCustom)packet;
-
-                if (custom.Username == Server.Config.BotName &&
-                    custom.CustomId.StartsWith("cb0t_scribble")) {
-
-                    custom.Username = client.Name;
-                    Server.SendPacket((s) => s != client && s.Vroom == client.Vroom, custom);
-                }
-            }
-
-            return true;
-        }
-
         public override void OnAfterPacket(IClient client, IPacket packet)
         {
             if (packet.Id == (byte)AresId.MSG_CHAT_ADVANCED_FEATURES_PROTOCOL) {
@@ -439,29 +422,29 @@ namespace cb0tProtocol
             byte[] buffer;
             if (scribble.Size <= 4000) {
                 Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
+                Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_once", scribble.RawImage()));
             }
             else {
                 scribble.Index = 0;
 
                 int length = Math.Min((int)scribble.Received, 4000);
+
                 buffer = scribble.Read();
 
                 Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
+                Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_first", buffer));
 
                 while (scribble.Remaining > 0) {
                     buffer = scribble.Read();
 
                     if (scribble.Remaining > 0)
-                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
+                        Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_chunk", buffer));
                     else
-                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
+                        Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_last", buffer));
                 }
             }
 
             var ib0ts = Server.Users.Where(s => s.Socket.Isib0tSocket && pred(s));
-
             if (ib0ts.Count() > 0) {
                 buffer = Zlib.Decompress(scribble.RawImage());
 

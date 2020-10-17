@@ -17,6 +17,12 @@ namespace Zorbo.Core.Data
 
         public long Id { get; set; }
 
+        public string ExternalIp { get; set; }
+
+        public string InternalIp { get; set; }
+
+        public ushort Port { get; set; }
+
         public string Name { get; set; }
 
         public string Topic {
@@ -26,6 +32,10 @@ namespace Zorbo.Core.Data
 
         public string Version { get; set; }
 
+        public string Domain { get; set; }
+
+        public ushort TlsPort { get; set; }
+
         public ushort Users { get; set; }
 
         public byte Language { get; set; }
@@ -33,14 +43,6 @@ namespace Zorbo.Core.Data
         public bool WebSockets { get; set; }
 
         public bool SupportJson { get; set; }
-
-        public string Domain { get; set; }
-
-        public string ExternalIp { get; set; }
-
-        public string InternalIp { get; set; }
-
-        public ushort Port { get; set; }
 
         [JsonIgnore]
         public DateTime LastUpdate { get; set; }
@@ -63,15 +65,16 @@ namespace Zorbo.Core.Data
         public byte[] ToByteArray()
         {
             using PacketWriter writer = new PacketWriter();
-            writer.Write(new byte[20]);
-            writer.Write("CHATCHANNEL");
+            writer.Write(Hashlinks.HASH_HEADER);
             writer.Write(IPAddress.Parse(string.IsNullOrEmpty(ExternalIp) ? "0.0.0.0" : ExternalIp) ?? IPAddress.Any);
             writer.Write((ushort)Port);
             writer.Write(IPAddress.Parse(string.IsNullOrEmpty(InternalIp) ? "0.0.0.0" : InternalIp) ?? IPAddress.Any);
             writer.Write(Name);
             writer.Write(SupportJson);
-            if (!string.IsNullOrEmpty(Domain))
+            if (!string.IsNullOrEmpty(Domain)) {
                 writer.Write(Domain);
+                writer.Write(TlsPort);
+            }
             return writer.ToArray();
         }
 
@@ -87,6 +90,7 @@ namespace Zorbo.Core.Data
             Name = reader.ReadString();
             SupportJson = reader.ReadBoolean();
             Domain = reader.ReadString();
+            TlsPort = (reader.Remaining >= 2) ? reader.ReadUInt16() : (ushort)0;
         }
 
         public string ToPlainText()

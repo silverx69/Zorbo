@@ -55,6 +55,9 @@ namespace Motd
         }
 
         private string ReplaceVars(IClient client, string input) {
+
+            input = input.ToAresColor();
+
             Regex regex = new Regex("(?<tag>\\+n|\\+ip|\\+time|\\+dns|\\+vroom)", RegexOptions.IgnoreCase);
             Match match = regex.Match(input);
 

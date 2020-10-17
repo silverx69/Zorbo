@@ -23,6 +23,7 @@ namespace Zorbo.Core.Server
         bool LoggedIn { get; }
         bool Connected { get; }
         bool LocalHost { get; set; }
+        bool IsModern { get; }
         bool Browsable { get; }
         bool Muzzled { get; set; }
         bool Cloaked { get; set; }
@@ -55,7 +56,7 @@ namespace Zorbo.Core.Server
 
         DateTime JoinTime { get; }
         DateTime CaptchaTime { get; }
-        DateTime LastPing { get; }
+        DateTime LastPing { get; set; }
         DateTime LastUpdate { get; set; }
 
         ClientFlags Features { get; set; }

@@ -54,11 +54,11 @@
                 <Run Text="{x:Static resx:AppStrings.LabelMaxClients}"/><Run Text=":"/>
             </TextBlock>
         </Label>
-        <CheckBox IsChecked="{Binding ShowChannel}" Height="16" Margin="0,12,0,0" HorizontalAlignment="Center"  VerticalAlignment="Top" />
-        <CheckBox IsChecked="{Binding LocalAreaIsHost}" HorizontalAlignment="Center" Margin="0,42,0,0" Height="15" VerticalAlignment="Top"/>
-        <CheckBox IsChecked="{Binding UseUdpSockets}" HorizontalAlignment="Center" Margin="0,73,0,0" VerticalAlignment="Top" />
-        <CheckBox IsChecked="{Binding UseTcpSockets}" HorizontalAlignment="Center" Margin="0,104,0,0" VerticalAlignment="Top" />
-        <CheckBox IsChecked="{Binding UseWebSockets}"  Height="16" VerticalAlignment="Top" HorizontalAlignment="Center" Width="16" Margin="0,133,0,0"/>
+        <CheckBox IsChecked="{Binding ShowChannel}" Height="16" Margin="187,12,0,0" HorizontalAlignment="Left"  VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding LocalAreaIsHost}" HorizontalAlignment="Left" Margin="187,42,0,0" Height="15" VerticalAlignment="Top"/>
+        <CheckBox IsChecked="{Binding UseUdpSockets}" HorizontalAlignment="Left" Margin="187,73,0,0" VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding UseTcpSockets}" HorizontalAlignment="Left" Margin="187,104,0,0" VerticalAlignment="Top" />
+        <CheckBox IsChecked="{Binding UseWebSockets}"  Height="16" VerticalAlignment="Top" HorizontalAlignment="Left" Width="16" Margin="187,133,0,0"/>
         <TextBox Text="{Binding BanLength, Mode=TwoWay}" Height="24" HorizontalAlignment="Left" Margin="126,160,0,0" VerticalAlignment="Top" Width="55" />
         <TextBox Text="{Binding MaxClones, Mode=TwoWay}" Height="24" Margin="126,188,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="125" />
         <TextBox Text="{Binding MaxClients, Mode=TwoWay}" Height="24" HorizontalAlignment="Left" Margin="126,217,0,0" VerticalAlignment="Top" Width="125" />

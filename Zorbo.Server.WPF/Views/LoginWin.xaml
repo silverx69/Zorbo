@@ -8,7 +8,7 @@
         Width="450" 
         FontFamily="Tahoma" 
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterScreen">
     <Grid Background="WhiteSmoke"
           DataContext="{Binding Path=Records, RelativeSource={RelativeSource AncestorType={x:Type view:LoginWin}, Mode=FindAncestor}}">
 

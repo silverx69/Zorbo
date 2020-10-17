@@ -21,10 +21,10 @@
 
     <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
     <convert:StopGoBrushConverter x:Key="NetworkOKConverter"/>
+    <convert:EnumToInt32Converter x:Key="EnumToInt32Converter"/>
     <convert:ReadableTopicConverter x:Key="ReadableTopicConverter"/>
     <convert:AvatarToSizeConverter x:Key="AvatarToSizeConverter"/>
     <convert:AvatarToSourceConverter x:Key="AvatarToSourceConverter"/>
-    <convert:LanguageToInt32Converter x:Key="LanguageToInt32Converter"/>
     <convert:ClientIdToUsernameConverter x:Key="ClientIdToUsernameConverter"/>
 
     <DropShadowEffect x:Key="PopupShadow" BlurRadius="5" ShadowDepth="1" Opacity=".7" />

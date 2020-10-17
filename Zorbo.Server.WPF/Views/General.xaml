@@ -13,10 +13,10 @@
         <Label Content="Topic:" Height="28" Margin="9,112,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
         <Label Content="Auto start server:" Height="28" Margin="9,178,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
         <Label Content="Load with windows:" Height="28" Margin="9,210,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
-        <TextBox Name="txtName" Text="{Binding Path=Name, Mode=TwoWay}" Height="23" Margin="138,12,9,0" VerticalAlignment="Top" />
-        <TextBox Name="txtPort" Text="{Binding Path=Port, Mode=TwoWay}"  Height="23" Margin="138,44,9,0" VerticalAlignment="Top" />
-        <ComboBox Name="cbLanguage" SelectedIndex="{Binding Path=Language, Mode=TwoWay, Converter={StaticResource LanguageToInt32Converter}}" ItemsSource="{Binding Path=LanguageValues}" Height="23" Margin="138,78,9,0" VerticalAlignment="Top"  />
-        <TextBox Name="txtTopic" Text="{Binding Path=Topic, Mode=TwoWay, Converter={StaticResource ReadableTopicConverter}}" Height="23" Margin="138,112,9,0" VerticalAlignment="Top" />
+        <TextBox Name="txtName" Text="{Binding Path=Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Height="23" Margin="93,13,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158" />
+        <TextBox Name="txtPort" Text="{Binding Path=Port, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"  Height="23" Margin="93,45,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="89" />
+        <ComboBox Name="cbLanguage" SelectedIndex="{Binding Path=Language, Mode=TwoWay, Converter={StaticResource EnumToInt32Converter}}" ItemsSource="{Binding Path=LanguageValues}" Height="23" Margin="93,79,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158"  />
+        <TextBox Name="txtTopic" Text="{Binding Path=Topic, Mode=TwoWay, Converter={StaticResource ReadableTopicConverter}}" TextChanged="txtTopic_TextChanged" Height="22" Margin="93,0,10,0" VerticalAlignment="Center" />
         <CheckBox Name="optStartServer" IsChecked="{Binding Path=AutoStartServer, Mode=TwoWay}" Height="16" Margin="138,186,0,0" HorizontalAlignment="Left"  VerticalAlignment="Top" />
         <CheckBox Name="optLoadserver" IsChecked="{Binding Path=LoadWithWindows}" Height="16" Margin="138,217,0,0" HorizontalAlignment="Left"  VerticalAlignment="Top" />
         <TextBlock Style="{StaticResource HelpLinkStyle}" Margin="54,17,0,0" Text="?" local:Help.HelpText="The name of the chatroom" MouseUp="Help_MouseUp" />

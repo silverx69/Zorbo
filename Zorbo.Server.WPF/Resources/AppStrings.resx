@@ -201,6 +201,9 @@
   <data name="LabelLevel" xml:space="preserve">
     <value>Level</value>
   </data>
+  <data name="LabelLogs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
   <data name="LabelMaxClients" xml:space="preserve">
     <value>Max clients</value>
   </data>
@@ -220,10 +223,13 @@
     <value>Name</value>
   </data>
   <data name="LabelPlugins" xml:space="preserve">
-    <value>Available Plugins</value>
+    <value>Plugins</value>
   </data>
   <data name="LabelPluginState" xml:space="preserve">
     <value>Status</value>
+  </data>
+  <data name="LabelPluginTitle" xml:space="preserve">
+    <value>Available Plugins</value>
   </data>
   <data name="LabelPort" xml:space="preserve">
     <value>Port</value>

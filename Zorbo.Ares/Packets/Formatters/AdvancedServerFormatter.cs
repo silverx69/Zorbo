@@ -83,12 +83,16 @@ namespace Zorbo.Ares.Formatters
             } 
         }
 
+        //To Server
         protected override string FormatBasic(IPacket packet)
         {
             if (packet is ClientCustom custom) {
-                if (custom.CustomId == "ib0t_lag") {
-                    string data = Encoding.UTF8.GetString(custom.Data);
-                    return string.Format("LAG:{0}:{1}", data.Length, data);
+                if (custom.CustomId == "zorbo_lag") {
+                    return string.Format("LAG:{0}", 
+                        new DateTime(BitConverter.ToInt64(custom.Data))
+                            .Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc))
+                            .TotalMilliseconds
+                            .ToString());
                 }
             }
             else if (packet is ScribbleHead head) {
@@ -107,10 +111,21 @@ namespace Zorbo.Ares.Formatters
             return base.FormatBasic(packet);
         }
 
+        //From Server
         protected override IPacket UnformatBasic(string message, string content)
         {
             string[] values;
-            switch(message.ToUpper()) {
+            switch (message.ToUpper()) {
+                case "LAG":
+                    values = Parseib0tMessage(content);
+                    long value;
+                    if (long.TryParse(values[0], out value)) {
+                        return new ClientCustom(
+                            string.Empty, 
+                            "zorbo_lag", 
+                            BitConverter.GetBytes(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(value).Ticks));
+                    }
+                    break;
                 case "SCRIBBLE_HEAD":
                     values = Parseib0tMessage(content);
                     return new ScribbleHead(values[0], int.Parse(values[1]), int.Parse(values[2]));

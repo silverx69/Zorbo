@@ -5,6 +5,8 @@ using System.Security;
 using System.Text;
 using Zorbo.Core.Server;
 using Zorbo.Core.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Zorbo.Core
 {
@@ -86,6 +88,10 @@ namespace Zorbo.Core
 
         public static string CreateSha1Text(SecureString password) {
             return Convert.ToBase64String(Utils.MD5.ComputeHash(Encoding.UTF8.GetBytes(password.ToNativeString())));
+        }
+
+        public static IEnumerable<AdminLevel> AdminValues {
+            get { return Enum.GetValues(typeof(AdminLevel)).Cast<AdminLevel>(); }
         }
     }
 }

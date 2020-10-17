@@ -160,6 +160,15 @@ namespace Zorbo.Ares.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You have been logged out of administrator.
+        /// </summary>
+        public static string LoggedOut {
+            get {
+                return ResourceManager.GetString("LoggedOut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You have been muzzled.
         /// </summary>
         public static string Muzzled {
@@ -196,7 +205,7 @@ namespace Zorbo.Ares.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.2.0.0.
+        ///   Looks up a localized string similar to 0.3.0.0.
         /// </summary>
         public static string Version {
             get {
@@ -205,7 +214,7 @@ namespace Zorbo.Ares.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Zorbo 0.2.0 Alpha.
+        ///   Looks up a localized string similar to Zorbo 0.3.0 Alpha.
         /// </summary>
         public static string VersionChannels {
             get {
@@ -214,7 +223,7 @@ namespace Zorbo.Ares.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Zorbo Server 0.2.0 Alpha.
+        ///   Looks up a localized string similar to Zorbo 0.3.0 Alpha.
         /// </summary>
         public static string VersionLogin {
             get {

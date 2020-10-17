@@ -66,6 +66,10 @@ namespace Zorbo.Core.Plugins.Server
         /// </summary>
         void OnLogin(IClient client, IPassword password);
         /// <summary>
+        /// Occurs when a user logs out of the server (sets their admin to 'User')
+        /// </summary>
+        void OnLogout(IClient client);
+        /// <summary>
         /// Occurs when a user registers a password with the server, if function returns false, the password is rejected
         /// </summary>
         bool OnRegister(IClient client, IPassword password);
@@ -94,12 +98,12 @@ namespace Zorbo.Core.Plugins.Server
         /// Occurs when an anonymous http(s) request occurs on the socket (A normal http(s) request).
         /// </summary>
         /// <returns></returns>
-        bool OnHttpRequest(ISocket socket, RequestEventArgs args);
+        bool OnHttpRequest(ISocket socket, HttpRequestEventArgs args);
         /// <summary>
         /// Occurs when a http(s) request occurs on the socket from an IClient already connected (This is not normal behaviour, but technically possible).
         /// </summary>
         /// <returns></returns>
-        bool OnHttpRequest(IClient socket, RequestEventArgs args);
+        bool OnHttpRequest(IClient socket, HttpRequestEventArgs args);
         /// <summary>
         /// Occurs when a user floods the server with packets
         /// </summary>

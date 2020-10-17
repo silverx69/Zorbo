@@ -96,22 +96,24 @@ namespace Zorbo.Core.Data.Packets
             members.ForEach(prop => WriteProperty(value, prop));
         }
 
-        private void WritePacket(IPacket packet) {
+        private void WritePacket(IPacket packet, bool len_prefix = true) {
             object obj = (object)packet;
 
             long index = Position;
 
-            Position += 2;
+            if (len_prefix) Position += 2;
 
             Write(packet.Id);
             WriteObject(obj);
 
-            long endIndex = Position;
+            if (len_prefix) {
+                long endIndex = Position;
 
-            Position = index;
-            Write((ushort)(endIndex - index - 3));
+                Position = index;
+                Write((ushort)(endIndex - index - 3));
 
-            Position = endIndex;
+                Position = endIndex;
+            }
         }
 
         private void WriteProperty(object value, PropertyData prop) {
@@ -200,9 +202,9 @@ namespace Zorbo.Core.Data.Packets
                     else if (ptype == typeof(IPAddress))
                         Write((IPAddress)propvalue);
 
-                    else if (typeof(IPacket).IsAssignableFrom(ptype))
-                        WritePacket((IPacket)propvalue);
-
+                    else if (typeof(IPacket).IsAssignableFrom(ptype)) {
+                        WritePacket((IPacket)propvalue, prop.Attribute.LengthPrefix);
+                    }
                     else throw new NotSupportedException("This data type is not supported by the serializer");
 
                     break;

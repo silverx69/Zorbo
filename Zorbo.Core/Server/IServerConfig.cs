@@ -11,9 +11,13 @@ namespace Zorbo.Core.Server
     public interface IServerConfig : IConfig, INotifyPropertyChanged
     {
         /// <summary>
+        /// True to show the bot user in the userlist, otherwise false
+        /// </summary>
+        bool ShowBot { get; set; }
+        /// <summary>
         /// The name of the server bot in the userlist
         /// </summary>
-        string BotName { get; }
+        string BotName { get; set; }
         /// <summary>
         /// The server's topic
         /// </summary>
@@ -26,10 +30,6 @@ namespace Zorbo.Core.Server
         /// The port the server will listen for connections on
         /// </summary>
         ushort Port { get; }
-        /// <summary>
-        /// The port the server will listen for Tls connections on
-        /// </summary>
-        ushort TlsPort { get; set; }
         /// <summary>
         /// The ip address of the adapter that the socket will bind to, this is generally left as 0.0.0.0
         /// </summary>
@@ -81,13 +81,17 @@ namespace Zorbo.Core.Server
         /// <summary>
         /// The domain name associated with the certificate. Often referred to as the Common Name, or CN.
         /// </summary>
-        string DomainName { get; set; }
+        string Domain { get; set; }
         /// <summary>
-        /// Gets or sets the file location of the SSL certificate to use for TLS
+        /// The port the server will listen for TLS connections on.
+        /// </summary>
+        ushort TlsPort { get; set; }
+        /// <summary>
+        /// Gets or sets the file location of the SSL certificate to use for TLS.
         /// </summary>
         string Certificate { get; set; }
         /// <summary>
-        /// Gets or sets the password that was used the secure the supplied SSL certificate
+        /// Gets or sets the password that was used the secure the supplied SSL certificate.
         /// </summary>
         SecureString CertificatePassword { get; set; }
         /// <summary>

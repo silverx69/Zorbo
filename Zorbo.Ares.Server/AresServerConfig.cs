@@ -18,7 +18,7 @@ namespace Zorbo.Ares.Server
         IDirectories directories = null;
 
         ushort port = 34567;
-        ushort tlsport = 8080;
+        ushort tlsport = 34568;
 
         IPAddress localIp = IPAddress.Any;
 
@@ -48,6 +48,7 @@ namespace Zorbo.Ares.Server
         bool allowVoice = true;
 
         bool lanhost = true;//treat lan connections as LocalHost
+        bool showBot = true;
         bool hideIps = true;
         bool muzzledPms = true;
         bool botProtection = true;
@@ -65,6 +66,12 @@ namespace Zorbo.Ares.Server
         public string Name {
             get { return name; }
             set { OnPropertyChanged(() => name, value); }
+        }
+
+        [JsonProperty("showbot")]
+        public bool ShowBot {
+            get { return showBot; }
+            set { OnPropertyChanged(() => showBot, value); }
         }
 
         [JsonProperty("botname")]
@@ -268,7 +275,7 @@ namespace Zorbo.Ares.Server
         }
 
         [JsonProperty("tlsdomain")]
-        public string DomainName {
+        public string Domain {
             get { return domain; }
             set { OnPropertyChanged(() => domain, value); }
         }

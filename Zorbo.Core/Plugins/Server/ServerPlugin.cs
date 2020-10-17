@@ -78,6 +78,10 @@ namespace Zorbo.Core.Plugins.Server
         /// </summary>
         public virtual void OnLogin(IClient client, IPassword password) { }
         /// <summary>
+        /// Occurs when a user logs out of the server (sets their admin to 'User')
+        /// </summary>
+        public virtual void OnLogout(IClient client) { }
+        /// <summary>
         /// Occurs when a user registers a password with the server, if function returns false, the password is rejected
         /// </summary>
         public virtual bool OnRegister(IClient client, IPassword password) { return true; }
@@ -106,12 +110,12 @@ namespace Zorbo.Core.Plugins.Server
         /// Occurs when an anonymous http(s) request occurs on the socket (A normal http(s) request).
         /// </summary>
         /// <returns></returns>
-        public virtual bool OnHttpRequest(ISocket socket, RequestEventArgs args) { return true; }
+        public virtual bool OnHttpRequest(ISocket socket, HttpRequestEventArgs args) { return true; }
         /// <summary>
         /// Occurs when a http(s) request occurs on the socket from an IClient already connected (This is not normal behaviour, but technically possible).
         /// </summary>
         /// <returns></returns>
-        public virtual bool OnHttpRequest(IClient socket, RequestEventArgs args) { return true; }
+        public virtual bool OnHttpRequest(IClient socket, HttpRequestEventArgs args) { return true; }
         /// <summary>
         /// Occurs when a user floods the server with packets, returning false will prevent Zorbo from handling the packet. 
         /// It's up to the Plugin to determine any extra action taken when a flood rule is broken.

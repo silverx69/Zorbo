@@ -41,7 +41,9 @@ namespace Zorbo.Server.WPF.Views
 
         private void Passwords_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            Dispatcher.Invoke(() => { Passwords.Source = History.Admin.Passwords.ToArray(); });
+            Dispatcher.Invoke(() => { 
+                Passwords.Source = History.Admin.Passwords.ToArray(); 
+            });
         }
 
         private void BtnNew_Click(object sender, RoutedEventArgs e) {

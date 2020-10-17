@@ -148,10 +148,10 @@
     <value>You have been unmuzzled</value>
   </data>
   <data name="Version" xml:space="preserve">
-    <value>0.2.0.0</value>
+    <value>0.3.0.0</value>
   </data>
   <data name="VersionLogin" xml:space="preserve">
-    <value>Zorbo Server 0.2.0 Alpha</value>
+    <value>Zorbo 0.3.0 Alpha</value>
   </data>
   <data name="AreMuzzled" xml:space="preserve">
     <value>You are muzzled {0}</value>
@@ -172,6 +172,9 @@
     <value>Zorbo</value>
   </data>
   <data name="VersionChannels" xml:space="preserve">
-    <value>Zorbo 0.2.0 Alpha</value>
+    <value>Zorbo 0.3.0 Alpha</value>
+  </data>
+  <data name="LoggedOut" xml:space="preserve">
+    <value>You have been logged out of administrator</value>
   </data>
 </root>

@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
@@ -25,20 +26,19 @@ namespace Zorbo.Ares.Sockets
 {
     public class AresTcpSocket : ISocket, IDisposable
     {
-        SslStream sslStream;
-        NetworkStream stream;
-
         readonly bool should_mask;
 
         volatile bool sending;
         volatile bool receiving;
         volatile bool disconnected;
         volatile bool disconnecting;
-        volatile bool activating;
+
+        SocketTlsStreams tlsStreams;
 
         IPacketFormatter formatter;
         ConcurrentQueue<IPacket> outQueue;
 
+        readonly MemoryStream readStream;
         readonly IPacketFormatter orgFormatter;
 
         EventHandler<IOTaskCompleteEventArgs<SocketSendTask>> sendHandler;
@@ -58,7 +58,7 @@ namespace Zorbo.Ares.Sockets
         [Obsolete("The ib0t protocol is currently deprecated and will be removed in the future.")]
         public virtual bool Isib0tSocket { get; set; }
 
-        public virtual bool IsTLSEnabled => sslStream != null;
+        public virtual bool IsTLSEnabled => tlsStreams != null;
 
 
         public IPEndPoint LocalEndPoint {
@@ -95,9 +95,6 @@ namespace Zorbo.Ares.Sockets
             }
         }
 
-
-        private ReceiveStatus State { get; set; }
-
         private WebSocketMessageType MessageType { get; set; } = WebSocketMessageType.Binary;
 
 
@@ -110,7 +107,7 @@ namespace Zorbo.Ares.Sockets
         //called by Listener methods
         protected AresTcpSocket(IPacketFormatter formatter, Socket socket)
             : this() {
-            should_mask = false;
+            should_mask = false;//client sends masked
             Socket = socket;
             Formatter = orgFormatter = formatter;
         }
@@ -119,7 +116,8 @@ namespace Zorbo.Ares.Sockets
         {
             outQueue = new ConcurrentQueue<IPacket>();
             sendHandler = SendComplete;
-            recvHandler = ReceiveCompleted;
+            recvHandler = ReceiveCompleted2;
+            readStream = new MemoryStream();
             Monitor = new IOMonitor();
             Monitor.Start();
         }
@@ -281,7 +279,7 @@ namespace Zorbo.Ares.Sockets
             if (disconnecting)
                 return;
 
-            if (sending || activating) {
+            if (sending) {
                 outQueue.Enqueue(packet);
                 return;
             }
@@ -294,7 +292,7 @@ namespace Zorbo.Ares.Sockets
         {
             var task = new SocketSendTask() {  };
 
-            task.SslStream = sslStream;
+            task.TlsStreams = tlsStreams;
             task.Data = bytes;
             task.Count = task.Data.Length;
             task.Completed += sendHandler;
@@ -310,7 +308,7 @@ namespace Zorbo.Ares.Sockets
 
         protected virtual void SendQueue()
         {
-            if (!activating && outQueue.TryDequeue(out IPacket packet)) {
+            if (outQueue.TryDequeue(out IPacket packet)) {
                 sending = true;
                 SendPacket(packet);
             }
@@ -363,7 +361,7 @@ namespace Zorbo.Ares.Sockets
                 }
             }
 
-            task.SslStream = sslStream;
+            task.TlsStreams = tlsStreams;
             task.Count = task.Data.Length;
             task.Completed += sendHandler;
 
@@ -436,48 +434,289 @@ namespace Zorbo.Ares.Sockets
 
             receiving = true;
 
-            var task = new SocketReceiveTask(HeaderLength);
+            var task = new SocketReceiveTask();
             task.Completed += recvHandler;
-
             ReceiveAsyncInternal(task);
         }
 
-        private void ReceiveAsyncInternal(SocketReceiveTask task) {
-            State = ReceiveStatus.Header;
-            task.Count = HeaderLength;
-            task.SslStream = sslStream;
+        private async void ReceiveAsyncInternal(SocketReceiveTask task) {
+            if (tlsStreams != null) {//damn you sslstream
+                try {
+                    byte[] byt = new byte[1];
+                    int ret = await tlsStreams.SslStream.ReadAsync(byt, 0, 1);
+                    if (ret == 0) {
+                        Disconnect();
+                        return;
+                    }
+                    else readStream.Write(byt, 0, 1);
+                }
+                catch (Exception ex) {
+                    OnException(ex);
+                    return;
+                }
+            }
+            task.Count = SocketManager.BufferSize;//bufferSize?
+            task.TlsStreams = tlsStreams;
             if (IsConnected) Socket.QueueReceive(task);
         }
 
+        protected virtual void ReceiveCompleted2(object sender, IOTaskCompleteEventArgs<SocketReceiveTask> e) 
+        {
+            if (e.Task.Exception == null) {
+
+                Monitor.AddInput(e.Task.Transferred);
+                
+                try {
+                    bool finished = true;
+
+                    readStream.Write(e.Buffer.Buffer, e.Buffer.Offset, e.Task.Transferred);
+                    readStream.Position = 0;
+
+                    long start = 0;
+                    using var reader = new PacketReader(readStream, true);
+
+                    while (finished && reader.Remaining > 0) {
+                        start = reader.Position;
+                        finished = ReadPacketHeader(reader);
+                    }
+
+                    if (finished) 
+                        readStream.SetLength(0);
+                    else
+                        RepositionStream(reader, start);
+                }
+                catch (Exception ex) { OnException(ex); }
+            }
+            else OnException(e.Task.Exception);
+
+            if (IsConnected)
+                ReceiveAsyncInternal(e.Task);
+            else
+                e.Task.Completed -= recvHandler;
+        }
+        
+        protected virtual bool ReadPacketHeader(PacketReader reader) 
+        {
+            if (reader.Remaining < 2) 
+                return false;
+
+            if (IsWebSocket)//receive encoded message
+                return ReadWebSocket(reader);
+            else {
+                ushort length = reader.ReadUInt16();
+                // Ares has a hard message limit of 4k... enforce?
+                // Zorbo uses a *default* socket buffer of 8k
+                // Anything larger than this is either special or an error
+                if (length == 17735 || //Numerical equivalent of "GE"
+                    length == 17736 || //"HE"
+                    length == 20304) { //"PO"
+                    if (reader.Remaining >= (length == 17735 ? 16 : 17)) {
+                        reader.Position -= 2;
+                        return ReadHttpRequest(reader);
+                    }
+                }
+                else {
+                    if (length >= SocketManager.BufferSize)
+                        throw new SocketException((int)SocketError.NoBufferSpaceAvailable);
+
+                    if (reader.Remaining >= length + 1) {
+                        byte id = reader.ReadByte();
+                        byte[] payload = reader.ReadBytes(length);
+
+                        OnBinaryPacketReceived(id, payload, 0, payload.Length);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        protected virtual bool ReadWebSocket(PacketReader reader)
+        {
+            byte first = reader.ReadByte();
+
+            var opcode = (WebSocketOpCode)(first & ((1 << 4) - 1));
+            if (opcode == WebSocketOpCode.Close) {
+                Disconnect();
+                return false;
+            }
+
+            byte second = reader.ReadByte();
+
+            int length = second & 127;
+            bool masked = (second & (1 << 7)) != 0;
+
+            if (!masked && should_mask) {
+                //MASKED BIT NOT SET
+                Disconnect(WebSocketCloseStatus.ProtocolError);
+                return false;
+            }
+
+            int count;
+            if (length == 126) {
+                if (reader.Remaining < 2)
+                    return false;
+                count = BitConverter.ToUInt16(reader.ReadBytes(2).EnsureEndian());
+            }
+            else if (length == 127) {
+                if (reader.Remaining < 8)
+                    return false;
+                count = (int)BitConverter.ToUInt64(reader.ReadBytes(8).EnsureEndian());
+            }
+            else count = length;
+
+            count = masked ? count + 4 : count;
+
+            if (reader.Remaining < count)
+                return false;
+
+            byte[] payload;
+
+            if (masked) {
+                byte[] mask = reader.ReadBytes(4);
+                payload = reader.ReadBytes(count - 4);
+                for (int i = 0; i < payload.Length; i++)
+                    payload[i] ^= mask[i % 4];
+            }
+            else payload = reader.ReadBytes(count);
+
+            switch (opcode) {
+                case WebSocketOpCode.Text: {
+
+                    string tmp = Encoding.UTF8.GetString(payload);
+                    Match match = Regex.Match(tmp, "[a-z]+?:", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                    if (match.Success) {
+                        //is ib0t message
+                        Isib0tSocket = true;
+                        MessageType = WebSocketMessageType.Text;
+                        Handleib0tMessage(tmp, payload.Length);
+                        return true;
+                    }
+                    else {
+                        int id = tmp.ExtractId();
+                        if (id > -1) {
+                            MessageType = WebSocketMessageType.Text;
+                            OnTextPacketReceived((byte)id, tmp, payload.Length);
+                            return true;
+                        }
+                    }
+
+                    //this is a message type we don't recongnize.
+                    Disconnect(WebSocketCloseStatus.InvalidPayloadData);
+                    return false;
+                }
+                case WebSocketOpCode.Ping:
+                    var ping = new PingPongPacket(payload) { IsPing = true };
+                    OnBinaryPacketReceived(ping, payload.Length);
+                    SendAsync(ping);
+                    return true;
+                case WebSocketOpCode.Pong:
+                    return true;
+                case WebSocketOpCode.Binary:
+                    MessageType = WebSocketMessageType.Binary;
+                    OnBinaryPacketReceived(payload[0], payload, 1, payload.Length - 1);
+                    return true;
+                default://don't handle any of the other opcodes right now
+                    Disconnect(WebSocketCloseStatus.InvalidMessageType);
+                    return false;
+            }
+        }
+
+        protected virtual bool ReadHttpRequest(PacketReader reader)
+        {
+            var sb = new StringBuilder();
+
+            string header = string.Empty;
+            bool haveHeader = false;
+
+            while (reader.Remaining >= 0) {
+                sb.Append(reader.ReadChars(Math.Min(4, (int)reader.Remaining)));
+                header = sb.ToString();
+                if (header.EndsWith("\r\n\r\n")) {
+                    haveHeader = true;
+                    break;
+                }
+            }
+
+            if (!haveHeader) return false;
+
+            int contentLen = 0;
+            string[] lines = header.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            Match match = Regex.Match(lines[0], "(\\S+)\\s+/(\\S*)\\s+(\\S*)");
+
+            if (match.Success) {
+                var token = new HttpRequestState {
+                    Method = match.Groups[1].Value,
+                    RequestUri = match.Groups[2].Value,
+                    Protocol = match.Groups[3].Value
+                };
+                for (int i = 1; i < lines.Length; i++) {
+                    match = Regex.Match(lines[i], "\\s*(\\S+)\\s*:\\s*(\\S+)");
+                    if (match.Success) {
+                        string key = match.Groups[1].Value.ToUpper();
+                        string value = match.Groups[2].Value;
+                        switch (key) {
+                            case "CONTENT-LENGTH":
+                                int.TryParse(value, out contentLen);
+                                break;
+                            case "SEC-WEBSOCKET-PROTOCOL":
+                                break;
+                        }
+                        token.Headers.Add(key, value);
+                    }
+                }
+                if (contentLen > 0) {
+                    if (reader.Remaining < contentLen)
+                        return false;
+                    token.Content = reader.ReadString(contentLen);
+                }
+                OnHttpRequestReceived(token);
+                return true;
+            }
+            else {
+                Disconnect();
+                return false;
+            }
+        }
+
+        private void RepositionStream(PacketReader reader, long position)
+        {
+            reader.Position = position;
+            byte[] tmp = reader.ReadBytes((int)reader.Remaining);
+            readStream.SetLength(tmp.Length);
+            readStream.Position = 0;
+            readStream.Write(tmp);
+        }
+
+        /*
         protected virtual void ReceiveCompleted(object sender, IOTaskCompleteEventArgs<SocketReceiveTask> e)
         {
             if (e.Task.Exception == null) {
 
-                if (e.Task.Transferred > 0) {
+                Monitor.AddInput(e.Task.Transferred);
 
-                    Monitor.AddInput(e.Task.Transferred);
-                    try {
-                        switch (State) {
-                            case ReceiveStatus.Header:
-                                HandlePacketHeader(e);
-                                break;
-                            case ReceiveStatus.Request_Head:
-                                HandleRequestHeader(e);
-                                break;
-                            case ReceiveStatus.Request_Body:
-                                HandleRequestBody(e);
-                                break;
-                            case ReceiveStatus.Decode_Length:
-                                HandleWebSocketLength(e);
-                                break;
-                            case ReceiveStatus.Payload: {
-                                HandlePayload(e);
-                                break;
-                            }
+                try {
+                    switch (State) {
+                        case ReceiveStatus.Header:
+                            HandlePacketHeader(e);
+                            break;
+                        case ReceiveStatus.Request_Head:
+                            HandleRequestHeader(e);
+                            break;
+                        case ReceiveStatus.Request_Body:
+                            HandleRequestBody(e);
+                            break;
+                        case ReceiveStatus.Decode_Length:
+                            HandleWebSocketLength(e);
+                            break;
+                        case ReceiveStatus.Payload: {
+                            HandlePayload(e);
+                            break;
                         }
                     }
-                    catch (Exception ex) { OnException(ex); }
                 }
+                catch (Exception ex) { OnException(ex); }
             }
             else OnException(e.Task.Exception);
 
@@ -488,14 +727,12 @@ namespace Zorbo.Ares.Sockets
         {
             if (IsWebSocket) {//receive encoded message
                 byte first = e.Buffer.Buffer[e.Buffer.Offset];
-
                 /*support multi-part frames?
                 bool fin =  (first & (1 << 7)) != 0;
                 bool rsv1 = (first & (1 << 6)) != 0;
                 bool rsv2 = (first & (1 << 5)) != 0;
                 bool rsv3 = (first & (1 << 4)) != 0;
-                */
-
+                /*\/
                 var opcode = (WebSocketOpCode)(first & ((1 << 4) - 1));
                 if (opcode == WebSocketOpCode.Close) {
                     Disconnect();
@@ -535,7 +772,6 @@ namespace Zorbo.Ares.Sockets
             }
             else {
                 ushort length = BitConverter.ToUInt16(e.Buffer.Buffer, e.Buffer.Offset);
-
                 // Ares has a hard message limit of 4k... enforce?
                 // Zorbo uses a *default* socket buffer of 8k
                 // Anything larger than this is either special or an error
@@ -549,7 +785,7 @@ namespace Zorbo.Ares.Sockets
 
                     State = ReceiveStatus.Request_Head;
                     e.Task.UserToken = token;
-                    e.Task.Count = length == 17735 ? 3 : 4;//need to receive rest of request from stream
+                    e.Task.Count = length == 17735 ? 16 : 17;//need to receive rest of request from stream
                 }
                 else {
                     if (length >= SocketManager.BufferSize)
@@ -616,7 +852,6 @@ namespace Zorbo.Ares.Sockets
                         State = ReceiveStatus.Request_Body;
                         e.Task.UserToken = token;
                         e.Task.Count = (contentLen - token.Buffer.Count);
-
                         if (IsConnected) Socket.QueueReceive(e.Task);
                     }
                     else {
@@ -741,7 +976,7 @@ namespace Zorbo.Ares.Sockets
 
             ReceiveAsyncInternal(e.Task);
         }
-
+        */
 
         [Obsolete("The ib0t protocol is currently deprecated and will be removed in the future.")]
         private void Handleib0tMessage(string message, int transferred) 
@@ -751,8 +986,6 @@ namespace Zorbo.Ares.Sockets
 
         protected virtual void OnException(Exception ex)
         {
-            sending = false;
-            receiving = false;
             Exception?.Invoke(this, new ExceptionEventArgs(ex, RemoteEndPoint));
         }
 
@@ -789,7 +1022,7 @@ namespace Zorbo.Ares.Sockets
 
         protected virtual void OnHttpRequestReceived(HttpRequestState state) {
             try {
-                RequestReceived?.Invoke(this, new RequestEventArgs(state));
+                RequestReceived?.Invoke(this, new HttpRequestEventArgs(state));
             }
             catch(Exception ex) {
                 OnException(ex);
@@ -802,17 +1035,14 @@ namespace Zorbo.Ares.Sockets
 
         public void AuthenticateAsClient(string host)
         {
-            if (sslStream != null)
+            if (tlsStreams != null)
                 throw new InvalidOperationException("TLS has already been activated on this Socket.");
             try {
-                activating = true;
+                Socket.Blocking = true;
 
-                stream = new NetworkStream(Socket, FileAccess.ReadWrite, false);
-                sslStream = new SslStream(stream, true);
+                tlsStreams = new SocketTlsStreams(Socket);
+                tlsStreams.SslStream.AuthenticateAsClient(host);
 
-                sslStream.AuthenticateAsClient(host);
-
-                activating = false;
                 SendQueue();
             }
             catch (Exception ex) {
@@ -836,18 +1066,14 @@ namespace Zorbo.Ares.Sockets
         {
             if (certificate == null)
                 throw new ArgumentNullException("certificate");
-
-            if (sslStream != null)
+            if (tlsStreams != null)
                 throw new InvalidOperationException("TLS has already been activated on this Socket.");
             try {
-                activating = true;
+                Socket.Blocking = true;
 
-                stream = new NetworkStream(Socket, FileAccess.ReadWrite, false);
-                sslStream = new SslStream(stream, true);
+                tlsStreams = new SocketTlsStreams(Socket);
+                tlsStreams.SslStream.AuthenticateAsServer(certificate);
 
-                sslStream.AuthenticateAsServer(certificate);
-
-                activating = false;
                 SendQueue();
             }
             catch (Exception ex) {
@@ -859,22 +1085,14 @@ namespace Zorbo.Ares.Sockets
 
         public virtual void Close()
         {
-            Monitor.Stop();
-
-            if (sslStream != null) {
-                sslStream.Dispose();
-                sslStream = null;
-            }
-
-            if (stream != null) {
-                stream.Dispose();
-                stream = null;
-            }
-
-            Socket.Destroy();
-
             sending = false;
             receiving = false;
+
+            Monitor.Stop();
+
+            readStream?.Dispose();
+            tlsStreams?.Dispose();
+            Socket.Destroy();
         }
 
         public virtual void Dispose()
@@ -899,6 +1117,6 @@ namespace Zorbo.Ares.Sockets
         public event EventHandler<ExceptionEventArgs>  Exception;
         public event EventHandler<PacketEventArgs>     PacketSent;
         public event EventHandler<PacketEventArgs>     PacketReceived;
-        public event EventHandler<RequestEventArgs>    RequestReceived;
+        public event EventHandler<HttpRequestEventArgs>    RequestReceived;
     }
 }

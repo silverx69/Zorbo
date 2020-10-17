@@ -71,7 +71,7 @@ namespace Zorbo.Core
         event EventHandler<ExceptionEventArgs> Exception;
         event EventHandler<PacketEventArgs> PacketSent;
         event EventHandler<PacketEventArgs> PacketReceived;
-        event EventHandler<RequestEventArgs> RequestReceived;
+        event EventHandler<HttpRequestEventArgs> RequestReceived;
         event EventHandler<DisconnectEventArgs> Disconnected;
     }
 }

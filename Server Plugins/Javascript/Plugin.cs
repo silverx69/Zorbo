@@ -463,22 +463,22 @@ namespace Javascript
             byte[] buffer;
             if (scribble.Size <= 4000) {
                 Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
+                Server.SendPacket(new ClientCustom(string.Empty, "cb0t_scribble_once", scribble.RawImage()));
             }
             else {
                 scribble.Index = 0;
                 buffer = scribble.Read();
 
                 Server.SendAnnounce(string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
+                Server.SendPacket(new ClientCustom(string.Empty, "cb0t_scribble_first", buffer));
 
                 while (scribble.Remaining > 0) {
                     buffer = scribble.Read();
 
                     if (scribble.Remaining > 0)
-                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
+                        Server.SendPacket(new ClientCustom(string.Empty, "cb0t_scribble_chunk", buffer));
                     else
-                        Server.SendPacket(new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
+                        Server.SendPacket(new ClientCustom(string.Empty, "cb0t_scribble_last", buffer));
                 }
             }
 
@@ -506,7 +506,7 @@ namespace Javascript
             byte[] buffer;
             if (scribble.Size <= 4000) {
                 Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_once", scribble.RawImage()));
+                Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_once", scribble.RawImage()));
             }
             else {
                 scribble.Index = 0;
@@ -515,15 +515,15 @@ namespace Javascript
                 buffer = scribble.Read();
 
                 Server.SendAnnounce(pred, string.Format("\x000314--- From {0}", name));
-                Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_first", buffer));
+                Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_first", buffer));
 
                 while (scribble.Remaining > 0) {
                     buffer = scribble.Read();
 
                     if (scribble.Remaining > 0)
-                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_chunk", buffer));
+                        Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_chunk", buffer));
                     else
-                        Server.SendPacket(pred, new ClientCustom(Server.Config.BotName, "cb0t_scribble_last", buffer));
+                        Server.SendPacket(pred, new ClientCustom(string.Empty, "cb0t_scribble_last", buffer));
                 }
             }
 

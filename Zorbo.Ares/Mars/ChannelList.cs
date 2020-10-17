@@ -69,8 +69,7 @@ namespace Zorbo.Ares.Mars
         {
             using PacketWriter writer = new PacketWriter();
 
-            writer.Write(new byte[20]);
-            writer.Write("CHATCHANNEL");
+            writer.Write(Hashlinks.HASH_HEADER);
             writer.Write(IPAddress.Parse(ExternalIP) ?? IPAddress.Any);
             writer.Write((ushort)Port);
             writer.Write(IPAddress.Parse(LocalIP) ?? IPAddress.Any);

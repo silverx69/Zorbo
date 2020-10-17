@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Zorbo.Ares.Resources;
@@ -12,6 +13,15 @@ namespace Zorbo.Ares.Server
 {
     public static class AresCommands
     {
+        static readonly Regex exactRegex;
+        static readonly Regex searchRegex;
+
+        static AresCommands()
+        {
+            exactRegex = new Regex("^([\"'`])(.+?)\\1\x20?(.*)$", RegexOptions.Singleline);
+            searchRegex = new Regex("^([^\x20]+)\x20?(.*)$", RegexOptions.Singleline);
+        }
+
         internal static bool HandleCommand(IServer server, IClient client, string text)
         {
             string cmd = ParseCommand(text, out string args);
@@ -23,6 +33,9 @@ namespace Zorbo.Ares.Server
                 case "login":
                     HandleLogin(server, client, args);
                     return true;
+                case "logout":
+                    HandleLogout(server, client);
+                    break;
                 case "register":
                     HandleRegister(server, client, args);
                     return true;
@@ -69,7 +82,7 @@ namespace Zorbo.Ares.Server
             else {
                 pass.ClientId = new ClientId(client.Guid, client.ExternalIp);
 
-                server.SendAnnounce(client, String.Format(Strings.LoggedIn, pass.Level));
+                server.SendAnnounce(client, string.Format(Strings.LoggedIn, pass.Level));
                 client.Admin = pass.Level;
 
                 ((ServerPluginHost)server.PluginHost).OnLogin(client, pass);
@@ -87,10 +100,20 @@ namespace Zorbo.Ares.Server
             else {
                 pass.ClientId = new ClientId(client.Guid, client.ExternalIp);
 
-                server.SendAnnounce(client, String.Format(Strings.LoggedIn, pass.Level));
+                server.SendAnnounce(client, string.Format(Strings.LoggedIn, pass.Level));
                 client.Admin = pass.Level;
 
                 ((ServerPluginHost)server.PluginHost).OnLogin(client, pass);
+            }
+        }
+
+        internal static void HandleLogout(IServer server, IClient client)
+        {
+            if (client.Admin > AdminLevel.User) {
+                server.SendAnnounce(client, string.Format(Strings.LoggedOut));
+                client.Admin = AdminLevel.User;
+
+                ((ServerPluginHost)server.PluginHost).OnLogout(client);
             }
         }
 
@@ -109,15 +132,15 @@ namespace Zorbo.Ares.Server
         public static string ParseCommand(string input, out string args)
         {
             args = string.Empty;
-            int sep = input.IndexOf('\x20');
-            string cmd;
-            if (sep == -1)
-                cmd = input;
-            else {
-                cmd = input.Substring(0, sep);
-                if (input.Length > (sep + 1))
-                    args = input.Substring(sep + 1);
+            string cmd = string.Empty;
+
+            Match match = searchRegex.Match(input);
+
+            if (match.Success) {
+                cmd = match.Groups[1].Value;
+                args = match.Groups[2].Value;
             }
+
             return cmd;
         }
 
@@ -129,53 +152,25 @@ namespace Zorbo.Ares.Server
             args = string.Empty;
             string user = string.Empty;
 
-            var sb = new StringBuilder();
-
             //exact match
-            sb.Append("^\"(?<uid>.+?)\" (?<args>.+)$|");
-            sb.Append("^\"(?<uid>.+?)\"$|");
-            sb.Append("^'(?<uid>.+?)' (?<args>.+)$|");
-            sb.Append("^'(?<uid>.+?)'$|");
-            sb.Append("^`(?<uid>.+?)` (?<args>.+)$|");
-            sb.Append("^`(?<uid>.+?)`$");
-
-            Regex regex = new Regex(sb.ToString());
-            Match match = regex.Match(input);
+            Match match = exactRegex.Match(input);
 
             if (match.Success) {
-                user = match.Groups[1].Value;
-
-                if (match.Groups[2].Success)
-                    args = match.Groups[2].Value;
-
-                if (UInt16.TryParse(user, out uid))
-                    target = server.FindUser((s) => s.Id == uid);
-                else
-                    target = server.FindUser((s) =>
-                        s.Name == user ||
-                        s.ExternalIp.ToString() == user);
+                user = match.Groups[2].Value;
+                args = match.Groups[3].Value;
+                target = server.FindUser((s) => s.Name == user || s.ExternalIp.ToString() == user);
             }
             else {
-                sb.Clear();
                 //search match
-                sb.Append("^(?<uid>.+?) (?<args>.+)$|");
-                sb.Append("^(?<uid>[^\x20]+?)$");
-
-                regex = new Regex(sb.ToString());
-                match = regex.Match(input);
+                match = searchRegex.Match(input);
 
                 if (match.Success) {
                     user = match.Groups[1].Value;
-
-                    if (match.Groups[2].Success)
-                        args = match.Groups[2].Value;
-
-                    if (UInt16.TryParse(user, out uid))
+                    args = match.Groups[2].Value;
+                    if (ushort.TryParse(user, out uid))
                         target = server.FindUser((s) => s.Id == uid);
                     else
-                        target = server.FindUser((s) =>
-                            s.Name.StartsWith(user) ||
-                            s.ExternalIp.ToString().StartsWith(user));
+                        target = server.FindUser((s) => s.Name.StartsWith(user) || s.ExternalIp.ToString().StartsWith(user));
                 }
             }
 
@@ -189,18 +184,8 @@ namespace Zorbo.Ares.Server
             args = string.Empty;
             string user = string.Empty;
 
-            StringBuilder sb = new StringBuilder();
-
             //exact match
-            sb.Append("^\"(?<uid>.+?)\" (?<args>.+)$|");
-            sb.Append("^\"(?<uid>.+?)\"$|");
-            sb.Append("^'(?<uid>.+?)' (?<args>.+)$|");
-            sb.Append("^'(?<uid>.+?)'$|");
-            sb.Append("^`(?<uid>.+?)` (?<args>.+)$|");
-            sb.Append("^`(?<uid>.+?)`$");
-
-            Regex regex = new Regex(sb.ToString());
-            Match match = regex.Match(input);
+            Match match = exactRegex.Match(input);
 
             if (match.Success) {
                 user = match.Groups[1].Value;
@@ -210,13 +195,8 @@ namespace Zorbo.Ares.Server
                     s.ClientId.ExternalIp.ToString() == user).ToList();
             }
             else {
-                sb.Clear();
                 //search match
-                sb.Append("^(?<uid>.+?) (?<args>.+)$|");
-                sb.Append("^(?<uid>[^\x20]+?)$");
-
-                regex = new Regex(sb.ToString());
-                match = regex.Match(input);
+                match = searchRegex.Match(input);
 
                 if (match.Success) {
                     user = match.Groups[1].Value;

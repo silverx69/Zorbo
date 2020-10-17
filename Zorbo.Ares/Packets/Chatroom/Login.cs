@@ -37,10 +37,12 @@ namespace Zorbo.Ares.Packets.Chatroom
         [JsonProperty("node_port", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(5)]
         public ushort NodePort { get; set; }
-
-        [JsonIgnore]
+        /// <summary>
+        /// I've hijacked these 4 bytes. They've been 'skipped' for years and I need new flags
+        /// </summary>
+        [JsonProperty("modern", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(6)]
-        public int Skipped2 { get; set; }
+        public int ModernFlags { get; set; }
 
         [JsonProperty("username", Required = Required.AllowNull)]
         [PacketItem(7, MaxLength = 60)]

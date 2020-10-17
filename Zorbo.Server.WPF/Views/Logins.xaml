@@ -26,7 +26,21 @@
                         </GridViewColumn.DisplayMemberBinding>
                     </GridViewColumn>
                     <GridViewColumn Header="Address" Width="130" DisplayMemberBinding="{Binding Path=ClientId.ExternalIp}"/>
-                    <GridViewColumn Header="Level" Width="100" DisplayMemberBinding="{Binding Path=Level}"/>
+                    <GridViewColumn Header="Level" Width="100">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox 
+                                    SelectedIndex="{Binding Path=Level, Mode=TwoWay, Converter={StaticResource EnumToInt32Converter}}" 
+                                    ItemsSource="{Binding Path=AdminValues}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
                 </GridView>
             </ListView.View>
         </ListView>

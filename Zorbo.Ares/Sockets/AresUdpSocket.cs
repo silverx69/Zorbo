@@ -134,19 +134,15 @@ namespace Zorbo.Ares.Sockets
         private void ReceiveComplete(object sender, IOTaskCompleteEventArgs<SocketReceiveTask> e)
         {
             if (e.Task.Exception == null) {
+                Monitor.AddInput(e.Task.Transferred);
+                OnPacketReceived(
+                    e.Buffer.Buffer[e.Buffer.Offset], //id
+                    e.Buffer.Buffer, e.Buffer.Offset + 1,
+                    e.Task.Transferred - 1,
+                    e.Task.RemoteEndPoint);
 
-                if (e.Task.Transferred > 0) {
-
-                    Monitor.AddInput(e.Task.Transferred);
-                    OnPacketReceived(
-                        e.Buffer.Buffer[e.Buffer.Offset], //id
-                        e.Buffer.Buffer, e.Buffer.Offset + 1,
-                        e.Task.Transferred - 1,
-                        e.Task.RemoteEndPoint);
-
-                    e.Task.RemoteEndPoint = receiveEp;
-                    if (Socket != null) Socket.QueueReceive(e.Task);
-                }
+                e.Task.RemoteEndPoint = receiveEp;
+                if (Socket != null) Socket.QueueReceive(e.Task);
             }
             else {
                 OnException(e.Task.Exception, e.Task.RemoteEndPoint);
@@ -244,7 +240,7 @@ namespace Zorbo.Ares.Sockets
         }
 
         event EventHandler<AcceptEventArgs> ISocket.Accepted { add { } remove { } }
-        event EventHandler<RequestEventArgs> ISocket.RequestReceived { add { } remove { } }
+        event EventHandler<HttpRequestEventArgs> ISocket.RequestReceived { add { } remove { } }
         event EventHandler<DisconnectEventArgs> ISocket.Disconnected { add { } remove { } }
     }
 }

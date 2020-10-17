@@ -52,7 +52,7 @@ namespace Zorbo.Server.WPF
 
         protected virtual void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logging.Error("Unhandled Exception", (Exception)e.ExceptionObject);
+            Logging.Critical("Unhandled Exception", (Exception)e.ExceptionObject);
         }
 
         protected override void OnExit(ExitEventArgs e)

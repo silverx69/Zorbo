@@ -116,7 +116,7 @@ namespace Zorbo.Ares.Packets.Formatters
                     return string.Format("COMMAND:{0}", ((Command)packet).Message);
                 case AresId.MSG_CHAT_CLIENT_PVT:
                     var priv = (Private)packet;
-                    return string.Format("PM:{0},{1}:{2},{3}", priv.Username.Length, priv.Message.Length, priv.Username, priv.Message);
+                    return string.Format("PM:{0},{1}:{2}{3}", priv.Username.Length, priv.Message.Length, priv.Username, priv.Message);
                 case AresId.MSG_CHAT_CLIENT_IGNORELIST:
                     var ignore = (Ignored)packet;
                     return string.Format("IGNORE:{0},1:{1}{2}", ignore.Username.Length, ignore.Username, ignore.Ignore ? "1" : "0");

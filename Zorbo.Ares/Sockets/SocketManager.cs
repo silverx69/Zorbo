@@ -199,9 +199,11 @@ namespace Zorbo.Ares.Sockets
                     SocketType.Stream,
                     ProtocolType.Tcp) {
                     SendBufferSize = BufferSize,
-                    ReceiveBufferSize = BufferSize
+                    ReceiveBufferSize = BufferSize,
+                    Blocking = false
                 };
                 socket.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
             }
             catch (Exception ex) {
                 Logging.Error("SocketManager", ex);
@@ -224,7 +226,8 @@ namespace Zorbo.Ares.Sockets
                     SocketType.Dgram,
                     ProtocolType.Udp) {
                     SendBufferSize = BufferSize,
-                    ReceiveBufferSize = BufferSize
+                    ReceiveBufferSize = BufferSize, 
+                    Blocking = false
                 };
                 socket.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
             }

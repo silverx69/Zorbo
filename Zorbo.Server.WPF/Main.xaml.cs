@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Shell;
-using Zorbo.Ares;
 using Zorbo.Ares.Server;
 using Zorbo.Core;
 using Zorbo.Core.Models;
@@ -60,7 +57,7 @@ namespace Zorbo.Server.WPF
                     ShowRecentCategory = false,
                     ShowFrequentCategory = false
                 };
-
+                /*
                 list.JumpItems.Add(new JumpTask() {
                     Title = AppStrings.LabelStartServer,
                     Arguments = "-start_server",
@@ -74,20 +71,20 @@ namespace Zorbo.Server.WPF
                     ApplicationPath = App.Filename,
                     WorkingDirectory = Directories.BaseDirectory,
                 });
-
+                */
                 list.JumpItems.Add(new JumpTask() {
-                    Title = "Logs",
+                    Title = AppStrings.LabelLogs,
                     ApplicationPath = config.Directories.Logs,
                     CustomCategory = AppStrings.JumpCategory
                 });
 
                 list.JumpItems.Add(new JumpTask() {
-                    Title = "Plugins",
+                    Title = AppStrings.LabelPlugins,
                     ApplicationPath = config.Directories.Plugins,
                     CustomCategory = AppStrings.JumpCategory
                 });
 
-                JumpList.SetJumpList(Application.Current, list);
+                JumpList.SetJumpList(System.Windows.Application.Current, list);
             }
         }
 
@@ -143,7 +140,10 @@ namespace Zorbo.Server.WPF
 
             System.Windows.Forms.ContextMenuStrip cm = new System.Windows.Forms.ContextMenuStrip();
 
-            cm.Items.Add(AppStrings.LabelClose, null, (s, a) => { ForceClose(); });
+            cm.Items.Add(AppStrings.LabelLogs, null, (s, e) => LaunchDirectory(server.Config.Directories.Logs));
+            cm.Items.Add(AppStrings.LabelPlugins, null, (s, e) => LaunchDirectory(server.Config.Directories.Plugins));
+            cm.Items.Add(new ToolStripSeparator());
+            cm.Items.Add(AppStrings.LabelClose, null, (s, e) => ForceClose());
 
             icon.ContextMenuStrip = cm;
             icon.MouseClick += (s, args) => {
@@ -155,7 +155,7 @@ namespace Zorbo.Server.WPF
                 }
             };
             
-            using var stream = Application.GetResourceStream(
+            using var stream = System.Windows.Application.GetResourceStream(
                 new Uri("/Zorbo.Server.WPF;component/Zorbo.ico", UriKind.Relative)).Stream;
 
             if (stream != null)
@@ -217,6 +217,19 @@ namespace Zorbo.Server.WPF
                 server.Config.SaveModel(Path.Combine(server.Config.Directories.AppData, "config.json"));
         }
 
+        private async void LaunchDirectory(string directory) {
+            try {
+                await Task.Run(() => {
+                    Process proc = new Process();
+                    proc.StartInfo.FileName = directory;
+                    proc.StartInfo.UseShellExecute = true;
+                    proc.Start();
+
+                });
+            }
+            catch { }
+        }
+
         private static async Task<bool> LaunchAdminCommand(params string[] args)
         {
             try {
@@ -232,7 +245,7 @@ namespace Zorbo.Server.WPF
                 return true;
             }
             catch (Exception ex) {
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     string.Format("An error occured while running an elevated command.\r\nException: {0}", ex.Message),
                     "Elevation Error",
                     MessageBoxButton.OK,
