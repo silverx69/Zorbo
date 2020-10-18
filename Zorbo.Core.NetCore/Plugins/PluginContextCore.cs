@@ -17,8 +17,7 @@ namespace Zorbo.Core.Plugins
         protected override Assembly Load(AssemblyName assemblyName)
         {
             string assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-            if (assemblyPath == null)
-                return null;
+            if (assemblyPath == null) return null;
             return LoadFromAssemblyPath(assemblyPath);
         }
 

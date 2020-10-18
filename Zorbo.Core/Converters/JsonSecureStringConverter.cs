@@ -14,8 +14,10 @@ namespace Zorbo.Core.Converters
                       serializer.Serialize(writer, Convert.ToBase64String(Hashlinks.E67(tmp, 34567)));
                   },
                   (reader, objectType, existingValue, hasValue, serializer) => {
-                      byte[] tmp = Convert.FromBase64String(serializer.Deserialize<string>(reader));
-                      return Encoding.UTF8.GetString(Hashlinks.D67(tmp, 34567)).ToSecureString();
+                      string ret = serializer.Deserialize<string>(reader);
+                      if (!string.IsNullOrEmpty(ret))
+                          return Encoding.UTF8.GetString(Hashlinks.D67(Convert.FromBase64String(ret), 34567)).ToSecureString();
+                      return null;
                   })
         { }
 

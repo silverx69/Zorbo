@@ -35,11 +35,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.9" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.9" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Zorbo.Ares.Server\Zorbo.Ares.Server.csproj" />
     <ProjectReference Include="..\Zorbo.Ares\Zorbo.Ares.csproj" />
     <ProjectReference Include="..\Zorbo.Core.NetCore\Zorbo.Core.NetCore.csproj" />

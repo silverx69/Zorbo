@@ -9,7 +9,12 @@ using Zorbo.Core.Data.Packets;
 
 namespace Zorbo.Ares.Formatters
 {
-    public class AdvancedServerFormatter : ServerFormatter
+    public class AdvancedServerFormatter : 
+        AdvancedServerFormatter<PacketSerializer> { }
+
+    public class AdvancedServerFormatter<TSerializer> : 
+        ServerFormatter<TSerializer> 
+        where TSerializer : PacketSerializer, new()
     {
         public override IPacket Unformat(byte id, string data, bool ib0t = false)
         {

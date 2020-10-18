@@ -11,10 +11,11 @@
     <RepositoryUrl>https://github.com/silverx69/Zorbo</RepositoryUrl>
     <PackageIcon>app.png</PackageIcon>
     <RepositoryType>Git</RepositoryType>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jurassic" Version="3.1.0" />
+    <PackageReference Include="Jurassic" Version="3.1.0"/>
   </ItemGroup>
 
   <ItemGroup>

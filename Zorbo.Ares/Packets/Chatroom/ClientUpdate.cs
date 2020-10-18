@@ -15,9 +15,9 @@ namespace Zorbo.Ares.Packets.Chatroom
         [PacketItem(0)]
         public ushort FileCount { get; set; }
 
-        [JsonProperty("flags", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("skipped", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(1)]
-        public SupportFlags SupportFlag { get; set; }
+        public byte Skipped { get; set; }
 
         [JsonProperty("node_ip", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(2)]
@@ -31,24 +31,16 @@ namespace Zorbo.Ares.Packets.Chatroom
         [PacketItem(4)]
         public IPAddress ExternalIp { get; set; }
 
-        [JsonProperty("age", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("uploads", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(5, Optional = true)]
-        public byte Age { get; set; }
+        public byte Uploads { get; set; }
 
-        [JsonProperty("gender", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("maxuploads", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(6, Optional = true)]
-        public Gender Gender { get; set; }
+        public byte MaxUploads { get; set; }
 
-        [JsonProperty("country", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("queued", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [PacketItem(7, Optional = true)]
-        public Country Country { get; set; }
-
-        [JsonProperty("region", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [PacketItem(8, Optional = true, MaxLength = 30)]
-        public string Region { get; set; }
-
-        [JsonIgnore]
-        [PacketItem(9, Optional = true)]
-        public byte Skipped2 { get; set; }
+        public byte Queued { get; set; }
     }
 }

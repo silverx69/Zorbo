@@ -19,6 +19,7 @@ namespace Zorbo.Ares
             using Stream stream = new MemoryStream();
 
             bmp1.Save(stream, new JpegEncoder());
+            stream.Position = 0;
 
             byte[] small = new byte[stream.Length];
             stream.Read(small, 0, (int)stream.Length);

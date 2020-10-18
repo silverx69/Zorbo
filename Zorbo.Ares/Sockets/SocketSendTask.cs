@@ -119,6 +119,8 @@ namespace Zorbo.Ares.Sockets
                 if (Socket.Poll(0, SelectMode.SelectWrite)) {
 
                     await TlsStreams.SslStream.WriteAsync(buffer.Buffer, buffer.Offset, count);
+
+                    Transferred += count;
                     OnCompleted(buffer);
                 }
                 else OnContinue(buffer);

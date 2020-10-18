@@ -12,7 +12,14 @@ namespace Zorbo.Ares.Packets.Formatters
     /// <summary>
     /// A SERVER-side implementation of PacketFormatter&lt;PacketSerializer&gt; used for formatting packets from the client.
     /// </summary>
-    public class ClientFormatter : PacketFormatter<PacketSerializer>
+    public class ClientFormatter : 
+        ClientFormatter<PacketSerializer> { }
+    /// <summary>
+    /// A SERVER-side implementation of PacketFormatter&lt;TSerializer&gt; used for formatting packets from the client.
+    /// </summary>
+    public class ClientFormatter<TSerializer> : 
+        PacketFormatter<TSerializer> 
+        where TSerializer : PacketSerializer, new()
     {
         public override byte[] FormatJson(IPacket message, bool ib0t = false)
         {

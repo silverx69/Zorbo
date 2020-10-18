@@ -651,13 +651,8 @@ namespace Zorbo.Ares.Server
                         ClientUpdate update = (ClientUpdate)e.Packet;
 
                         LastUpdate = DateTime.Now;
-
                         NodeIp = update.NodeIp;
                         NodePort = update.NodePort;
-                        Age = (update.Age != 0) ? update.Age : Age;
-                        Gender = (update.Gender != 0) ? update.Gender : Gender;
-                        Country = (update.Country != 0) ? update.Country : Country;
-                        //Region = !String.IsNullOrEmpty(update.Region) ? update.Region : Region;
                         return true;
                     default:
                         break;
@@ -751,13 +746,8 @@ namespace Zorbo.Ares.Server
                         ClientUpdate update = (ClientUpdate)e.Packet;
 
                         LastUpdate = DateTime.Now;
-
                         NodeIp = update.NodeIp;
                         NodePort = update.NodePort;
-                        Age = (update.Age != 0) ? update.Age : Age;
-                        Gender = (update.Gender != 0) ? update.Gender : Gender;
-                        Country = (update.Country != 0) ? update.Country : Country;
-                        //Region = !String.IsNullOrEmpty(update.Region) ? update.Region : Region;
                         server.SendPacket((s) => 
                             s.Vroom == Vroom &&
                             s.CanSee(this), 
