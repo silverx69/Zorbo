@@ -518,14 +518,8 @@ namespace Zorbo.Ares.Server
 
             Stats.PacketsReceived++;
             Stats.AddInput(e.Transferred);
-            
-            //only allow connections from WebSockets?
-            if (Config.UseWebSockets && !Config.UseTcpSockets && !socket.IsWebSocket) {
-                socket.Disconnect();
-                return;
-            }
 
-            if ((AresId)e.Packet.Id == AresId.MSG_CHAT_CLIENT_LOGIN) {
+            if (e.Packet.Id == (byte)AresId.MSG_CHAT_CLIENT_LOGIN) {
 
                 IClient user = Users.Find(s => s.Socket == socket);
 
