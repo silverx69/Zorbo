@@ -1,0 +1,371 @@
+﻿"MSG_CHAT_SERVER_NOSUCH": {
+  "id": 44,
+  "message": null
+}
+
+"MSG_CHAT_CLIENT_AUTHLOGIN": {
+  "id": 82,
+  "password": null
+}
+
+"MSG_CHAT_CLIENT_AUTHREGISTER": {
+  "id": 83,
+  "sha1pass": null
+}
+
+"MSG_CHAT_CLIENT_AUTOLOGIN": {
+  "id": 7,
+  "sha1pass": null
+}
+
+"MSG_CHAT_CLIENT_BROWSE": {
+  "id": 52,
+  "browse_id": 0,
+  "type": 0,
+  "username": null
+}
+
+"MSG_CHAT_SERVER_ENDOFBROWSE": {
+  "id": 53,
+  "browse_id": 0
+}
+
+"MSG_CHAT_SERVER_BROWSEERROR": {
+  "id": 54,
+  "browse_id": 0
+}
+
+"MSG_CHAT_SERVER_BROWSEITEM": {
+  "id": 55,
+  "browse_id": 0,
+  "type": 0,
+  "size": 0,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_STARTOFBROWSE": {
+  "id": 56,
+  "browse_id": 0,
+  "count": 0
+}
+
+"MSG_CHAT_SERVER_AVATAR": {
+  "id": 9,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_CUSTOM_DATA": {
+  "id": 200,
+  "msg": null,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_CUSTOM_DATA_ALL": {
+  "id": 201,
+  "msg": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_DIRCHATPUSH": {
+  "id": 72,
+  "username": null,
+  "text_sync": null
+}
+
+"MSG_CHAT_CLIENT_EMOTE": {
+  "id": 11,
+  "message": null
+}
+
+"MSG_CHAT_CLIENT_FASTPING": {
+  "id": 14
+}
+
+"MSG_CHAT_SERVER_HERE_SUPERNODES": {
+  "id": 70
+}
+
+"MSG_CHAT_CLIENT_PERSONAL_MESSAGE": {
+  "id": 13,
+  "message": null
+}
+
+"MSG_CHAT_SERVER_PUBLIC": {
+  "id": 10,
+  "message": null
+}
+
+"MSG_CHAT_CLIENT_UPDATE_STATUS": {
+  "id": 4,
+  "files": 0,
+  "flags": 0,
+  "node_ip": null,
+  "node_port": 0,
+  "external_ip": null,
+  "age": 0,
+  "gender": 0,
+  "country": 0,
+  "region": null,
+}
+
+"MSG_CHAT_CLIENT_COMMAND": {
+  "id": 74,
+  "message": null
+}
+
+"MSG_CHAT_CLIENTCOMPRESSED": {
+  "id": 80,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_ERROR": {
+  "id": 0,
+  "message": null
+}
+
+"MSG_CHAT_SERVER_MYFEATURES": {
+  "id": 92,
+  "version": null,
+  "flags": 0,
+  "shared_flags": 0,
+  "language": 0,
+  "token": 0,
+  "avatars": true
+}
+
+"MSG_CHAT_CLIENT_IGNORELIST": {
+  "id": 45,
+  "ignored": false,
+  "username": null
+}
+
+"MSG_CHAT_SERVER_ISIGNORINGYOU": {
+  "id": 26,
+  "username": null
+}
+
+"MSG_CHAT_SERVER_JOIN": {
+  "id": 20,
+  "files": 0,
+  "external_ip": null,
+  "direct_port": 0,
+  "node_ip": null,
+  "node_port": 0,
+  "username": null,
+  "local_ip": null,
+  "browsable": false,
+  "level": 0,
+  "age": 0,
+  "gender": 0,
+  "country": 0,
+  "region": null,
+  "features": 0
+}
+
+"MSG_CHAT_CLIENT_LOGIN": {
+  "id": 2,
+  "guid": "00000000-0000-0000-0000-000000000000",
+  "files": 0,
+  "encryption": 0,
+  "direct_port": 0,
+  "node_ip": null,
+  "node_port": 0,
+  "username": null,
+  "version": null,
+  "local_ip": null,
+  "external_ip": null,
+  "flags": 0,
+  "uploads": 0,
+  "max_uploads": 0,
+  "queued": 0,
+  "age": 0,
+  "gender": 0,
+  "country": 0,
+  "region": null,
+  "features": 0
+}
+
+"MSG_CHAT_SERVER_LOGIN_ACK": {
+  "id": 3,
+  "username": null,
+  "servername": null
+}
+
+"MSG_CHAT_SERVER_OFFLINEUSER": {
+  "id": 27,
+  "username": null
+}
+
+"MSG_CHAT_SERVER_OPCHANGE": {
+  "id": 75,
+  "admin": false,
+  "ignored": 0
+}
+
+"MSG_CHAT_SERVER_PART": {
+  "id": 22,
+  "username": null
+}
+
+"MSG_CHAT_CLIENT_PVT": {
+  "id": 25,
+  "username": null,
+  "message": null
+}
+
+"MSG_CHAT_SERVER_REDIRECT": {
+  "id": 6,
+  "external_ip": null,
+  "port": 0,
+  "local_ip": null,
+  "servername": null,
+  "message": null
+}
+
+"MSG_CHAT_CLIENT_SEARCH": {
+  "id": 60,
+  "search_id": 0,
+  "type": 0,
+  "search": null
+}
+
+"MSG_CHAT_SERVER_ENDOFSEARCH": {
+  "id": 62,
+  "search_id": 0
+}
+
+"MSG_CHAT_SERVER_SEARCHHIT": {
+  "id": 61,
+  "search_id": 0,
+  "type": 0,
+  "size": 0,
+  "data": null,
+  "username": null,
+  "external_ip": null,
+  "direct_port": 0,
+  "node_ip": null,
+  "node_port": 0,
+  "local_ip": null,
+  "uploads": 0,
+  "max_uploads": 0,
+  "queued": 0,
+}
+
+"MSG_CHAT_SERVER_AVATAR": {
+  "id": 9,
+  "username": null,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_DIRCHATPUSH": {
+  "id": 72,
+  "username": null,
+  "external_ip": null,
+  "direct_port": 0,
+  "local_ip": null,
+  "text_sync": null
+}
+
+"MSG_CHAT_CLIENT_DIRCHATPUSH": {
+  "id": 72,
+  "error": 0
+}
+
+"MSG_CHAT_CLIENT_EMOTE": {
+  "id": 11,
+  "username": null,
+  "message": null
+}
+
+"MSG_CHAT_CLIENT_FASTPING": {
+  "id": 14
+}
+
+"MSG_CHAT_SERVER_HTML": {
+  "id": 43,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_HERE_SUPERNODES": {
+  "id": 70,
+  "data": null
+}
+
+"MSG_CHAT_CLIENT_PERSONAL_MESSAGE": {
+  "id": 13,
+  "username": null,
+  "message": null
+}
+
+"MSG_CHAT_SERVER_PUBLIC": {
+  "id": 10,
+  "username": null,
+  "message": null
+}
+
+"MSG_CHAT_SERVER_UPDATE_USER_STATUS": {
+  "id": 5,
+  "username": null,
+  "files": 0,
+  "browsable": false,
+  "node_ip": null,
+  "node_port": 0,
+  "external_ip": null,
+  "level": 0,
+  "age": 0,
+  "gender": 0,
+  "country": 0,
+  "region": null
+}
+
+"MSG_CHAT_CLIENT_ADDSHARE": {
+  "id": 50,
+  "type": 0,
+  "size": 0,
+  "search": null,
+  "data": null
+}
+
+"MSG_CHAT_SERVER_TOPIC": {
+  "id": 31,
+  "topic": null
+}
+
+"MSG_CHAT_SERVER_TOPIC_FIRST": {
+  "id": 32,
+  "topic": null
+}
+
+"MSG_CHAT_SERVER_CHANNEL_USER_LIST": {
+  "id": 30,
+  "files": 0,
+  "external_ip": null,
+  "direct_port": 0,
+  "node_ip": null,
+  "node_port": 0,
+  "username": null,
+  "local_ip": null,
+  "browsable": false,
+  "level": 0,
+  "age": 0,
+  "gender": 0,
+  "country": 0,
+  "region": null,
+  "features": 0
+}
+
+"MSG_CHAT_SERVER_CHANNEL_USER_LIST_END": {
+  "id": 35,
+}
+
+"MSG_CHAT_SERVER_CHANNEL_USERLIST_CLEAR": {
+  "id": 36,
+}
+
+"MSG_CHAT_SERVER_URL": {
+  "id": 73,
+  "address": null,
+  "caption": null
+}
+
