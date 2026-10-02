@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Zorbo.Chat/Zorbo.Chat.csproj" Id="0999f19b-c8a0-4980-867a-033412876c0a" />
+  <Project Path="Zorbo.Core/Zorbo.Core.csproj" Id="8d5ff713-583c-4237-83ae-7fd4677ce7d3" />
+  <Project Path="Zorbo/Zorbo.csproj" />
+</Solution>

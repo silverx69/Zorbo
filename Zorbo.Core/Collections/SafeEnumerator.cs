@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Zorbo.Core.Collections
+﻿namespace Zorbo.Collections
 {
     public sealed class SafeEnumerator<T> : IEnumerator<T>
     {
@@ -20,24 +15,16 @@ namespace Zorbo.Core.Collections
             get { return (object)Current; }
         }
 
-        public SafeEnumerator(IEnumerable<T> @enum)
-        {
-            sub = new List<T>(@enum);
+        public SafeEnumerator(IEnumerable<T> @enum) {
+            sub = [.. @enum];
         }
 
         public void SetCustomRule(Predicate<T> selector) {
             this.rule = selector;
         }
 
-        public void Dispose() {
-            sub.Clear();
-            sub = null;
-        }
-
         public bool MoveNext() {
-
             if (rule != null) {
-
                 while (++index < sub.Count)
                     if (rule(sub[index])) return true;
 
@@ -53,6 +40,12 @@ namespace Zorbo.Core.Collections
 
         public void Reset() {
             index = -1;
+        }
+
+        public void Dispose() {
+            rule = null;
+            sub.Clear();
+            sub = null;
         }
     }
 }

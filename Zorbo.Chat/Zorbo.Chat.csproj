@@ -4,8 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <RootNamespace>Zorbo</RootNamespace>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zorbo.Core\Zorbo.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Client\" />
+  </ItemGroup>
 
 </Project>

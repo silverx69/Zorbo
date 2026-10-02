@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using Zorbo.Core.Models;
-
-namespace Zorbo.Core.Data
+﻿namespace Zorbo.Data
 {
-    public class IOMonitor : ModelBase, IMonitor
+    public class IOMonitor : Observable, IMonitor
     {
-        DateTime update;
-
         long speedIn = 0;
         long speedOut = 0;
 
@@ -23,56 +16,32 @@ namespace Zorbo.Core.Data
 
         volatile bool running;
 
-        public long SpeedIn {
-            get { return speedIn; }
-        }
-
-        public long SpeedOut {
-            get { return speedOut; }
-        }
-
-        public long LastBytesIn {
-            get { return lastIn; }
-        }
-
-        public long LastBytesOut {
-            get { return lastOut; }
-        }
-
-        public long TotalBytesIn {
-            get { return totalIn; }
-        }
-
-        public long TotalBytesOut {
-            get { return totalOut; }
-        }
-
         public bool Running { get { return running; } }
 
+        public long SpeedIn { get { return speedIn; } }
 
-#pragma warning disable IDE0052 // Remove unread private members
+        public long SpeedOut { get { return speedOut; } }
+
+        public long LastBytesIn { get { return lastIn; } }
+
+        public long LastBytesOut { get { return lastOut; } }
+
+        public long TotalBytesIn { get { return totalIn; } }
+
+        public long TotalBytesOut { get { return totalOut; } }
+
         static readonly Timer timer;
-#pragma warning restore IDE0052 // Remove unread private members
         static readonly List<IOMonitor> monitors;
 
         static IOMonitor() {
-            monitors = new List<IOMonitor>();
-
-            timer = new Timer((state) => {
-
-                for (int i = 0; i < monitors.Count; i++)
-                    monitors[i].UpdateSpeed();
-            },
-            null,
-            500,
-            500);
+            monitors = [];
+            timer = new Timer(Tick, null, 1000, 1000);
         }
 
-
-        public IOMonitor() {
-            update = DateTime.Now;
+        static void Tick(object state) {
+            for (int i = 0; i < monitors.Count; i++)
+                monitors[i].UpdateSpeed();
         }
-
 
         public void Start() {
             monitors.Add(this);
@@ -104,8 +73,8 @@ namespace Zorbo.Core.Data
                 Interlocked.Add(ref currentIn, numbytes);
                 Interlocked.Exchange(ref lastIn, numbytes);
 
-                RaisePropertyChanged(nameof(LastBytesIn));
-                RaisePropertyChanged(nameof(TotalBytesIn));
+                OnPropertyChanged(nameof(LastBytesIn));
+                OnPropertyChanged(nameof(TotalBytesIn));
             }
         }
 
@@ -115,26 +84,22 @@ namespace Zorbo.Core.Data
                 Interlocked.Add(ref currentOut, numbytes);
                 Interlocked.Exchange(ref lastOut, numbytes);
 
-                RaisePropertyChanged(nameof(LastBytesOut));
-                RaisePropertyChanged(nameof(TotalBytesOut));
+                OnPropertyChanged(nameof(LastBytesOut));
+                OnPropertyChanged(nameof(TotalBytesOut));
             }
         }
 
-
+        // TODO: implement some sort of averaging
         protected void UpdateSpeed() {
-            DateTime now = DateTime.Now;
-
-            if (now.Subtract(update).TotalSeconds >= 1) {
-                update = now;
-
+            if (running) {
                 Interlocked.Exchange(ref speedIn, currentIn);
                 Interlocked.Exchange(ref speedOut, currentOut);
 
+                OnPropertyChanged(nameof(SpeedIn));
+                OnPropertyChanged(nameof(SpeedOut));
+
                 currentIn = 0;
                 currentOut = 0;
-
-                RaisePropertyChanged(nameof(SpeedIn));
-                RaisePropertyChanged(nameof(SpeedOut));
             }
         }
     }

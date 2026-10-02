@@ -1,0 +1,349 @@
+﻿using System.Buffers;
+using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.Json.Serialization;
+using Zorbo.Chat;
+using Zorbo.Chat.Messages;
+using Zorbo.Chat.Server;
+using Zorbo.Data;
+using Zorbo.Net;
+using Zorbo.Net.Messages;
+
+namespace Zorbo
+{
+    [Message(9999)]
+    public class TestObject
+    {
+        public Guid GuidValue { get; set; }
+
+        public string StringValue { get; set; }
+
+        public List<NestedTestObject> NestedValues { get; set; }
+    }
+
+    public class NestedTestObject
+    {
+        public int IntValue { get; set; }
+
+        public IPAddress IPValue { get; set; } = new([127, 0, 0, 1]);
+
+        public List<int> ListValue { get; set; }
+
+        public string StringValue { get; set; }
+
+        [BinaryIgnore, JsonIgnore]
+        public string IgnoredProp { get; set; } = "Ignored";
+    }
+
+    internal class Program
+    {
+        static ChatServer server;
+        static ZorboSocket listener;
+
+        // create somewhat complex custom object
+        static readonly TestObject OBJ1 = new() {
+            GuidValue = Guid.NewGuid(),
+            StringValue = "TestString",
+            NestedValues = [
+                new NestedTestObject() {
+                        IntValue = 1,
+                        StringValue = "NestedTestString1",
+                        ListValue = [11, 44, 902, 4232, 23232]
+                    },
+                    new NestedTestObject() {
+                        IntValue = 2,
+                        StringValue = "NestedTestString2",
+                        ListValue = [11, 44, 902, 4232, 23232]
+                    },
+                    new NestedTestObject() {
+                        IntValue = 3,
+                        StringValue = "NestedTestString3",
+                        ListValue = [11, 44, 902, 4232, 23232]
+                    }
+            ]
+        };
+
+        static void Main(string[] args) => Run().Wait();
+
+        static async Task Run() {
+
+            //await TestZorboSocketListener();
+            await TestZorboChatServer();
+            
+            Console.Read();
+        }
+
+        static async Task<X509Certificate2> GenerateTestCert(string name) {
+            return Certificates.Generate(new CertGenerationOptions() {
+                Name = name,
+                //Address = await Network.GetPublicAddress(),
+                LocalAddresses = Network.GetLocalAddresses(),
+                PrivateFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.pfx"),
+                PublicFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.pub.cer")
+            });
+        }
+
+        static async Task TestZorboChatServer() {
+            server = new ChatServer();
+            server.Start();
+
+            Console.WriteLine("Chat server is running.");
+            Console.WriteLine("Chat client connecting...");
+
+            var client = new ZorboSocket();
+
+            client.Connected += ChatClient_Connected;
+            client.Rejected += ChatClient_Rejected;
+            client.Received += ChatClient_Received;
+            client.Exception += ChatClient_Exception;
+            client.Disconnected += ChatClient_Disconnected;
+
+            // test json transmission
+            client.PreferredMessageType = MessageType.Text;
+            client.CertificateCallback = Certificates.SelfSignedValidationCallback;
+
+            //client.IsSecureSocket = true;
+            //client.Connect(IPAddress.IPv6Loopback, server.LocalEndPoint.Port);
+
+            client.Connect(new Uri("tcps://[::1]:" + server.LocalEndPoint.Port));
+        }
+
+        private static void ChatClient_Connected(ZorboSocket sender, ConnectEventArgs e) {
+            Console.WriteLine("Chat client connected.");
+
+            sender.Send(new ClientLogin() {
+                Guid = Guid.NewGuid(),
+                UserName = "SilverX",
+                Age = 99,
+                Country = Country.Canada,
+                Region = "Awkward",
+                Status = "Thanks to denial, I'm immortal.",
+                Flags = ClientSupportFlags.ALL
+            });
+        }
+
+        private static void ChatClient_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+            Console.WriteLine("Chat client rejected.");
+        }
+
+        private static void ChatClient_Received(ZorboSocket sender, MessageEventArgs e) {
+            Console.WriteLine("Chat client received:\r\n{0} {1}", (MessageId)e.Id, JsonSerializer.Serialize(e.Message));
+        }
+
+        private static void ChatClient_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+            Console.WriteLine("Chat client threw exception: {0}", e.Exception.Message);
+        }
+
+        private static void ChatClient_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+            Console.WriteLine("Chat client disconnected.");
+            sender.Dispose();
+        }
+
+        static async Task TestZorboSocketListener() {
+            // start listener as ZorboSocket
+            listener = new ZorboSocket();
+
+            // communicate using TLS
+            listener.IsSecureSocket = true;
+            listener.Certificate = await GenerateTestCert("ZorboTest");
+
+            // communicate with websockets only
+            //listener.IsWebSocket = true;
+
+            listener.Accepted += Listener_Accepted;
+            listener.Rejected += Listener_Rejected;
+            listener.Exception += Listener_Exception;
+
+            listener.Bind(new IPEndPoint(IPAddress.IPv6Any, 0));
+            listener.Listen();
+
+            TestTcpClientToZorboSocket();
+            TestWebSocketToZorboSocket();
+            TestZorboSocketToZorboSocket();
+        }
+
+        static async void TestTcpClientToZorboSocket() {
+            // start client as TcpClient
+            using var tcpClient = new TcpClient();
+
+            await tcpClient.ConnectAsync(IPAddress.IPv6Loopback, listener.LocalEndPoint.Port);
+
+            Console.WriteLine("Client connected successfully.");
+
+            Stream stream = tcpClient.GetStream();
+
+            if (listener.IsSecureSocket) {
+                // accept self-signed certificates
+                var sslStream = new SslStream(stream, false, Certificates.SelfSignedValidationCallback);
+
+                sslStream.AuthenticateAsClient("::1");
+
+                stream = sslStream;
+            }
+
+            var converter = new MessageConverter();
+
+            // get serialized data
+            using var writer = new ZBinaryWriter();
+            await converter.WriteAsync(writer, OBJ1, MessageType.Binary);
+
+            // write data as a websocket frame
+            var frame = new Frame() {
+                OpCode = OpCode.Binary,
+                IsMasked = true,
+                Payload = await writer.ToArrayAsync()
+            };
+
+            writer.Clear();
+            await FrameReader.WriteAsync(writer, frame);
+
+            // send from TcpClient to ZorboSocket
+            await stream.WriteAsync(await writer.ToArrayAsync());
+
+            // read echo from ZorboSocket
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+            int count = await stream.ReadAsync(buffer, default);
+
+            // read frame data
+            using var reader = new ZBinaryReader(buffer, 0, count);
+            frame = await FrameReader.ReadAsync(reader);
+
+            // load payload into binary reader
+            reader.Clear();
+            await reader.BaseStream.WriteAsync(frame.Payload);
+            reader.Position = 0;
+
+            // read payload data
+            var message = await converter.ReadAsync(reader, MessageType.Binary);
+
+            Console.WriteLine("Client received message.");
+            Console.WriteLine(JsonSerializer.Serialize(message));
+
+            ArrayPool<byte>.Shared.Return(buffer);
+
+            await stream.DisposeAsync();
+        }
+
+        static async void TestWebSocketToZorboSocket() {
+            // start client as .net websocket
+            using var webSocket = new ClientWebSocket();
+
+            // accept self-signed certificates
+            webSocket.Options.RemoteCertificateValidationCallback = Certificates.SelfSignedValidationCallback;
+
+            await webSocket.ConnectAsync(new($"wss://[::1]:{listener.LocalEndPoint.Port}"), default);
+
+            Console.WriteLine("Client connected successfully.");
+
+            var converter = new MessageConverter();
+
+            using var writer = new ZBinaryWriter();
+            await converter.WriteAsync(writer, OBJ1, MessageType.Binary);
+
+            // send from .net websocket to ZorboSocket
+            await webSocket.SendAsync(await writer.ToArrayAsync(), WebSocketMessageType.Binary, true, default);
+
+            // read echo from ZorboSocket
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
+            var result = await webSocket.ReceiveAsync(buffer, default);
+
+            // websockets already communicate in frames
+            // read payload data
+            using var messageReader = new ZBinaryReader(buffer, 0, result.Count);
+            var message = await converter.ReadAsync(messageReader, (MessageType)result.MessageType);
+
+            // print
+            Console.WriteLine("Client received message.\r\n{0}", JsonSerializer.Serialize(message));
+
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        static async void TestZorboSocketToZorboSocket() {
+            // start client as zorbosocket
+            var client = new ZorboSocket();
+
+            client.Connected += Client_Connected;
+            client.Rejected += Client_Rejected;
+            client.Received += Client_Received;
+            client.Exception += Client_Exception;
+            client.Disconnected += Client_Disconnected;
+
+            // accept self-signed certificates
+            client.CertificateCallback = Certificates.SelfSignedValidationCallback;
+
+            client.Connect(new Uri($"wss://[::1]:{listener.LocalEndPoint.Port}"));
+        }
+
+        static void Listener_Accepted(ZorboSocket sender, AcceptEventArgs e) {
+            Console.WriteLine("Server accepted successfully.");
+
+            var serverClient = e.Socket;
+            serverClient.Received += Listener_Received;
+            serverClient.Exception += Listener_Exception;
+            serverClient.Disconnected += Listener_Disconnected;
+        }
+
+        static void Listener_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+            Console.WriteLine("Server rejected connection. Reason: {0}", e.Exception.Message);
+        }
+
+        static void Listener_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+            Console.WriteLine("Server threw exception: {0}", e.Exception.Message);
+        }
+
+        static int dc_count = 0;
+        static void Listener_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+            Console.WriteLine($"Server disconnect detected. ({++dc_count})");
+            sender.Dispose();
+        }
+
+        static void Listener_Received(ZorboSocket sender, MessageEventArgs e) {
+            // print
+            Console.WriteLine("Server received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
+
+            // echo client message
+            sender.Send(e.Message, e.MessageType);
+        }
+
+        static void Client_Connected(ZorboSocket sender, ConnectEventArgs e) {
+            Console.WriteLine("Client connected successfully.");
+            // send from ZorboSocket to ZorboSocket
+            sender.Send(OBJ1, MessageType.Text);
+        }
+
+        static void Client_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+            Console.WriteLine("Client connection failed: {0}", e.Exception.Message);
+        }
+
+        static void Client_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+            Console.WriteLine("Client threw exception: {0}", e.Exception.Message);
+        }
+
+        static void Client_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+            Console.WriteLine("Client disconnected.");
+            sender.Dispose();
+        }
+
+        static async void Client_Received(ZorboSocket sender, MessageEventArgs e) {
+            // read echo from ZorboSocket
+            // print
+            Console.WriteLine("Client received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
+
+            // Test: disconnect, wait 5 seconds and connect again
+            // validates reuse and exposes exceptions caused during close/dispose
+            //
+            // remove disconnect event so the socket doesn't get disposed
+            sender.Disconnected -= Client_Disconnected;
+            sender.Disconnect();
+
+            await Task.Delay(5000);
+
+            // resubscribe to disconnect event, in case we disconnect for some other reason
+            sender.Disconnected += Client_Disconnected;
+            sender.Connect(new IPEndPoint(IPAddress.IPv6Loopback, listener.LocalEndPoint.Port));
+        }
+    }
+}

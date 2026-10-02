@@ -1,35 +1,28 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections;
 
-namespace Zorbo.Core.Collections
+namespace Zorbo.Collections
 {
     public sealed class SortedStack<T> : IEnumerable<T>, ICollection
     {
-        readonly List<T> list;
         Comparison<T> comparison;
-
-
+        readonly ObservableList<T> list;
+        
         public int Count {
             get { return list.Count; }
         }
 
-        bool ICollection.IsSynchronized {
-            get { return true; }
-        }
+        bool ICollection.IsSynchronized { get { return true; } }
 
-        object ICollection.SyncRoot {
-            get { return ((ICollection)list).SyncRoot; }
-        }
+#pragma warning disable CS9216 // A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in 'lock' statement.
+        object ICollection.SyncRoot { get { return list.SyncRoot; } }
+#pragma warning restore CS9216 // A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in 'lock' statement.
 
         public SortedStack() {
-            list = new List<T>();
+            list = [];
         }
 
         public T Pop() {
-            lock (list) {
+            lock (list.SyncRoot) {
                 T ret = list[0];
                 list.RemoveAt(0);
 
@@ -38,7 +31,7 @@ namespace Zorbo.Core.Collections
         }
 
         public void Push(T item) {
-            lock (list) {
+            lock (list.SyncRoot) {
                 list.Add(item);
 
                 if (comparison == null)
@@ -50,14 +43,13 @@ namespace Zorbo.Core.Collections
 
 
         public void Clear() {
-            lock (list) list.Clear();
+            lock (list.SyncRoot) list.Clear();
         }
 
 
         public void SetSort(Comparison<T> comparison) {
-
             this.comparison = comparison;
-            lock (list) list.Sort(comparison);
+            lock (list.SyncRoot) list.Sort(comparison);
         }
 
 
@@ -66,11 +58,11 @@ namespace Zorbo.Core.Collections
         }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator() {
-            return new SafeEnumerator<T>(list);
+            return list.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
-            return new SafeEnumerator<T>(list);
+            return list.GetEnumerator();
         }
     }
 }

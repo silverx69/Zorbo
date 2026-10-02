@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Zorbo": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-
-namespace Zorbo.Core
+﻿namespace Zorbo
 {
-    public interface IMonitor : INotifyPropertyChanged
+    public interface IMonitor : IObservable
     {
         long SpeedIn { get; }
         long SpeedOut { get; }
@@ -14,5 +8,12 @@ namespace Zorbo.Core
         long LastBytesOut { get; }
         long TotalBytesIn { get; }
         long TotalBytesOut { get; }
+
+        void Start();
+        void Reset();
+        void Stop();
+
+        void AddInput(long numbytes);
+        void AddOutput(long numbytes);
     }
 }

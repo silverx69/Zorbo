@@ -1,3 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0130:Namespace does not match folder structure", Justification = "<Pending>", Scope = "namespace", Target = "~N:Zorbo")]
