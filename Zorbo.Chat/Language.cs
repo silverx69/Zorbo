@@ -1,4 +1,4 @@
-﻿namespace Zorbo
+﻿namespace Zorbo.Chat
 {
     public enum Language : byte
     {

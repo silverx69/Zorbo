@@ -15,6 +15,7 @@
         long currentOut = 0;
 
         volatile bool running;
+        readonly Lock updateLock = new();
 
         public bool Running { get { return running; } }
 
@@ -43,6 +44,10 @@
                 monitors[i].UpdateSpeed();
         }
 
+        public IOMonitor(bool start = false) {
+            if (start) Start();
+        }
+
         public void Start() {
             monitors.Add(this);
             running = true;
@@ -69,10 +74,11 @@
 
         public void AddInput(long numbytes) {
             if (running) {
-                Interlocked.Add(ref totalIn, numbytes);
-                Interlocked.Add(ref currentIn, numbytes);
-                Interlocked.Exchange(ref lastIn, numbytes);
-
+                lock(updateLock) {
+                    totalIn += numbytes;
+                    currentIn += numbytes;
+                    lastIn = numbytes;
+                }
                 OnPropertyChanged(nameof(LastBytesIn));
                 OnPropertyChanged(nameof(TotalBytesIn));
             }
@@ -80,10 +86,11 @@
 
         public void AddOutput(long numbytes) {
             if (running) {
-                Interlocked.Add(ref totalOut, numbytes);
-                Interlocked.Add(ref currentOut, numbytes);
-                Interlocked.Exchange(ref lastOut, numbytes);
-
+                lock(updateLock) {
+                    totalOut += numbytes;
+                    currentOut += numbytes;
+                    lastOut = numbytes;
+                }
                 OnPropertyChanged(nameof(LastBytesOut));
                 OnPropertyChanged(nameof(TotalBytesOut));
             }
@@ -92,12 +99,12 @@
         // TODO: implement some sort of averaging
         protected void UpdateSpeed() {
             if (running) {
-                Interlocked.Exchange(ref speedIn, currentIn);
-                Interlocked.Exchange(ref speedOut, currentOut);
-
+                lock(updateLock) {
+                    speedIn = currentIn;
+                    speedOut = currentOut;
+                }
                 OnPropertyChanged(nameof(SpeedIn));
                 OnPropertyChanged(nameof(SpeedOut));
-
                 currentIn = 0;
                 currentOut = 0;
             }

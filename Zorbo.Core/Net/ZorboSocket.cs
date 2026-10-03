@@ -13,19 +13,19 @@ namespace Zorbo.Net
     {
         Socket socket;
 
+        Guid sessionGuid;
         Handshake handshake;
-        
-        MessageType incomingMessageType;
-        MessageType preferredMessageType = MessageType.Binary;
+
+        MessageType defaultMsgType = MessageType.Binary;
+        MessageType incomingMsgType;
 
         bool upgradeRequired;
-        bool continueMessage = false;
+        bool continueMessage;
 
-        readonly bool shouldMask = true;
-
-        volatile bool isReading = false;
-        volatile bool isWriting = false;
-        volatile bool isListening = false;
+        readonly bool isClient = true;
+        volatile bool isReading;
+        volatile bool isWriting;
+        volatile bool isListening;
 
         readonly Lock writeLock = new();
         Queue<QueuedMessage> writeQueue;
@@ -35,10 +35,6 @@ namespace Zorbo.Net
         NetworkStream netStream;
         MemoryStream readStream;
         MemoryStream messageStream;
-
-        IMessageConverter converter;
-        readonly IMessageConverter orgConverter;
-
 
         protected enum Handshake : byte
         {
@@ -73,17 +69,17 @@ namespace Zorbo.Net
             public MessageType Type { get; set; } = type;
         }
 
-
+        /// <summary>
+        /// Gets the <see cref="System.Net.Sockets.Socket"/> associated with this ZorboSocket.
+        /// </summary>
         public Socket Socket {
             get { return socket; }
         }
 
+        /// <summary>
+        /// Gets the URI representing the remote endpoint of the current connection.
+        /// </summary>
         public Uri RemoteUri {
-            get;
-            protected set;
-        }
-
-        public Guid SessionGuid {
             get;
             protected set;
         }
@@ -100,14 +96,23 @@ namespace Zorbo.Net
 
         public bool IsSecureSocket { get; set; }
 
-        public MessageType PreferredMessageType {
-            get { return preferredMessageType; }
-            set { preferredMessageType = value; }
+        /// <summary>
+        /// Gets or sets the default <see cref="MessageType"/> for sending data when an explicit message type is not supplied to Send(). 
+        /// The socket will still receive either <see cref="MessageType.Text"/> or <see cref="MessageType.Binary"/>.
+        /// </summary>
+        public MessageType MessageType {
+            get { return defaultMsgType; }
+            set { defaultMsgType = value; } 
+        }
+
+        public IMonitor Monitor {
+            get;
+            protected set;
         }
 
         public IMessageConverter Converter {
-            get { return converter; }
-            set { converter = value ?? orgConverter; }
+            get;
+            protected set;
         }
 
         public IPEndPoint LocalEndPoint {
@@ -143,22 +148,24 @@ namespace Zorbo.Net
 
         public ZorboSocket(IMessageConverter converter) {
             ArgumentNullException.ThrowIfNull(converter, nameof(converter));
-            this.converter = orgConverter = converter;
             this.socket = SocketExtensions.CreateTcp();
+            this.Converter = converter;
+            this.Monitor = new IOMonitor(true);
         }
 
         // called by Accept()
-        protected ZorboSocket(IMessageConverter converter, Socket socket) {
+        protected ZorboSocket(ZorboSocket listener, Socket socket) {
             ArgumentNullException.ThrowIfNull(socket, nameof(socket));
             this.socket = socket;
-            this.SessionGuid = Guid.NewGuid();
-            this.shouldMask = false;
-            this.converter = orgConverter = converter;
+            this.Converter = listener.Converter;
+            this.Monitor = listener.Monitor;
+            this.isClient = false;
             this.netStream = new NetworkStream(Socket, false);
             this.writeQueue = [];
             this.recvBuffer = ArrayPool<byte>.Shared.Rent(8192);
             this.readStream = new MemoryStream();
             this.messageStream = new MemoryStream();
+            this.sessionGuid = Guid.NewGuid();
         }
 
         #region " Accept "
@@ -181,7 +188,7 @@ namespace Zorbo.Net
             while (isListening) {
                 try {
                     socket = await Socket.AcceptAsync();
-                    client = new ZorboSocket(Converter, socket);
+                    client = new ZorboSocket(this, socket);
                     try {
                         client.IsWebSocket = IsWebSocket;
                         client.upgradeRequired = IsWebSocket;
@@ -193,13 +200,13 @@ namespace Zorbo.Net
                         }
                     }
                     catch (Exception ex) {
-                        OnRejected(client, ex);
+                        await OnRejected(client, ex);
                         await client.DisposeAsync();
                         continue;
                     }
 
                     client.UpdateUri();
-                    OnAccepted(client);
+                    await OnAccepted(client);
                     client.Receive();
                 }
                 catch (Exception ex) {
@@ -207,7 +214,7 @@ namespace Zorbo.Net
                         await client.DisposeAsync();
                     else if (socket is not null)
                         await socket.DestroyAsync();
-                    OnException(ex);
+                    await OnException(ex);
                 }
             }
         }
@@ -271,12 +278,12 @@ namespace Zorbo.Net
             ArgumentNullException.ThrowIfNull(endpoint, nameof(endpoint));
 
             socket ??= SocketExtensions.CreateTcp();
-            SessionGuid = Guid.NewGuid();
             handshake = Handshake.Initial;
             writeQueue = [];
             recvBuffer = ArrayPool<byte>.Shared.Rent(8192);
             readStream = new MemoryStream();
             messageStream = new MemoryStream();
+            sessionGuid = Guid.NewGuid();
 
             try {
                 await Socket.ConnectAsync(endpoint);
@@ -289,11 +296,11 @@ namespace Zorbo.Net
                     await SendWebSocketUpgrade();
             }
             catch (Exception ex) {
-                OnRejected(this, ex);
+                await OnRejected(this, ex);
                 return;
             }
 
-            OnConnected();
+            await OnConnected();
             Receive();
         }
 
@@ -315,12 +322,12 @@ namespace Zorbo.Net
                     await WriteFrame(writer, OpCode.Close);
                 }
                 catch (Exception e) {
-                    OnException(e, false);
+                    await OnException(e, false);
                 }
             }
 
             await CloseAsync();
-            OnDisconnected(status);
+            await OnDisconnected(status);
         }
 
         #endregion
@@ -358,13 +365,17 @@ namespace Zorbo.Net
         protected virtual async Task SendWebSocketUpgrade(params KeyValuePair<string, string>[] headers) {
             var stream = GetSocketStream();
             if (stream is null) return;
-            await stream.WriteAsync(HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, SessionGuid, headers));
+            byte[] buffer = HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, sessionGuid, headers);
+            await stream.WriteAsync(buffer);
+            Monitor.AddOutput(buffer.Length);
         }
 
         protected virtual async Task SendWebSocketAccept(params KeyValuePair<string, string>[] headers) {
             var stream = GetSocketStream();
             if (stream is null) return;
-            await stream.WriteAsync(HttpHelper.AcceptWebSocketHeaderBytes(SessionGuid, [.. headers]));
+            byte[] buffer = HttpHelper.AcceptWebSocketHeaderBytes(sessionGuid, [.. headers]);
+            await stream.WriteAsync(buffer);
+            Monitor.AddOutput(buffer.Length);
         }
 
         #endregion
@@ -372,7 +383,7 @@ namespace Zorbo.Net
         #region " Send "
 
         public virtual void Send(object msg) {
-            Send(msg, PreferredMessageType);
+            Send(msg, MessageType);
         }
 
         public virtual async void Send(object msg, MessageType type) {
@@ -399,7 +410,7 @@ namespace Zorbo.Net
                 }
             }
             catch (Exception ex) {
-                OnException(ex);
+                await OnException(ex);
             }
         }
 
@@ -418,14 +429,14 @@ namespace Zorbo.Net
             else {
                 try {
                     opCode = (type == MessageType.Binary) ? OpCode.Binary : OpCode.Text;
-                    await converter.WriteAsync(writer, msg, type);
+                    await Converter.WriteAsync(writer, msg, type);
                 }
                 catch(MessageConversionException mex) {
-                    OnException(mex, false);
+                    await OnException(mex, false);
                     return;
                 }
                 catch (Exception ex) {
-                    OnException(new MessageConversionException(ex), false);
+                    await OnException(new MessageConversionException(ex), false);
                     return;
                 }
             }
@@ -438,19 +449,23 @@ namespace Zorbo.Net
 
             var frame = new Frame() {
                 OpCode = opCode,
-                IsMasked = shouldMask
+                IsMasked = isClient
             };
 
             var stream = GetSocketStream();
             if (stream is null) return;
 
+            byte[] buffer;
             while (writer.Remaining > MaxFrameSize) {
                 frame.IsFinal = false;
                 frame.Payload ??= new byte[MaxFrameSize];
 
                 await writer.BaseStream.ReadExactlyAsync(frame.Payload);
-                await stream.WriteAsync(await FrameReader.WriteAsync(frame));
 
+                buffer = await FrameReader.WriteAsync(frame);
+                await stream.WriteAsync(buffer);
+
+                Monitor.AddOutput(buffer.Length);
                 frame.OpCode = OpCode.Continuation;
             }
 
@@ -458,7 +473,11 @@ namespace Zorbo.Net
             frame.Payload = new byte[writer.Remaining];
 
             await writer.BaseStream.ReadExactlyAsync(frame.Payload);
-            await stream.WriteAsync(await FrameReader.WriteAsync(frame));
+
+            buffer = await FrameReader.WriteAsync(frame);
+            await stream.WriteAsync(buffer);
+
+            Monitor.AddOutput(buffer.Length);
         }
 
         #endregion
@@ -473,7 +492,7 @@ namespace Zorbo.Net
                 await ReadFromStream();
             }
             catch (Exception ex) {
-                OnException(ex);
+                await OnException(ex);
             }
         }
 
@@ -488,6 +507,8 @@ namespace Zorbo.Net
                     Disconnect(CloseStatus.EndpointUnavailable);
                     return;
                 }
+
+                Monitor.AddInput(count);
 
                 await readStream.WriteAsync(recvBuffer.AsMemory(0, count));
 
@@ -566,7 +587,7 @@ namespace Zorbo.Net
 
             // shouldMask is false when the listener created the socket
             // so if !shouldMask then read data should be masked
-            if (!shouldMask && !frame.IsMasked) {
+            if (!isClient && !frame.IsMasked) {
                 Disconnect(CloseStatus.ProtocolError);
                 return FrameResult.Close;
             }
@@ -578,7 +599,7 @@ namespace Zorbo.Net
 
             switch (frame.OpCode) {
                 case OpCode.Text:
-                    incomingMessageType = MessageType.Text;
+                    incomingMsgType = MessageType.Text;
                     if (continueMessage) {
                         // error: opcode must be 0x00
                         Disconnect(CloseStatus.ProtocolError);
@@ -591,7 +612,7 @@ namespace Zorbo.Net
                     else continueMessage = true;
                     break;
                 case OpCode.Binary:
-                    incomingMessageType = MessageType.Binary;
+                    incomingMsgType = MessageType.Binary;
                     if (continueMessage) {
                         // error: opcode must be 0x00
                         Disconnect(CloseStatus.ProtocolError);
@@ -616,10 +637,10 @@ namespace Zorbo.Net
                     break;
                 case OpCode.Ping:
                     Send(new Pong(frame.Payload));
-                    OnControlReceived(new Ping(frame.Payload));
+                    await OnControlReceived(new Ping(frame.Payload));
                     return FrameResult.Finished;
                 case OpCode.Pong:
-                    OnControlReceived(new Pong(frame.Payload));
+                    await OnControlReceived(new Pong(frame.Payload));
                     return FrameResult.Finished;
                 case OpCode.Close:
                     Disconnect();
@@ -651,14 +672,14 @@ namespace Zorbo.Net
                             return FrameResult.Close;
                         }
                         try {
-                            SessionGuid = new Guid(Convert.FromBase64String(key));
+                            sessionGuid = new Guid(Convert.FromBase64String(key));
                         }
                         catch {
                             Disconnect(CloseStatus.ProtocolError);
                             return FrameResult.Close;
                         }
 
-                        if (SessionGuid == Guid.Empty) {
+                        if (sessionGuid == Guid.Empty) {
                             Disconnect(CloseStatus.ProtocolError);
                             return FrameResult.Close;
                         }
@@ -699,7 +720,7 @@ namespace Zorbo.Net
                     response.Headers.TryGetValue("UPGRADE", out _) &&
                     response.Headers.TryGetValue("SEC-WEBSOCKET-ACCEPT", out string hash)) {
 
-                    if (hash == HttpHelper.GetAcceptKeyHash(SessionGuid)) {
+                    if (hash == HttpHelper.GetAcceptKeyHash(sessionGuid)) {
                         handshake = Handshake.Finished;
                         return FrameResult.Finished;
                     }
@@ -736,22 +757,23 @@ namespace Zorbo.Net
             MessageResult message;
 
             try {
-                message = await converter.ReadAsync(frameReader, incomingMessageType);
+                message = await Converter.ReadAsync(frameReader, incomingMsgType);
             }
             catch (MessageConversionException mex) {
                 // assume if the converter throws an exception the data was bad
-                OnException(mex, CloseStatus.InvalidPayloadData);
+                await OnException(mex, CloseStatus.InvalidPayloadData);
                 return FrameResult.Close;
             }
             catch (Exception ex) {
                 // assume if the converter throws an exception the data was bad
-                OnException(new MessageConversionException(ex), CloseStatus.InvalidPayloadData);
+                await OnException(new MessageConversionException(ex), CloseStatus.InvalidPayloadData);
                 return FrameResult.Close;
             }
 
-            OnMessageReceived(message);
+            frameReader.Position = 0;
+            await OnMessageReceived(frameReader, message);
 
-            messageStream?.SetLength(0);
+            messageStream.SetLength(0);
             return FrameResult.Finished;
         }
 
@@ -775,42 +797,45 @@ namespace Zorbo.Net
                 RemoteUri = new Uri($"tcp://{endpoint}");
         }
 
-        protected virtual void OnAccepted(ZorboSocket client) {
-            Accepted?.Invoke(this, new AcceptEventArgs(client));
+        protected virtual Task OnAccepted(ZorboSocket client) {
+            return Accepted?.Invoke(this, new(client));
         }
 
-        protected virtual void OnRejected(ZorboSocket client, Exception ex) {
-            Rejected?.Invoke(this, new RejectedEventArgs(client, ex));
+        protected virtual Task OnRejected(ZorboSocket client, Exception ex) {
+            return Rejected?.Invoke(this, new(client, ex));
         }
 
-        protected virtual void OnConnected() {
-            Connected?.Invoke(this, ConnectEventArgs.Empty);
+        protected virtual Task OnConnected() {
+            return Connected?.Invoke(this, ConnectEventArgs.Empty);
         }
 
-        protected virtual void OnControlReceived(object message) {
+        protected virtual Task OnControlReceived(object message) {
             //Received?.Invoke(this, new MessageEventArgs(message, MessageType.Binary));
+            return Task.CompletedTask;
         }
 
-        protected virtual void OnMessageReceived(MessageResult result) {
-            Received?.Invoke(this, new MessageEventArgs(result.Id, result.Message, incomingMessageType));
+        protected virtual Task OnMessageReceived(ZBinaryReader reader, MessageResult result) {
+            return Received?.Invoke(this, new(reader, result.Id, result.Message, incomingMsgType));
         }
 
-        protected virtual void OnException(Exception ex, CloseStatus closeStatus) {
-            OnException(ex, true, closeStatus);
+        protected virtual Task OnException(Exception ex, CloseStatus closeStatus) {
+            return OnException(ex, true, closeStatus);
         }
 
-        protected virtual void OnException(Exception ex, bool disconnect = true, CloseStatus closeStatus = CloseStatus.InternalServerError) {
+        protected virtual Task OnException(Exception ex, bool disconnect = true, CloseStatus closeStatus = CloseStatus.InternalServerError) {
             if (disconnect) Disconnect(closeStatus);
-            Exception?.Invoke(this, new ExceptionEventArgs(ex));
+            return Exception?.Invoke(this, new(ex));
         }
 
-        protected virtual void OnDisconnected(CloseStatus status) {
-            Disconnected?.Invoke(this, new DisconnectEventArgs(status));
+        protected virtual Task OnDisconnected(CloseStatus status) {
+            return Disconnected?.Invoke(this, new(status));
         }
 
         public virtual void Close() {
             isListening = false;
-
+            if (isClient)
+                Monitor.Reset();
+            
             if (socket is not null) {
                 socket?.Destroy();
                 socket = null;
@@ -842,7 +867,9 @@ namespace Zorbo.Net
 
         public virtual async Task CloseAsync() {
             isListening = false;
-
+            if (isClient)
+                Monitor.Reset();
+            
             if (socket is not null) {
                 await socket.DestroyAsync();
                 socket = null;

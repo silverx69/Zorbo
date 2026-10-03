@@ -26,6 +26,11 @@ namespace Zorbo.Collections
             InnerList = [];
         }
 
+        public ReadOnlyObservableList(IEnumerable<T> collection) {
+            InnerList = [.. collection];
+            InnerList.PropertyChanged += InnerList_PropertyChanged;
+        }
+
         public ReadOnlyObservableList(ObservableList<T> innerList) {
             InnerList = innerList ?? throw new ArgumentNullException(nameof(innerList));
             InnerList.PropertyChanged += InnerList_PropertyChanged;
@@ -37,6 +42,10 @@ namespace Zorbo.Collections
 
         public void CopyTo(Array array, int index) {
             InnerList.CopyTo(array, index);
+        }
+
+        public void Sort() {
+            InnerList.Sort();
         }
 
         public void Sort(Comparison<T> comparison) {

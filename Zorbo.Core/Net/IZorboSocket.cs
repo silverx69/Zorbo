@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using Zorbo.Data;
 using Zorbo.Net.Messages;
 
 namespace Zorbo.Net
@@ -41,7 +42,6 @@ namespace Zorbo.Net
         Socket Socket { get; }
 
         Uri RemoteUri { get; }
-        Guid SessionGuid { get; }
 
         bool IsConnected { get; }
         bool IsListening { get; }
@@ -55,7 +55,8 @@ namespace Zorbo.Net
         IPEndPoint LocalEndPoint { get; }
         IPEndPoint RemoteEndPoint { get; }
 
-        IMessageConverter Converter { get; set; }
+        IMonitor Monitor { get; }
+        IMessageConverter Converter { get; }
 
         X509Certificate Certificate { get; set; }
         RemoteCertificateValidationCallback CertificateCallback { get; set; }
@@ -68,7 +69,8 @@ namespace Zorbo.Net
         void Connect(IPAddress ip, int port);
         void Connect(IPEndPoint endpoint);
 
-        void Send(object message, MessageType type = MessageType.Binary);
+        void Send(object message);
+        void Send(object message, MessageType type);
 
         void Disconnect();
         void Disconnect(CloseStatus status);
@@ -116,14 +118,25 @@ namespace Zorbo.Net
         public Exception Exception { get; private set; } = ex;
     }
 
-    public class MessageEventArgs(ushort id, object message, MessageType msgType) : SocketEventArgs
+    public class MessageEventArgs : SocketEventArgs
     {
-        public ushort Id { get; private set; } = id;
+        public ZBinaryReader Reader { get; set; }
 
-        public object Message { get; private set; } = message;
+        public ushort Id { get; private set; }
 
-        public MessageType MessageType { get; private set; } = msgType;
+        public object Message { get; private set; }
+
+        public MessageType MessageType { get; private set; }
+
+        public MessageEventArgs() { }
+
+        public MessageEventArgs(ZBinaryReader reader, ushort id, object message, MessageType msgType) {
+            Reader = reader;
+            Id = id;
+            Message = message;
+            MessageType = msgType;
+        }
     }
 
-    public delegate void SocketEventHandler<T>(ZorboSocket sender, T e) where T : SocketEventArgs;
+    public delegate Task SocketEventHandler<T>(ZorboSocket sender, T e) where T : SocketEventArgs;
 }

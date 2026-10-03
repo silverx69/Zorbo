@@ -22,6 +22,7 @@ namespace Zorbo
 
         int RemoveAll(Predicate<T> search);
 
+        void Sort();
         void Sort(Comparison<T> comparison);
     }
 
@@ -32,6 +33,7 @@ namespace Zorbo
 
     public interface IReadOnlyObservableList<T> : IReadOnlyList<T>, IReadOnlyObservableCollection<T>
     {
+        void Sort();
         void Sort(Comparison<T> comparison);
     }
 }

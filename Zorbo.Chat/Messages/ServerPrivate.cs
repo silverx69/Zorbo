@@ -5,6 +5,8 @@ namespace Zorbo.Chat.Messages
     [ChatMessage(MessageId.SERVER_PRIVATE)]
     public class ServerPrivate
     {
+        public ulong Id { get; set; }
+
         [StringLength(128, MinimumLength = 2)]
         public string Sender { get; set; }
 

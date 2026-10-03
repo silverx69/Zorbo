@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using Zorbo.Chat.Messages;
 using Zorbo.Net;
 using Zorbo.Net.Messages;
@@ -7,24 +8,40 @@ namespace Zorbo.Chat.Server
 {
     public class ChatClient : IDisposable, IAsyncDisposable
     {
-        public Guid Guid {
-            get;
-            set;
+        public bool IsBinary {
+            get { return MessageType == MessageType.Binary; }
         }
 
-        public string UserName {
+        public bool IsLocalHost {
             get;
-            set;
-        }
-
-        public MessageType MessageType {
-            get;
-            set;
+            internal set;
         }
 
         public ZorboSocket Socket {
             get;
             private set;
+        }
+
+        public MessageType MessageType {
+            get { return Socket?.MessageType ?? MessageType.Binary; }
+        }
+
+        public Database.DbProfile Profile {
+            get;
+            internal set;
+        }
+
+        public Database.DbChannel Channel {
+            get;
+            internal set;
+        }
+
+        public IPEndPoint LocalEndPoint {
+            get { return Socket?.LocalEndPoint; }
+        }
+
+        public IPEndPoint RemoteEndPoint {
+            get { return Socket?.RemoteEndPoint; }
         }
 
         public ChatClient(ZorboSocket socket, MessageType messageType) {
@@ -33,33 +50,34 @@ namespace Zorbo.Chat.Server
             Socket.Received += OnReceived;
             Socket.Exception += OnException;
             Socket.Disconnected += OnDisconnected;
-            MessageType = messageType;
+            Socket.MessageType = messageType;
         }
 
         public void Send(object message) {
             if (MessageValidator.Validate(message, out var results))
-                Socket?.Send(message, MessageType);
+                Socket?.Send(message);
             else
                 // if we're sending an invalid message, throw an exception
                 throw new ValidationException(results[0].ErrorMessage);
         }
         
-        protected virtual void OnReceived(ZorboSocket sender, MessageEventArgs e) {
-            MessageType = e.MessageType;
+        protected virtual Task OnReceived(ZorboSocket sender, MessageEventArgs e) {
+            Socket.MessageType = e.MessageType;
             if (MessageValidator.Validate(e.Message, out var results))
-                Received?.Invoke(this, e);
+                return Received?.Invoke(this, new(e));
             else {
                 Send(new ServerError(results[0].ErrorMessage));
                 Disconnect();
             }
+            return Task.CompletedTask;
         }
 
-        protected virtual void OnException(ZorboSocket sender, ExceptionEventArgs e) {
-            Exception?.Invoke(this, e);
+        protected virtual Task OnException(ZorboSocket sender, ExceptionEventArgs e) {
+            return Exception?.Invoke(this, e);
         }
 
-        protected virtual void OnDisconnected(ZorboSocket sender, DisconnectEventArgs e) {
-            Disconnected?.Invoke(this, e);
+        protected virtual Task OnDisconnected(ZorboSocket sender, DisconnectEventArgs e) {
+            return Disconnected?.Invoke(this, e);
         }
 
         public void Disconnect(CloseStatus closeStatus = CloseStatus.NormalClosure) {
@@ -94,10 +112,20 @@ namespace Zorbo.Chat.Server
             GC.SuppressFinalize(this);
         }
 
-        public event ClientEventHandler<MessageEventArgs> Received;
+        public event ClientEventHandler<ChatMessageEventArgs> Received;
         public event ClientEventHandler<ExceptionEventArgs> Exception;
         public event ClientEventHandler<DisconnectEventArgs> Disconnected;
     }
 
-    public delegate void ClientEventHandler<T>(ChatClient sender, T e) where T : SocketEventArgs;
+    public class ChatMessageEventArgs : MessageEventArgs
+    {
+        public MessageId MessageId {
+            get { return (MessageId)base.Id; }
+        }
+
+        public ChatMessageEventArgs(MessageEventArgs e)
+            : base(e.Reader, e.Id, e.Message, e.MessageType) { }
+    }
+
+    public delegate Task ClientEventHandler<T>(ChatClient sender, T e) where T : SocketEventArgs;
 }

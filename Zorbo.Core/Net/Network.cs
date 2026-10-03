@@ -10,8 +10,19 @@ namespace Zorbo.Net
             foreach (var n in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (n.OperationalStatus != OperationalStatus.Up)
                     continue;
-                foreach (var uaddr in n.GetIPProperties().UnicastAddresses)
-                    ips.Add(uaddr.Address);
+                foreach (var u in n.GetIPProperties().UnicastAddresses)
+                    ips.Add(u.Address);
+            }
+            return ips;
+        }
+
+        public static async Task<List<IPAddress>> GetLocalAddressesAsync() {
+            var ips = new List<IPAddress>();
+            foreach (var n in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (n.OperationalStatus != OperationalStatus.Up)
+                    continue;
+                foreach (var u in n.GetIPProperties().UnicastAddresses)
+                    ips.Add(u.Address);
             }
             return ips;
         }

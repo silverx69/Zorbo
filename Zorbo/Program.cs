@@ -49,20 +49,20 @@ namespace Zorbo
             StringValue = "TestString",
             NestedValues = [
                 new NestedTestObject() {
-                        IntValue = 1,
-                        StringValue = "NestedTestString1",
-                        ListValue = [11, 44, 902, 4232, 23232]
-                    },
-                    new NestedTestObject() {
-                        IntValue = 2,
-                        StringValue = "NestedTestString2",
-                        ListValue = [11, 44, 902, 4232, 23232]
-                    },
-                    new NestedTestObject() {
-                        IntValue = 3,
-                        StringValue = "NestedTestString3",
-                        ListValue = [11, 44, 902, 4232, 23232]
-                    }
+                    IntValue = 1,
+                    StringValue = "NestedTestString1",
+                    ListValue = [11, 44, 902, 4232, 23232]
+                },
+                new NestedTestObject() {
+                    IntValue = 2,
+                    StringValue = "NestedTestString2",
+                    ListValue = [11, 44, 902, 4232, 23232]
+                },
+                new NestedTestObject() {
+                    IntValue = 3,
+                    StringValue = "NestedTestString3",
+                    ListValue = [11, 44, 902, 4232, 23232]
+                }
             ]
         };
 
@@ -88,7 +88,7 @@ namespace Zorbo
 
         static async Task TestZorboChatServer() {
             server = new ChatServer();
-            server.Start();
+            await server.StartAsync();
 
             Console.WriteLine("Chat server is running.");
             Console.WriteLine("Chat client connecting...");
@@ -102,7 +102,7 @@ namespace Zorbo
             client.Disconnected += ChatClient_Disconnected;
 
             // test json transmission
-            client.PreferredMessageType = MessageType.Text;
+            client.MessageType = MessageType.Text;
             client.CertificateCallback = Certificates.SelfSignedValidationCallback;
 
             //client.IsSecureSocket = true;
@@ -111,7 +111,7 @@ namespace Zorbo
             client.Connect(new Uri("tcps://[::1]:" + server.LocalEndPoint.Port));
         }
 
-        private static void ChatClient_Connected(ZorboSocket sender, ConnectEventArgs e) {
+        private static Task ChatClient_Connected(ZorboSocket sender, ConnectEventArgs e) {
             Console.WriteLine("Chat client connected.");
 
             sender.Send(new ClientLogin() {
@@ -123,23 +123,32 @@ namespace Zorbo
                 Status = "Thanks to denial, I'm immortal.",
                 Flags = ClientSupportFlags.ALL
             });
+
+            sender.Send(new ClientPublic() { 
+                Message = "This is a test of the database history system."
+            });
+
+            return Task.CompletedTask;
         }
 
-        private static void ChatClient_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+        private static Task ChatClient_Rejected(ZorboSocket sender, RejectedEventArgs e) {
             Console.WriteLine("Chat client rejected.");
+            return Task.CompletedTask;
         }
 
-        private static void ChatClient_Received(ZorboSocket sender, MessageEventArgs e) {
+        private static Task ChatClient_Received(ZorboSocket sender, MessageEventArgs e) {
             Console.WriteLine("Chat client received:\r\n{0} {1}", (MessageId)e.Id, JsonSerializer.Serialize(e.Message));
+            return Task.CompletedTask;
         }
 
-        private static void ChatClient_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+        private static Task ChatClient_Exception(ZorboSocket sender, ExceptionEventArgs e) {
             Console.WriteLine("Chat client threw exception: {0}", e.Exception.Message);
+            return Task.CompletedTask;
         }
 
-        private static void ChatClient_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+        private static async Task ChatClient_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
             Console.WriteLine("Chat client disconnected.");
-            sender.Dispose();
+            await sender.DisposeAsync();
         }
 
         static async Task TestZorboSocketListener() {
@@ -277,57 +286,65 @@ namespace Zorbo
             client.Connect(new Uri($"wss://[::1]:{listener.LocalEndPoint.Port}"));
         }
 
-        static void Listener_Accepted(ZorboSocket sender, AcceptEventArgs e) {
+        static Task Listener_Accepted(ZorboSocket sender, AcceptEventArgs e) {
             Console.WriteLine("Server accepted successfully.");
 
             var serverClient = e.Socket;
             serverClient.Received += Listener_Received;
             serverClient.Exception += Listener_Exception;
             serverClient.Disconnected += Listener_Disconnected;
+
+            return Task.CompletedTask;
         }
 
-        static void Listener_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+        static Task Listener_Rejected(ZorboSocket sender, RejectedEventArgs e) {
             Console.WriteLine("Server rejected connection. Reason: {0}", e.Exception.Message);
+            return Task.CompletedTask;
         }
 
-        static void Listener_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+        static Task Listener_Exception(ZorboSocket sender, ExceptionEventArgs e) {
             Console.WriteLine("Server threw exception: {0}", e.Exception.Message);
+            return Task.CompletedTask;
         }
 
         static int dc_count = 0;
-        static void Listener_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+        static async Task Listener_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
             Console.WriteLine($"Server disconnect detected. ({++dc_count})");
-            sender.Dispose();
+            await sender.DisposeAsync();
         }
 
-        static void Listener_Received(ZorboSocket sender, MessageEventArgs e) {
+        static Task Listener_Received(ZorboSocket sender, MessageEventArgs e) {
             // print
             Console.WriteLine("Server received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
 
             // echo client message
             sender.Send(e.Message, e.MessageType);
+            return Task.CompletedTask;
         }
 
-        static void Client_Connected(ZorboSocket sender, ConnectEventArgs e) {
+        static Task Client_Connected(ZorboSocket sender, ConnectEventArgs e) {
             Console.WriteLine("Client connected successfully.");
             // send from ZorboSocket to ZorboSocket
             sender.Send(OBJ1, MessageType.Text);
+            return Task.CompletedTask;
         }
 
-        static void Client_Rejected(ZorboSocket sender, RejectedEventArgs e) {
+        static Task Client_Rejected(ZorboSocket sender, RejectedEventArgs e) {
             Console.WriteLine("Client connection failed: {0}", e.Exception.Message);
+            return Task.CompletedTask;
         }
 
-        static void Client_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+        static Task Client_Exception(ZorboSocket sender, ExceptionEventArgs e) {
             Console.WriteLine("Client threw exception: {0}", e.Exception.Message);
+            return Task.CompletedTask;
         }
 
-        static void Client_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
+        static async Task Client_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
             Console.WriteLine("Client disconnected.");
-            sender.Dispose();
+            await sender.DisposeAsync();
         }
 
-        static async void Client_Received(ZorboSocket sender, MessageEventArgs e) {
+        static async Task Client_Received(ZorboSocket sender, MessageEventArgs e) {
             // read echo from ZorboSocket
             // print
             Console.WriteLine("Client received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
