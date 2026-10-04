@@ -9,14 +9,14 @@ namespace Zorbo.Chat.Messages
         public string Version { get; set; }
         
         [StringLength(128, MinimumLength = 2)]
-        public string UserName { get; set; }
+        public string Username { get; set; }
 
         public ServerSupportFlags Flags { get; set; }
 
         public ServerLoginAck() { }
 
-        public ServerLoginAck(string userName, ServerSupportFlags flags) {
-            UserName = userName;
+        public ServerLoginAck(string username, ServerSupportFlags flags) {
+            Username = username;
             Flags = flags;
         }
 

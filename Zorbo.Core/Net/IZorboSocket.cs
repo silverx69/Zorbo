@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -82,6 +83,7 @@ namespace Zorbo.Net
         event SocketEventHandler<RejectedEventArgs> Rejected;
         event SocketEventHandler<ConnectEventArgs> Connected;
         event SocketEventHandler<MessageEventArgs> Received;
+        event SocketEventHandler<HttpRequestEventArgs> HttpRequest;
         event SocketEventHandler<ExceptionEventArgs> Exception;
         event SocketEventHandler<DisconnectEventArgs> Disconnected;
     }
@@ -120,8 +122,6 @@ namespace Zorbo.Net
 
     public class MessageEventArgs : SocketEventArgs
     {
-        public ZBinaryReader Reader { get; set; }
-
         public ushort Id { get; private set; }
 
         public object Message { get; private set; }
@@ -130,11 +130,40 @@ namespace Zorbo.Net
 
         public MessageEventArgs() { }
 
-        public MessageEventArgs(ZBinaryReader reader, ushort id, object message, MessageType msgType) {
-            Reader = reader;
+        public MessageEventArgs(ushort id, object message, MessageType msgType) {
             Id = id;
             Message = message;
             MessageType = msgType;
+        }
+
+        /// <summary>
+        /// Simple helper method to cast the Message object to the specified type.
+        /// </summary>
+        /// <exception cref="InvalidCastException"></exception>
+        public T MessageAs<T>() { return (T)Message; }
+    }
+
+    public class HttpRequestEventArgs : SocketEventArgs
+    {
+        readonly ZBinaryReader content;
+        readonly RequestMetadata request;
+
+        public string Method { get { return request.Method; } }
+
+        public string Resource { get { return request.Resource; } }
+
+        public string Protocol { get { return request.Protocol; } }
+
+        public Dictionary<string, string> Headers { get { return request.Headers; } }
+
+        public ZBinaryReader Content { get { return content; } }
+
+
+        public HttpRequestEventArgs() { }
+
+        public HttpRequestEventArgs(RequestMetadata request, ZBinaryReader content) {
+            this.request = request;
+            this.content = content;
         }
     }
 

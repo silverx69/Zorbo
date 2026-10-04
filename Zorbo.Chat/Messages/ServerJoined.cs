@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Zorbo.Chat.Server.Database;
 
 namespace Zorbo.Chat.Messages
 {
@@ -6,9 +7,16 @@ namespace Zorbo.Chat.Messages
     public class ServerJoined
     {
         [StringLength(128, MinimumLength = 2)]
-        public string UserName { get; set; }
+        public string Username { get; set; }
 
         public ServerJoined() { }
-        public ServerJoined(string userName) { UserName = userName; }
+        
+        public ServerJoined(string username) { 
+            Username = username;
+        }
+
+        public ServerJoined(Profile profile) {
+            Username = profile.Username;
+        }
     }
 }

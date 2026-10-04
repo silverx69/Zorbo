@@ -116,7 +116,7 @@ namespace Zorbo
 
             sender.Send(new ClientLogin() {
                 Guid = Guid.NewGuid(),
-                UserName = "SilverX",
+                Username = "SilverX",
                 Age = 99,
                 Country = Country.Canada,
                 Region = "Awkward",
@@ -137,7 +137,7 @@ namespace Zorbo
         }
 
         private static Task ChatClient_Received(ZorboSocket sender, MessageEventArgs e) {
-            Console.WriteLine("Chat client received:\r\n{0} {1}", (MessageId)e.Id, JsonSerializer.Serialize(e.Message));
+            Console.WriteLine("{0} {1}", (MessageId)e.Id, JsonSerializer.Serialize(e.Message));
             return Task.CompletedTask;
         }
 

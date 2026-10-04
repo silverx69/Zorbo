@@ -6,9 +6,9 @@ namespace Zorbo.Chat.Messages
     public class ServerParted
     {
         [StringLength(128, MinimumLength = 2)]
-        public string UserName { get; set; }
+        public string Username { get; set; }
 
         public ServerParted() { }
-        public ServerParted(string userName) { UserName = userName; }
+        public ServerParted(string username) { Username = username; }
     }
 }

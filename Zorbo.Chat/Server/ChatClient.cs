@@ -26,12 +26,12 @@ namespace Zorbo.Chat.Server
             get { return Socket?.MessageType ?? MessageType.Binary; }
         }
 
-        public Database.DbProfile Profile {
+        public Database.Profile Profile {
             get;
             internal set;
         }
 
-        public Database.DbChannel Channel {
+        public Database.Channel Channel {
             get;
             internal set;
         }
@@ -48,6 +48,7 @@ namespace Zorbo.Chat.Server
             ArgumentNullException.ThrowIfNull(socket, nameof(socket));
             Socket = socket;
             Socket.Received += OnReceived;
+            Socket.HttpRequest += OnHttpRequest;
             Socket.Exception += OnException;
             Socket.Disconnected += OnDisconnected;
             Socket.MessageType = messageType;
@@ -70,6 +71,10 @@ namespace Zorbo.Chat.Server
                 Disconnect();
             }
             return Task.CompletedTask;
+        }
+
+        protected virtual Task OnHttpRequest(ZorboSocket sender, HttpRequestEventArgs e) {
+            return HttpRequest?.Invoke(this, e);
         }
 
         protected virtual Task OnException(ZorboSocket sender, ExceptionEventArgs e) {
@@ -113,6 +118,7 @@ namespace Zorbo.Chat.Server
         }
 
         public event ClientEventHandler<ChatMessageEventArgs> Received;
+        public event ClientEventHandler<HttpRequestEventArgs> HttpRequest;
         public event ClientEventHandler<ExceptionEventArgs> Exception;
         public event ClientEventHandler<DisconnectEventArgs> Disconnected;
     }
@@ -124,7 +130,7 @@ namespace Zorbo.Chat.Server
         }
 
         public ChatMessageEventArgs(MessageEventArgs e)
-            : base(e.Reader, e.Id, e.Message, e.MessageType) { }
+            : base(e.Id, e.Message, e.MessageType) { }
     }
 
     public delegate Task ClientEventHandler<T>(ChatClient sender, T e) where T : SocketEventArgs;

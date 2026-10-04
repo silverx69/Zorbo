@@ -2,6 +2,9 @@
 
 namespace Zorbo.Chat.Messages
 {
+    [ChatMessage(MessageId.CLIENT_UPDATE)]
+    public class ClientUpdate : ClientLogin { }
+
     [ChatMessage(MessageId.CLIENT_LOGIN)]
     public class ClientLogin
     {
@@ -9,7 +12,7 @@ namespace Zorbo.Chat.Messages
         public Guid Guid { get; set; }
 
         [StringLength(128, MinimumLength = 2)]
-        public string UserName { get; set; }
+        public string Username { get; set; }
 
         public byte Age { get; set; }
 

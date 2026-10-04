@@ -23,10 +23,13 @@ namespace Zorbo.Chat.Server
         readonly ObservableList<Pending> pending;
         readonly ObservableList<ChatClient> clients;
 
-        PooledDbContextFactory<Database> factory;
-
         public IPEndPoint LocalEndPoint {
             get { return listener?.LocalEndPoint; }
+        }
+
+        protected PooledDbContextFactory<Database> DbFactory {
+            get;
+            set;
         }
 
         class Pending :
@@ -94,18 +97,14 @@ namespace Zorbo.Chat.Server
                 .UseSqlite("Data Source=Zorbo.Chat.db")
                 .Options;
 
-            factory = new PooledDbContextFactory<Database>(options);
+            DbFactory = new PooledDbContextFactory<Database>(options);
+            OnPropertyChanged(nameof(DbFactory));
 
-            using var database = factory.CreateDbContext();
-            database.Database.EnsureCreated();
+            using var ctx = DbFactory.CreateDbContext();
+            ctx.Database.EnsureCreated();
 
-            if (!database.Channels.Any()) {
-                database.Channels.Add(new() { 
-                    Name = "general",
-                    Created = DateTime.UtcNow
-                });
-                database.SaveChanges();
-            }
+            if (!ctx.Channels.Any())
+                Channels.Add(ctx, new("general, true")).Wait();
 
             localAddresses = Network.GetLocalAddresses();
 
@@ -117,19 +116,14 @@ namespace Zorbo.Chat.Server
                 .UseSqlite("Data Source=Zorbo.Chat.db")
                 .Options;
 
-            factory = new PooledDbContextFactory<Database>(options);
+            DbFactory = new PooledDbContextFactory<Database>(options);
+            OnPropertyChanged(nameof(DbFactory));
 
-            using var database = factory.CreateDbContext();
-            await database.Database.EnsureCreatedAsync();
+            using var ctx = DbFactory.CreateDbContext();
+            await ctx.Database.EnsureCreatedAsync();
 
-            if (!database.Channels.Any()) {
-                database.Channels.Add(new() {
-                    Name = "general",
-                    Default = true,
-                    Created = DateTime.UtcNow
-                });
-                await database.SaveChangesAsync();
-            }
+            if (!ctx.Channels.Any())
+                await Channels.Add(ctx, new("general", true));
 
             localAddresses = await Network.GetLocalAddressesAsync();
 
@@ -147,6 +141,8 @@ namespace Zorbo.Chat.Server
             listener.Exception += this.OnListenerException;
 
             listener.Bind(new IPEndPoint(IPAddress.IPv6Any, 0));
+            OnPropertyChanged(nameof(LocalEndPoint));
+
             listener.Listen();
         }
 
@@ -212,8 +208,6 @@ namespace Zorbo.Chat.Server
 
         private async Task OnPendingReceived(ZorboSocket sender, MessageEventArgs e) {
             // must be a login message
-            Console.WriteLine("Chat server received:\r\n{0} {1}", (MessageId)e.Id, JsonSerializer.Serialize(e.Message));
-
             if (e.Message is not ClientLogin login) {
                 sender.Disconnect(CloseStatus.PolicyViolation);
                 return;
@@ -223,12 +217,14 @@ namespace Zorbo.Chat.Server
 
             if (MessageValidator.Validate(login, out var results)) {
                 sender.Received -= OnPendingReceived;
+                sender.HttpRequest -= OnPendingHttpRequest;
                 sender.Exception -= OnPendingException;
                 sender.Disconnected -= OnPendingDisconnected;
 
                 var client = new ChatClient(sender, e.MessageType);
 
                 client.Received += OnClientReceived;
+                client.HttpRequest += OnClientHttpRequest;
                 client.Exception += OnClientException;
                 client.Disconnected += OnClientDisconnected;
 
@@ -238,10 +234,21 @@ namespace Zorbo.Chat.Server
                 sender.Send(new ServerError(results[0].ErrorMessage), e.MessageType);
                 sender.Disconnect(CloseStatus.ProtocolError);
             }
-
-            return;
         }
 
+        private Task OnPendingHttpRequest(ZorboSocket socket, HttpRequestEventArgs e) {
+            // here we would properly handle requests
+            // access uri field with e.Resource
+            switch(e.Method) {
+                case "GET":
+                case "HEAD":
+                case "POST":
+                    break;
+            }
+
+            return Task.CompletedTask;
+        }
+        
         private Task OnPendingException(ZorboSocket sender, ExceptionEventArgs e) {
             // log?
             return Task.CompletedTask;
@@ -255,49 +262,39 @@ namespace Zorbo.Chat.Server
         #endregion
 
         private async Task OnClientLogin(ChatClient sender, ClientLogin login) {
-            //login.UserName = SanitizeUserName(login.UserName);
+            using var ctx = await DbFactory.CreateDbContextAsync();
 
-            using var database = await factory.CreateDbContextAsync();
-
-            var newProfile = new DbProfile() {
+            var candidate = new Profile() {
                 Guid = login.Guid.ToString(),
-                UserName = login.UserName,
-                Address = sender.RemoteEndPoint.Address.ToString(),
-                Created = DateTime.UtcNow,
-                Updated = DateTime.UtcNow
+                Username = login.Username,//still needs sanitizing
+                Address = sender.RemoteEndPoint.Address.ToString()
             };
 
-            var profile = await Profiles.Find(database, newProfile);
+            var profile = await Profiles.Find(ctx, candidate);
 
-            if (profile is null) {
-                profile = newProfile;
-                database.Profiles.Add(profile);
-                await database.SaveChangesAsync();
-            }
+            if (profile is null)
+                profile = await Profiles.Add(ctx, candidate);
+
             else if (profile.Banned) {
                 sender.Send(new ServerError("You are banned from this server."));
                 sender.Disconnect(CloseStatus.PolicyViolation);
                 return;
             }
             else {
-                profile.Guid = newProfile.Guid;
-                profile.UserName = newProfile.UserName;
-                profile.Address = newProfile.Address;
-                profile.Updated = DateTime.UtcNow;
-                database.Profiles.Update(profile);
-                await database.SaveChangesAsync();
+                profile.Guid = candidate.Guid;
+                profile.Username = candidate.Username;
+                profile.Address = candidate.Address;
+                profile = await Profiles.Update(ctx, profile);
             }
 
             sender.Profile = profile;
-            sender.Channel = database.Channels.FirstOrDefault(s => s.Default);
-            sender.Channel ??= database.Channels.First();
-
+            sender.Channel = await Channels.Default(ctx);
             sender.IsLocalHost = localAddresses.Any(s => s.Equals(sender.RemoteEndPoint.Address));
 
             clients.Add(sender);
 
             sender.Send(new ServerLoginAck() {
-                UserName = sender.Profile.UserName,
+                Username = sender.Profile.Username,
                 Flags = ServerSupportFlags.ALL,
                 Version = "Zorbo Server 1.0"
             });
@@ -306,60 +303,66 @@ namespace Zorbo.Chat.Server
                 Name = "Zorbo Test Server",
                 Topic = "Welcome to my Zorbo server!"
             });
+
+            foreach(var client in clients) {
+                if (client.Channel.Equals(sender.Channel)) {
+                    if (client != sender)
+                        client.Send(new ServerJoined(sender.Profile));
+                    sender.Send(new ServerUserlistItem(client.Profile));
+                }
+            }
         }
 
         private async Task OnClientReceived(ChatClient sender, ChatMessageEventArgs e) {
-
-            Console.WriteLine("Chat server received:\r\n{0} {1}", e.MessageId, JsonSerializer.Serialize(e.Message));
-
             switch (e.MessageId) {
                 case MessageId.CLIENT_ADMIN:
                     break;
                 case MessageId.CLIENT_UPDATE:
                     break;
                 case MessageId.CLIENT_PUBLIC: {
-                    DbMessage msg;
-                    var pub = (ClientPublic)e.Message;
-                    using var database = await factory.CreateDbContextAsync();
-                    database.Messages.Add(msg = new() {
+                    var textMsg = e.MessageAs<ClientPublic>();
+
+                    using var ctx = await DbFactory.CreateDbContextAsync();
+                    Message msg = await Messages.Add(ctx, new() {
                         ChannelId = sender.Channel.Id,
                         SenderId = sender.Profile.Id,
-                        Content = sender.IsBinary ?
-                            await e.Reader.ToArrayAsync() :
-                            await BinarySerializer.SerializeAsync(e.Message),
-                        Created = DateTime.UtcNow
+                        Type = DbMessageType.Public,
+                        Content = textMsg.Message
                     });
-                    await database.SaveChangesAsync();
-                    Send(
-                        (s) => s.Channel == sender.Channel,
+
+                    Send((s) => s.Channel == sender.Channel,
                         new ServerPublic() {
                             Id = msg.Id,
-                            Sender = sender.Profile.UserName,
-                            Message = pub.Message
+                            Sender = sender.Profile.Username,
+                            Message = textMsg.Message
                         }
                     );
                     break;
                 }
                 case MessageId.CLIENT_PRIVATE: {
-                    DbMessage msg;
-                    var priv = (ClientPrivate)e.Message;
-                    using var database = await factory.CreateDbContextAsync();
-                    database.Messages.Add(msg = new() {
-                        SenderId = sender.Profile.Id,
-                        Content = sender.IsBinary ?
-                            await e.Reader.ToArrayAsync() : 
-                            await BinarySerializer.SerializeAsync(e.Message),
-                        Created = DateTime.UtcNow
-                    });
-                    await database.SaveChangesAsync();
-                    Send(
-                        (s) => s.Profile.UserName == priv.Target,
-                        new ServerPrivate() {
+                    var privMsg = e.MessageAs<ClientPrivate>();
+                    var receiver = clients.FirstOrDefault(s => s.Profile.Username == privMsg.Target);
+
+                    if (receiver is null)
+                        sender.Send(new ServerPrivateError() {  
+                            Target = privMsg.Target,
+                            Code = PrivateError.Offline
+                        });
+                    else {
+                        using var ctx = await DbFactory.CreateDbContextAsync();
+                        Message msg = await Messages.Add(ctx, new() {
+                            SenderId = sender.Profile.Id,
+                            ReceiverId = receiver.Profile.Id,
+                            Type = DbMessageType.Private,
+                            Content = privMsg.Message
+                        });
+
+                        receiver.Send(new ServerPrivate() {
                             Id = msg.Id,
-                            Sender = sender.Profile.UserName,
-                            Message = priv.Message
-                        }
-                    );
+                            Sender = sender.Profile.Username,
+                            Message = privMsg.Message
+                        });
+                    }
                     break;
                 }
                 default:
@@ -367,6 +370,13 @@ namespace Zorbo.Chat.Server
                     sender.Disconnect(CloseStatus.InvalidMessageType);
                     break;
             }
+            Console.WriteLine("{0} {1}", e.MessageId, JsonSerializer.Serialize(e.Message));
+        }
+
+        private Task OnClientHttpRequest(ChatClient sender, HttpRequestEventArgs e) {
+            // why is a logged in chatclient sending http requests?
+            // is this an error? should we just serve it?
+            return Task.CompletedTask;
         }
 
         private Task OnClientException(ChatClient sender, ExceptionEventArgs e) {

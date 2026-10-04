@@ -554,11 +554,14 @@ namespace Zorbo.Net
                     if (reader.Remaining < 2)
                         return FrameResult.Incomplete;
 
-                    string tmp = await reader.ReadStringAsync(2);
+                    string tmp = (await reader.ReadStringAsync(2)).ToUpper();
                     reader.Position -= 2;
 
-                    if (tmp.Equals("GE", StringComparison.InvariantCultureIgnoreCase))
-                        return await ReadWebSocketUpgrade(reader);
+                    switch (tmp) {
+                        case "GE":
+                        case "HE":
+                        case "PO": return await ReadHttpRequest(reader);
+                    }
                 }
                 else return await ReadWebSocketAccept(reader);
             }
@@ -654,65 +657,74 @@ namespace Zorbo.Net
             return FrameResult.Finished;
         }
 
-        protected virtual async Task<FrameResult> ReadWebSocketUpgrade(ZBinaryReader reader) {
+        protected virtual async Task<FrameResult> ReadHttpRequest(ZBinaryReader reader) {
             var state = ReadHttpHeader(reader, out var sb);
-
             if (state == FrameResult.Finished) {
                 var request = HttpHelper.ParseRequestHeaders(sb.ToString());
 
                 if (request.Headers.TryGetValue("CONNECTION", out _) &&
-                    request.Headers.TryGetValue("UPGRADE", out _)) {
+                    request.Headers.TryGetValue("UPGRADE", out _) &&
+                    request.Headers.TryGetValue("SEC-WEBSOCKET-KEY", out string key)) {
 
-                    //request.Headers.TryGetValue("SEC-WEBSOCKET-VERSION", out string version);
-
-                    if (request.Headers.TryGetValue("SEC-WEBSOCKET-KEY", out string key)) {
-
-                        if (string.IsNullOrEmpty(key)) {
-                            Disconnect(CloseStatus.ProtocolError);
-                            return FrameResult.Close;
-                        }
-                        try {
-                            sessionGuid = new Guid(Convert.FromBase64String(key));
-                        }
-                        catch {
-                            Disconnect(CloseStatus.ProtocolError);
-                            return FrameResult.Close;
-                        }
-
-                        if (sessionGuid == Guid.Empty) {
-                            Disconnect(CloseStatus.ProtocolError);
-                            return FrameResult.Close;
-                        }
-
-                        var my_headers = new Dictionary<string, string>();
-
-                        if (request.Headers.TryGetValue("ORIGIN", out string origin)) {
-                            my_headers.Add("Access-Control-Allow-Origin", origin);
-                            my_headers.Add("Access-Control-Allow-Credentials", "true");
-                            my_headers.Add("Access-Control-Allow-Headers", "content-type");
-                        }
-
-                        IsWebSocket = true;
-                        upgradeRequired = false;
-                        handshake = Handshake.Finished;
-
-                        UpdateUri();
-                        await SendWebSocketAccept([.. my_headers]);
-
-                        return FrameResult.Finished;
-                    }
+                    return await ReadWebSocketUpgrade(reader, request, key);
                 }
 
+                using var content = new ZBinaryReader();
+
+                if (request.Headers.TryGetValue("CONTENT-LENGTH", out string len)) {
+                    int length = int.Parse(len);
+
+                    if (reader.Remaining < length)
+                        return FrameResult.Incomplete;
+
+                    await reader.BaseStream.CopyToAsync(content.BaseStream);
+
+                    content.Position = 0;
+                }
+
+                await OnHttpRequestReceived(request, content);
+            }
+            return state;
+        }
+
+        protected virtual async Task<FrameResult> ReadWebSocketUpgrade(ZBinaryReader reader, RequestMetadata request, string key) {
+            if (string.IsNullOrEmpty(key)) {
+                Disconnect(CloseStatus.ProtocolError);
+                return FrameResult.Close;
+            }
+            try {
+                sessionGuid = new Guid(Convert.FromBase64String(key));
+            }
+            catch {
                 Disconnect(CloseStatus.ProtocolError);
                 return FrameResult.Close;
             }
 
-            return state;
+            if (sessionGuid == Guid.Empty) {
+                Disconnect(CloseStatus.ProtocolError);
+                return FrameResult.Close;
+            }
+
+            var my_headers = new Dictionary<string, string>();
+
+            if (request.Headers.TryGetValue("ORIGIN", out string origin)) {
+                my_headers.Add("Access-Control-Allow-Origin", origin);
+                my_headers.Add("Access-Control-Allow-Credentials", "true");
+                my_headers.Add("Access-Control-Allow-Headers", "content-type");
+            }
+
+            IsWebSocket = true;
+            upgradeRequired = false;
+            handshake = Handshake.Finished;
+
+            UpdateUri();
+            await SendWebSocketAccept([.. my_headers]);
+
+            return FrameResult.Finished;
         }
 
         protected virtual async Task<FrameResult> ReadWebSocketAccept(ZBinaryReader reader) {
             var state = ReadHttpHeader(reader, out var sb);
-
             if (state == FrameResult.Finished) {
                 var response = HttpHelper.ParseResponseHeaders(sb.ToString());
 
@@ -728,7 +740,6 @@ namespace Zorbo.Net
                 Disconnect(CloseStatus.ProtocolError);
                 return FrameResult.Close;
             }
-
             return state;
         }
 
@@ -815,7 +826,11 @@ namespace Zorbo.Net
         }
 
         protected virtual Task OnMessageReceived(ZBinaryReader reader, MessageResult result) {
-            return Received?.Invoke(this, new(reader, result.Id, result.Message, incomingMsgType));
+            return Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType));
+        }
+
+        protected virtual Task OnHttpRequestReceived(RequestMetadata request, ZBinaryReader content) {
+            return HttpRequest?.Invoke(this, new(request, content));
         }
 
         protected virtual Task OnException(Exception ex, CloseStatus closeStatus) {
@@ -933,6 +948,7 @@ namespace Zorbo.Net
         public event SocketEventHandler<RejectedEventArgs> Rejected;
         public event SocketEventHandler<ConnectEventArgs> Connected;
         public event SocketEventHandler<MessageEventArgs> Received;
+        public event SocketEventHandler<HttpRequestEventArgs> HttpRequest;
         public event SocketEventHandler<ExceptionEventArgs> Exception;
         public event SocketEventHandler<DisconnectEventArgs> Disconnected;
     }

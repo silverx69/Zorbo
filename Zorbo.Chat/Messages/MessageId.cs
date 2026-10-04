@@ -12,9 +12,12 @@
         SERVER_JOINED,
         SERVER_PARTED,
         CLIENT_UPDATE,
+        SERVER_UPDATE,
+        SERVER_ANNOUNCE,
         CLIENT_PUBLIC,
         SERVER_PUBLIC,
         CLIENT_PRIVATE,
-        SERVER_PRIVATE
+        SERVER_PRIVATE,
+        SERVER_PRIVATE_ERROR
     }
 }

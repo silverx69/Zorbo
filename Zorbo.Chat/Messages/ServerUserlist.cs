@@ -1,16 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Zorbo.Chat.Server.Database;
 
 namespace Zorbo.Chat.Messages
 {
     [ChatMessage(MessageId.SERVER_USERLIST)]
-    public class ServerUserlist
+    public class ServerUserlistItem : ServerJoined 
     {
-        public List<ServerUserlistItem> Users { get; set; } = [];
-    }
+        public ServerUserlistItem() { }
 
-    public class ServerUserlistItem 
-    {
-        [StringLength(128, MinimumLength = 2)]
-        public string UserName { get; set; }
+        public ServerUserlistItem(string username) : base(username) { }
+
+        public ServerUserlistItem(Profile profile) : base(profile) { }
     }
 }

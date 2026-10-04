@@ -24,6 +24,9 @@ namespace Zorbo.Data
             private set { encoding = value; }
         }
 
+        public ZBinaryReader()
+            : this(new MemoryStream()) { }
+
         public ZBinaryReader(byte[] input)
             : this(new MemoryStream(input)) { }
 
