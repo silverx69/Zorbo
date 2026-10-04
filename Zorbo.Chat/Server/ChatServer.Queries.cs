@@ -103,8 +103,8 @@ namespace Zorbo.Chat.Server
 
                 FindQuery = EF.CompileAsyncQuery(
                     (Database ctx, string a, string b, string c)
-                        => ctx.Profiles.FirstOrDefault(u => u.Guid == a || u.Username == c));
-                        //=> ctx.Profiles.FirstOrDefault(u => u.Guid == a || u.Address == b || u.Username == c));
+                        //=> ctx.Profiles.FirstOrDefault(u => u.Guid == a || u.Username == c));
+                        => ctx.Profiles.FirstOrDefault(u => u.Guid == a || u.Address == b || u.Username == c));
             }
 
             static readonly Func<Database, ulong, Task<Profile>> GetQuery;

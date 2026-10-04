@@ -9,6 +9,7 @@ using Zorbo.Collections;
 using Zorbo.Data;
 using Zorbo.Net;
 using Zorbo.Net.Messages;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Zorbo.Chat.Server
 {
@@ -187,10 +188,13 @@ namespace Zorbo.Chat.Server
             var client = e.Socket;
 
             client.Received += OnPendingReceived;
+            client.HttpRequest += OnPendingHttpRequest;
             client.Exception += OnPendingException;
             client.Disconnected += OnPendingDisconnected;
 
             pending.Add(new Pending(client));
+
+            client.Receive();
             return Task.CompletedTask;
         }
 
@@ -236,7 +240,7 @@ namespace Zorbo.Chat.Server
             }
         }
 
-        private Task OnPendingHttpRequest(ZorboSocket socket, HttpRequestEventArgs e) {
+        private Task OnPendingHttpRequest(ZorboSocket sender, HttpRequestEventArgs e) {
             // here we would properly handle requests
             // access uri field with e.Resource
             switch(e.Method) {
@@ -245,6 +249,10 @@ namespace Zorbo.Chat.Server
                 case "POST":
                     break;
             }
+
+            //the byte[] overload will also send raw, but I think this shows intent
+            sender.Send(new ZorboSocket.Raw(HttpHelper.ResponseHeaderBytes(HttpStatusCode.MethodNotAllowed)));
+            sender.Disconnect();
 
             return Task.CompletedTask;
         }

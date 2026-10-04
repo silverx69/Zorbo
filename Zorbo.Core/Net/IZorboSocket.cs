@@ -50,8 +50,11 @@ namespace Zorbo.Net
         bool IsWebSocket { get; set; }
         bool IsSecureSocket { get; set; }
 
-        int MaxFrameSize { get; set; }
-        int MaxMessageSize { get; set; }
+        long MaxFrameSize { get; set; }
+        long MaxMessageSize { get; set; }
+
+        long MaxRequestHeaderSize { get; set; }
+        long MaxRequestContentSize { get; set; }
 
         IPEndPoint LocalEndPoint { get; }
         IPEndPoint RemoteEndPoint { get; }
@@ -69,6 +72,9 @@ namespace Zorbo.Net
         void Connect(string host, int port);
         void Connect(IPAddress ip, int port);
         void Connect(IPEndPoint endpoint);
+
+        void Send(byte[] rawbytes);
+        void Send(byte[] rawbytes, int index, int count);
 
         void Send(object message);
         void Send(object message, MessageType type);
@@ -143,10 +149,11 @@ namespace Zorbo.Net
         public T MessageAs<T>() { return (T)Message; }
     }
 
-    public class HttpRequestEventArgs : SocketEventArgs
+    public class HttpRequestEventArgs : SocketEventArgs, IDisposable
     {
-        readonly ZBinaryReader content;
         readonly RequestMetadata request;
+        readonly ZBinaryReader content;
+
 
         public string Method { get { return request.Method; } }
 
@@ -164,6 +171,11 @@ namespace Zorbo.Net
         public HttpRequestEventArgs(RequestMetadata request, ZBinaryReader content) {
             this.request = request;
             this.content = content;
+        }
+
+        public void Dispose() {
+            content?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 

@@ -64,25 +64,26 @@ namespace Zorbo.Chat.Server
         
         protected virtual Task OnReceived(ZorboSocket sender, MessageEventArgs e) {
             Socket.MessageType = e.MessageType;
-            if (MessageValidator.Validate(e.Message, out var results))
-                return Received?.Invoke(this, new(e));
-            else {
+
+            if (!MessageValidator.Validate(e.Message, out var results)) {
                 Send(new ServerError(results[0].ErrorMessage));
                 Disconnect();
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
+
+            return Received?.Invoke(this, new(e)) ?? Task.CompletedTask;
         }
 
         protected virtual Task OnHttpRequest(ZorboSocket sender, HttpRequestEventArgs e) {
-            return HttpRequest?.Invoke(this, e);
+            return HttpRequest?.Invoke(this, e) ?? Task.CompletedTask;
         }
 
         protected virtual Task OnException(ZorboSocket sender, ExceptionEventArgs e) {
-            return Exception?.Invoke(this, e);
+            return Exception?.Invoke(this, e) ?? Task.CompletedTask;
         }
 
         protected virtual Task OnDisconnected(ZorboSocket sender, DisconnectEventArgs e) {
-            return Disconnected?.Invoke(this, e);
+            return Disconnected?.Invoke(this, e) ?? Task.CompletedTask;
         }
 
         public void Disconnect(CloseStatus closeStatus = CloseStatus.NormalClosure) {

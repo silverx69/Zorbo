@@ -102,7 +102,7 @@ namespace Zorbo
             client.Disconnected += ChatClient_Disconnected;
 
             // test json transmission
-            client.MessageType = MessageType.Text;
+            client.MessageType = MessageType.Binary;
             client.CertificateCallback = Certificates.SelfSignedValidationCallback;
 
             //client.IsSecureSocket = true;
@@ -111,9 +111,10 @@ namespace Zorbo
             client.Connect(new Uri("tcps://[::1]:" + server.LocalEndPoint.Port));
         }
 
-        private static Task ChatClient_Connected(ZorboSocket sender, ConnectEventArgs e) {
+        private static async Task ChatClient_Connected(ZorboSocket sender, ConnectEventArgs e) {
             Console.WriteLine("Chat client connected.");
 
+            sender.Receive();
             sender.Send(new ClientLogin() {
                 Guid = Guid.NewGuid(),
                 Username = "SilverX",
@@ -128,7 +129,23 @@ namespace Zorbo
                 Message = "This is a test of the database history system."
             });
 
-            return Task.CompletedTask;
+            var testHandler = new HttpClientHandler() {
+                ServerCertificateCustomValidationCallback = Certificates.SelfSignedValidationCallback
+            };
+
+            var testClient = new HttpClient(testHandler);
+            var post = new StringContent("This is a POST request");
+            try {
+                var response = await testClient.PostAsync(new Uri("https://[::1]:" + server.LocalEndPoint.Port), post);
+                string content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Http Response: {0}", content);
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            finally {
+                testClient.Dispose();
+            }
         }
 
         private static Task ChatClient_Rejected(ZorboSocket sender, RejectedEventArgs e) {
@@ -294,6 +311,7 @@ namespace Zorbo
             serverClient.Exception += Listener_Exception;
             serverClient.Disconnected += Listener_Disconnected;
 
+            serverClient.Receive();
             return Task.CompletedTask;
         }
 
@@ -325,6 +343,7 @@ namespace Zorbo
         static Task Client_Connected(ZorboSocket sender, ConnectEventArgs e) {
             Console.WriteLine("Client connected successfully.");
             // send from ZorboSocket to ZorboSocket
+            sender.Receive();
             sender.Send(OBJ1, MessageType.Text);
             return Task.CompletedTask;
         }

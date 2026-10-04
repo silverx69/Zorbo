@@ -49,6 +49,23 @@ namespace Zorbo.Net
             Close
         }
 
+        public sealed class Raw : ControlMessage
+        {
+            public int Index { get; set; }
+            public int Count { get; set; }
+
+            public Raw(byte[] bytes) 
+                : base(bytes) {
+                Count = bytes.Length;
+            }
+
+            public Raw(byte[] bytes, int index, int count) 
+                : base(bytes) {
+                Index = index;
+                Count = count;
+            }
+        }
+
         public sealed class Ping(byte[] bytes)
             : ControlMessage(bytes) { }
 
@@ -126,17 +143,22 @@ namespace Zorbo.Net
         /// <summary>
         /// The maximum size, in kilobytes, of a frame before messages should be fragmented into multiple frames.
         /// </summary>
-        public int MaxFrameSize { get; set; } = 32 * 1024;
+        public long MaxFrameSize { get; set; } = 32 * 1024;
 
         /// <summary>
         /// The maximum size, in kilobytes, of any message (the combined size of all frames). 
         /// </summary>
-        public int MaxMessageSize { get; set; } = 128 * 1024;
+        public long MaxMessageSize { get; set; } = 128 * 1024;
 
         /// <summary>
-        /// The maximum size, in kilobytes, of a WebSocket upgrade request or accept response.
+        /// The maximum size, in kilobytes, of an HTTP request header (includes WebSocket upgrade).
         /// </summary>
-        protected const int MaxHandshakeSize = 16 * 1024;
+        public long MaxRequestHeaderSize { get; set; } = 8 * 1024;
+
+        /// <summary>
+        /// The maximum size, in kilobytes, of an HTTP request content buffer (default is 2GB).
+        /// </summary>
+        public long MaxRequestContentSize { get; set; } = 2L * 1024L * 1024L * 1024L;
 
 
         public X509Certificate Certificate { get; set; }
@@ -200,21 +222,20 @@ namespace Zorbo.Net
                         }
                     }
                     catch (Exception ex) {
-                        await OnRejected(client, ex);
+                        OnRejected(client, ex);
                         await client.DisposeAsync();
                         continue;
                     }
 
                     client.UpdateUri();
-                    await OnAccepted(client);
-                    client.Receive();
+                    OnAccepted(client);
                 }
                 catch (Exception ex) {
                     if (client is not null)
                         await client.DisposeAsync();
                     else if (socket is not null)
                         await socket.DestroyAsync();
-                    await OnException(ex);
+                    OnException(ex);
                 }
             }
         }
@@ -293,15 +314,14 @@ namespace Zorbo.Net
                     await AuthenticateAsClient();
 
                 if (IsWebSocket)
-                    await SendWebSocketUpgrade();
+                    SendWebSocketUpgrade();
             }
             catch (Exception ex) {
-                await OnRejected(this, ex);
+                OnRejected(this, ex);
                 return;
             }
 
-            await OnConnected();
-            Receive();
+            OnConnected();
         }
 
         #endregion
@@ -322,12 +342,12 @@ namespace Zorbo.Net
                     await WriteFrame(writer, OpCode.Close);
                 }
                 catch (Exception e) {
-                    await OnException(e, false);
+                    OnException(e, false);
                 }
             }
 
             await CloseAsync();
-            await OnDisconnected(status);
+            OnDisconnected(status);
         }
 
         #endregion
@@ -362,25 +382,25 @@ namespace Zorbo.Net
 
         #region " WebSocket Handshake "
 
-        protected virtual async Task SendWebSocketUpgrade(params KeyValuePair<string, string>[] headers) {
-            var stream = GetSocketStream();
-            if (stream is null) return;
-            byte[] buffer = HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, sessionGuid, headers);
-            await stream.WriteAsync(buffer);
-            Monitor.AddOutput(buffer.Length);
+        protected virtual void SendWebSocketUpgrade(params KeyValuePair<string, string>[] headers) {
+            Send(HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, sessionGuid, headers));
         }
 
-        protected virtual async Task SendWebSocketAccept(params KeyValuePair<string, string>[] headers) {
-            var stream = GetSocketStream();
-            if (stream is null) return;
-            byte[] buffer = HttpHelper.AcceptWebSocketHeaderBytes(sessionGuid, [.. headers]);
-            await stream.WriteAsync(buffer);
-            Monitor.AddOutput(buffer.Length);
+        protected virtual void SendWebSocketAccept(params KeyValuePair<string, string>[] headers) {
+            Send(HttpHelper.AcceptWebSocketHeaderBytes(sessionGuid, [.. headers]));
         }
 
         #endregion
 
         #region " Send "
+
+        public virtual void Send(byte[] rawbytes) {
+            Send(new Raw(rawbytes));
+        }
+
+        public virtual void Send(byte[] rawbytes, int index, int count) {
+            Send(new Raw(rawbytes, index, count));
+        }
 
         public virtual void Send(object msg) {
             Send(msg, MessageType);
@@ -410,7 +430,7 @@ namespace Zorbo.Net
                 }
             }
             catch (Exception ex) {
-                await OnException(ex);
+                OnException(ex);
             }
         }
 
@@ -426,17 +446,23 @@ namespace Zorbo.Net
                 opCode = OpCode.Pong;
                 await writer.WriteAsync(pong.Data);
             }
+            else if (msg is Raw raw) {
+                var stream = GetSocketStream();
+                if (stream is not null)
+                    await stream.WriteAsync(raw.Data.AsMemory(raw.Index, raw.Count));
+                return;
+            }
             else {
                 try {
                     opCode = (type == MessageType.Binary) ? OpCode.Binary : OpCode.Text;
                     await Converter.WriteAsync(writer, msg, type);
                 }
                 catch(MessageConversionException mex) {
-                    await OnException(mex, false);
+                    OnException(mex, false);
                     return;
                 }
                 catch (Exception ex) {
-                    await OnException(new MessageConversionException(ex), false);
+                    OnException(new MessageConversionException(ex), false);
                     return;
                 }
             }
@@ -484,7 +510,7 @@ namespace Zorbo.Net
 
         #region " Receive "
 
-        protected virtual async void Receive() {
+        public virtual async void Receive() {
             if (isReading)
                 return;
             isReading = true;
@@ -492,7 +518,7 @@ namespace Zorbo.Net
                 await ReadFromStream();
             }
             catch (Exception ex) {
-                await OnException(ex);
+                OnException(ex);
             }
         }
 
@@ -640,10 +666,10 @@ namespace Zorbo.Net
                     break;
                 case OpCode.Ping:
                     Send(new Pong(frame.Payload));
-                    await OnControlReceived(new Ping(frame.Payload));
+                    OnControlReceived(new Ping(frame.Payload));
                     return FrameResult.Finished;
                 case OpCode.Pong:
-                    await OnControlReceived(new Pong(frame.Payload));
+                    OnControlReceived(new Pong(frame.Payload));
                     return FrameResult.Finished;
                 case OpCode.Close:
                     Disconnect();
@@ -669,22 +695,47 @@ namespace Zorbo.Net
                     return await ReadWebSocketUpgrade(reader, request, key);
                 }
 
-                using var content = new ZBinaryReader();
-
+                var content = new ZBinaryReader();
                 if (request.Headers.TryGetValue("CONTENT-LENGTH", out string len)) {
-                    int length = int.Parse(len);
 
-                    if (reader.Remaining < length)
-                        return FrameResult.Incomplete;
+                    if (int.TryParse(len, out int length)) {
 
-                    await reader.BaseStream.CopyToAsync(content.BaseStream);
+                        if (length > MaxRequestContentSize) {
+                            Disconnect(CloseStatus.MessageTooBig);
+                            return FrameResult.Close;
+                        }
 
-                    content.Position = 0;
+                        if (length < reader.Remaining)
+                            return FrameResult.Incomplete;
+
+                        await reader.BaseStream.CopyToAsync(content.BaseStream);
+                    }
+                    else {
+                        Disconnect(CloseStatus.InvalidPayloadData);
+                        return FrameResult.Close;
+                    }
                 }
 
-                await OnHttpRequestReceived(request, content);
+                OnHttpRequestReceived(content, request);
             }
+
             return state;
+        }
+
+        protected virtual FrameResult ReadHttpHeader(ZBinaryReader reader, out StringBuilder sb) {
+            sb = new StringBuilder();
+            while (reader.Remaining > 0) {
+                sb.Append(reader.ReadChar());
+
+                if (sb.Length > MaxRequestHeaderSize) {
+                    Disconnect(CloseStatus.MessageTooBig);
+                    return FrameResult.Close;
+                }
+                else if (sb.EndsWith("\r\n\r\n"))
+                    return FrameResult.Finished;
+            }
+
+            return FrameResult.Incomplete;
         }
 
         protected virtual async Task<FrameResult> ReadWebSocketUpgrade(ZBinaryReader reader, RequestMetadata request, string key) {
@@ -718,7 +769,7 @@ namespace Zorbo.Net
             handshake = Handshake.Finished;
 
             UpdateUri();
-            await SendWebSocketAccept([.. my_headers]);
+            SendWebSocketAccept([.. my_headers]);
 
             return FrameResult.Finished;
         }
@@ -743,46 +794,28 @@ namespace Zorbo.Net
             return state;
         }
 
-        protected virtual FrameResult ReadHttpHeader(ZBinaryReader reader, out StringBuilder sb) {
-            sb = new StringBuilder();
-            while (reader.Remaining > 0) {
-                sb.Append(reader.ReadChar());
-
-                if (sb.Length > MaxHandshakeSize) {
-                    Disconnect(CloseStatus.MessageTooBig);
-                    return FrameResult.Close;
-                }
-                else if (sb.EndsWith("\r\n\r\n"))
-                    return FrameResult.Finished;
-            }
-
-            return FrameResult.Incomplete;
-        }
-
         protected virtual async Task<FrameResult> FinishFrame(byte[] payload) {
             await messageStream.WriteAsync(payload);
 
-            using var frameReader = new ZBinaryReader(messageStream, true);
-            frameReader.Position = 0;
-
             MessageResult message;
-
+            using var frameReader = new ZBinaryReader(messageStream, true);
+            
             try {
+                frameReader.Position = 0;
                 message = await Converter.ReadAsync(frameReader, incomingMsgType);
             }
             catch (MessageConversionException mex) {
                 // assume if the converter throws an exception the data was bad
-                await OnException(mex, CloseStatus.InvalidPayloadData);
+                OnException(mex, CloseStatus.InvalidPayloadData);
                 return FrameResult.Close;
             }
             catch (Exception ex) {
                 // assume if the converter throws an exception the data was bad
-                await OnException(new MessageConversionException(ex), CloseStatus.InvalidPayloadData);
+                OnException(new MessageConversionException(ex), CloseStatus.InvalidPayloadData);
                 return FrameResult.Close;
             }
 
-            frameReader.Position = 0;
-            await OnMessageReceived(frameReader, message);
+            OnMessageReceived(message);
 
             messageStream.SetLength(0);
             return FrameResult.Finished;
@@ -808,42 +841,42 @@ namespace Zorbo.Net
                 RemoteUri = new Uri($"tcp://{endpoint}");
         }
 
-        protected virtual Task OnAccepted(ZorboSocket client) {
-            return Accepted?.Invoke(this, new(client));
+        protected virtual async void OnAccepted(ZorboSocket client) {
+            await (Accepted?.Invoke(this, new(client)) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnRejected(ZorboSocket client, Exception ex) {
-            return Rejected?.Invoke(this, new(client, ex));
+        protected virtual async void OnRejected(ZorboSocket client, Exception ex) {
+            await (Rejected?.Invoke(this, new(client, ex)) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnConnected() {
-            return Connected?.Invoke(this, ConnectEventArgs.Empty);
+        protected virtual async void OnConnected() {
+            await (Connected?.Invoke(this, ConnectEventArgs.Empty) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnControlReceived(object message) {
-            //Received?.Invoke(this, new MessageEventArgs(message, MessageType.Binary));
-            return Task.CompletedTask;
+        protected virtual void OnControlReceived(object message) {
+            //await (Received?.Invoke(this, new(0, message, MessageType.Binary)) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnMessageReceived(ZBinaryReader reader, MessageResult result) {
-            return Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType));
+        protected virtual async void OnMessageReceived(MessageResult result) {
+            await (Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType)) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnHttpRequestReceived(RequestMetadata request, ZBinaryReader content) {
-            return HttpRequest?.Invoke(this, new(request, content));
+        protected virtual async void OnHttpRequestReceived(ZBinaryReader content, RequestMetadata request) {
+            using var args = new HttpRequestEventArgs(request, content);
+            await (HttpRequest?.Invoke(this, args) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnException(Exception ex, CloseStatus closeStatus) {
-            return OnException(ex, true, closeStatus);
+        protected virtual void OnException(Exception ex, CloseStatus closeStatus) {
+            OnException(ex, true, closeStatus);
         }
 
-        protected virtual Task OnException(Exception ex, bool disconnect = true, CloseStatus closeStatus = CloseStatus.InternalServerError) {
+        protected virtual async void OnException(Exception ex, bool disconnect = true, CloseStatus closeStatus = CloseStatus.InternalServerError) {
             if (disconnect) Disconnect(closeStatus);
-            return Exception?.Invoke(this, new(ex));
+            await (Exception?.Invoke(this, new(ex)) ?? Task.CompletedTask);
         }
 
-        protected virtual Task OnDisconnected(CloseStatus status) {
-            return Disconnected?.Invoke(this, new(status));
+        protected virtual async void OnDisconnected(CloseStatus status) {
+            await (Disconnected?.Invoke(this, new(status)) ?? Task.CompletedTask);
         }
 
         public virtual void Close() {
@@ -927,6 +960,7 @@ namespace Zorbo.Net
             Rejected = null;
             Connected = null;
             Received = null;
+            HttpRequest = null;
             Exception = null;
             Disconnected = null;
             Close();
@@ -938,6 +972,7 @@ namespace Zorbo.Net
             Rejected = null;
             Connected = null;
             Received = null;
+            HttpRequest = null;
             Exception = null;
             Disconnected = null;
             await CloseAsync();
