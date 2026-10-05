@@ -73,8 +73,8 @@ namespace Zorbo.Net
         void Connect(IPAddress ip, int port);
         void Connect(IPEndPoint endpoint);
 
-        void Send(byte[] rawbytes);
-        void Send(byte[] rawbytes, int index, int count);
+        //void Send(byte[] rawbytes);
+        //void Send(byte[] rawbytes, int index, int count);
 
         void Send(object message);
         void Send(object message, MessageType type);

@@ -2,6 +2,7 @@
 {
     public enum MessageId : ushort
     {
+        UNKNOWN = 0,
         SERVER_ERROR,
         CLIENT_LOGIN,
         SERVER_LOGIN_ACK,

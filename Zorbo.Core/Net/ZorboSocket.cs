@@ -49,37 +49,6 @@ namespace Zorbo.Net
             Close
         }
 
-        public sealed class Raw : ControlMessage
-        {
-            public int Index { get; set; }
-            public int Count { get; set; }
-
-            public Raw(byte[] bytes) 
-                : base(bytes) {
-                Count = bytes.Length;
-            }
-
-            public Raw(byte[] bytes, int index, int count) 
-                : base(bytes) {
-                Index = index;
-                Count = count;
-            }
-        }
-
-        public sealed class Ping(byte[] bytes)
-            : ControlMessage(bytes) { }
-
-        public sealed class Pong(byte[] bytes)
-            : ControlMessage(bytes) { }
-
-        public abstract class ControlMessage
-        {
-            public byte[] Data { get; set; }
-
-            public ControlMessage() { }
-            public ControlMessage(byte[] data) { Data = data; }
-        }
-
         protected class QueuedMessage(object msg, MessageType type)
         {
             public object Message { get; set; } = msg;
@@ -112,6 +81,12 @@ namespace Zorbo.Net
         public bool IsWebSocket { get; set; }
 
         public bool IsSecureSocket { get; set; }
+
+        /// <summary>
+        /// True to propagate Ping/Pong messages through the Received event handler; otherwise false.
+        /// Default value is false. Event handlers do not need to respond to Ping messages; the socket responds automatically.
+        /// </summary>
+        public bool ReceiveControlMessages { get; set; }
 
         /// <summary>
         /// Gets or sets the default <see cref="MessageType"/> for sending data when an explicit message type is not supplied to Send(). 
@@ -334,7 +309,12 @@ namespace Zorbo.Net
 
         public virtual async void Disconnect(CloseStatus status) {
 
-            if (IsConnected && status != CloseStatus.EndpointUnavailable) {
+            if (IsConnected && 
+                // network read returned 0
+                status != CloseStatus.EndpointUnavailable &&
+                // this is the only place ZorboSocket references this CloseStatus.
+                // can use this from calling code to avert sending the close frame
+                status != CloseStatus.Empty) {
                 try {
                     using var writer = new ZBinaryWriter();
 
@@ -383,24 +363,16 @@ namespace Zorbo.Net
         #region " WebSocket Handshake "
 
         protected virtual void SendWebSocketUpgrade(params KeyValuePair<string, string>[] headers) {
-            Send(HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, sessionGuid, headers));
+            Send((Raw)HttpHelper.UpgradeWebSocketHeaderBytes(RemoteUri, sessionGuid, headers));
         }
 
         protected virtual void SendWebSocketAccept(params KeyValuePair<string, string>[] headers) {
-            Send(HttpHelper.AcceptWebSocketHeaderBytes(sessionGuid, [.. headers]));
+            Send((Raw)HttpHelper.AcceptWebSocketHeaderBytes(sessionGuid, [.. headers]));
         }
 
         #endregion
 
         #region " Send "
-
-        public virtual void Send(byte[] rawbytes) {
-            Send(new Raw(rawbytes));
-        }
-
-        public virtual void Send(byte[] rawbytes, int index, int count) {
-            Send(new Raw(rawbytes, index, count));
-        }
 
         public virtual void Send(object msg) {
             Send(msg, MessageType);
@@ -457,7 +429,7 @@ namespace Zorbo.Net
                     opCode = (type == MessageType.Binary) ? OpCode.Binary : OpCode.Text;
                     await Converter.WriteAsync(writer, msg, type);
                 }
-                catch(MessageConversionException mex) {
+                catch (MessageConversionException mex) {
                     OnException(mex, false);
                     return;
                 }
@@ -665,11 +637,11 @@ namespace Zorbo.Net
                     }
                     break;
                 case OpCode.Ping:
-                    Send(new Pong(frame.Payload));
-                    OnControlReceived(new Ping(frame.Payload));
+                    Send((Pong)frame.Payload);
+                    OnControlReceived((Ping)frame.Payload);
                     return FrameResult.Finished;
                 case OpCode.Pong:
-                    OnControlReceived(new Pong(frame.Payload));
+                    OnControlReceived((Pong)frame.Payload);
                     return FrameResult.Finished;
                 case OpCode.Close:
                     Disconnect();
@@ -715,7 +687,6 @@ namespace Zorbo.Net
                         return FrameResult.Close;
                     }
                 }
-
                 OnHttpRequestReceived(content, request);
             }
 
@@ -853,8 +824,9 @@ namespace Zorbo.Net
             await (Connected?.Invoke(this, ConnectEventArgs.Empty) ?? Task.CompletedTask);
         }
 
-        protected virtual void OnControlReceived(object message) {
-            //await (Received?.Invoke(this, new(0, message, MessageType.Binary)) ?? Task.CompletedTask);
+        protected virtual async void OnControlReceived(object message) {
+            if (ReceiveControlMessages)
+                await (Received?.Invoke(this, new(0, message, MessageType.Binary)) ?? Task.CompletedTask);
         }
 
         protected virtual async void OnMessageReceived(MessageResult result) {
@@ -862,6 +834,7 @@ namespace Zorbo.Net
         }
 
         protected virtual async void OnHttpRequestReceived(ZBinaryReader content, RequestMetadata request) {
+            content.Position = 0;
             using var args = new HttpRequestEventArgs(request, content);
             await (HttpRequest?.Invoke(this, args) ?? Task.CompletedTask);
         }

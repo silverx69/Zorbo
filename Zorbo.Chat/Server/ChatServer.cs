@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using Zorbo.Chat.Messages;
 using Zorbo.Chat.Server.Database;
 using Zorbo.Collections;
 using Zorbo.Data;
 using Zorbo.Net;
 using Zorbo.Net.Messages;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Zorbo.Chat.Server
 {
@@ -38,7 +38,7 @@ namespace Zorbo.Chat.Server
             IEquatable<ZorboSocket>,
             IEquatable<Socket>,
             IDisposable,
-            IAsyncDisposable 
+            IAsyncDisposable
         {
             public ZorboSocket Socket { get; set; }
             public DateTime JoinTime { get; set; }
@@ -166,11 +166,11 @@ namespace Zorbo.Chat.Server
                 await listener.DisposeAsync();
                 listener = null;
             }
-            
+
             foreach (var s in pending)
                 await s.DisposeAsync();
             pending.Clear();
-            
+
             foreach (var s in clients)
                 await s.DisposeAsync();
             clients.Clear();
@@ -240,23 +240,41 @@ namespace Zorbo.Chat.Server
             }
         }
 
-        private Task OnPendingHttpRequest(ZorboSocket sender, HttpRequestEventArgs e) {
-            // here we would properly handle requests
-            // access uri field with e.Resource
-            switch(e.Method) {
-                case "GET":
-                case "HEAD":
-                case "POST":
+        private async Task OnPendingHttpRequest(ZorboSocket sender, HttpRequestEventArgs e) {
+            string content = "This is a basic HTTP response.";
+
+            var my_headers = new Dictionary<string, string> {
+                { "Content-Type", "text/plain; charset=utf-8" },
+                { "Content-Length", content.Length.ToString() }
+            };
+
+            switch (e.Method) {
+                case "HEAD": {
+                    Console.WriteLine($"HEAD {e.Resource}");
+                    sender.Send((Raw)HttpHelper.ResponseHeaderBytes(HttpStatusCode.OK, extra_headers: [.. my_headers]));
+                    break;
+                }
+                case "GET": {
+                    Console.WriteLine($"GET {e.Resource}");
+                    sender.Send((Raw)HttpHelper.ResponseHeaderBytes(HttpStatusCode.OK, extra_headers: [.. my_headers]));
+                    sender.Send((Raw)Encoding.UTF8.GetBytes(content));
+                    break;
+                }
+                case "POST": {
+                    Console.WriteLine($"POST {e.Resource}: {await e.Content.ReadStringAsync(false)}");
+                    sender.Send((Raw)HttpHelper.ResponseHeaderBytes(HttpStatusCode.OK, extra_headers: [.. my_headers]));
+                    sender.Send((Raw)Encoding.UTF8.GetBytes(content));
+                    break;
+                }
+                default:
+                    sender.Send((Raw)HttpHelper.ResponseHeaderBytes(HttpStatusCode.MethodNotAllowed));
                     break;
             }
 
-            //the byte[] overload will also send raw, but I think this shows intent
-            sender.Send(new ZorboSocket.Raw(HttpHelper.ResponseHeaderBytes(HttpStatusCode.MethodNotAllowed)));
-            sender.Disconnect();
-
-            return Task.CompletedTask;
+            // here we're telling the socket not to send an OpCode.Close frame
+            sender.Disconnect(CloseStatus.Empty);
         }
-        
+
         private Task OnPendingException(ZorboSocket sender, ExceptionEventArgs e) {
             // log?
             return Task.CompletedTask;
@@ -312,7 +330,7 @@ namespace Zorbo.Chat.Server
                 Topic = "Welcome to my Zorbo server!"
             });
 
-            foreach(var client in clients) {
+            foreach (var client in clients) {
                 if (client.Channel.Equals(sender.Channel)) {
                     if (client != sender)
                         client.Send(new ServerJoined(sender.Profile));
@@ -352,7 +370,7 @@ namespace Zorbo.Chat.Server
                     var receiver = clients.FirstOrDefault(s => s.Profile.Username == privMsg.Target);
 
                     if (receiver is null)
-                        sender.Send(new ServerPrivateError() {  
+                        sender.Send(new ServerPrivateError() {
                             Target = privMsg.Target,
                             Code = PrivateError.Offline
                         });

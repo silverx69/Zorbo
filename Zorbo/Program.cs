@@ -134,11 +134,13 @@ namespace Zorbo
             };
 
             var testClient = new HttpClient(testHandler);
-            var post = new StringContent("This is a POST request");
+            var post = new StringContent("This is a POST request.");
             try {
                 var response = await testClient.PostAsync(new Uri("https://[::1]:" + server.LocalEndPoint.Port), post);
                 string content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("Http Response: {0}", content);
+
+                if (response.IsSuccessStatusCode)
+                    Console.WriteLine("Response: {0}", content);
             }
             catch (Exception ex) {
                 Console.WriteLine(ex.Message);
