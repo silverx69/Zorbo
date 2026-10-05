@@ -17,7 +17,7 @@ namespace Zorbo.Net
         Handshake handshake;
 
         MessageType defaultMsgType = MessageType.Binary;
-        MessageType incomingMsgType;
+        MessageType incomingMsgType = MessageType.Binary;
 
         bool upgradeRequired;
         bool continueMessage;
@@ -159,10 +159,10 @@ namespace Zorbo.Net
 
         public ZorboSocket(SocketProtocol protocol, IMessageConverter converter) {
             ArgumentNullException.ThrowIfNull(converter, nameof(converter));
-            CreateSocket();
             this.Protocol = protocol;
             this.Converter = converter;
             this.Monitor = new IOMonitor(true);
+            CreateSocket();
         }
 
         // called by Accept()
@@ -573,6 +573,11 @@ namespace Zorbo.Net
         }
 
         protected virtual async Task ReadFromDgram() {
+            // if default send is Binary, expect Binary
+            // Note: if a udp message object has a MessageType field
+            // a custom MessageConverter could read the field and deserialize the remaining data based on that
+            incomingMsgType = MessageType;
+
             while (isReading) {
                 var result = await socket.ReceiveFromAsync(recvBuffer, EmptyEndPoint);
                 int count = result.ReceivedBytes;
@@ -657,9 +662,9 @@ namespace Zorbo.Net
                     reader.Position -= 2;
 
                     switch(tmp) {
-                        case 17735:
-                        case 17736:
-                        case 20304:
+                        case 17735: // GE
+                        case 17736: // HE
+                        case 20304: // PO
                             return await ReadHttpRequest(reader);
                     }
                 }
@@ -898,7 +903,7 @@ namespace Zorbo.Net
             using var reader = new ZBinaryReader(messageStream, true);
             var result = await ReadMessage(reader);
 
-            messageStream.SetLength(0);
+            messageStream?.SetLength(0);
             return result;
         }
 
@@ -937,10 +942,6 @@ namespace Zorbo.Net
         protected virtual async void OnControlReceived(object message) {
             if (ReceiveControlMessages)
                 await (Received?.Invoke(this, new(0, message, MessageType.Binary)) ?? Task.CompletedTask);
-        }
-
-        protected virtual async void OnMessageReceived(MessageResult result) {
-            await (Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType, RemoteEndPoint)) ?? Task.CompletedTask);
         }
 
         protected virtual async void OnMessageReceived(MessageResult result, EndPoint remoteEp) {

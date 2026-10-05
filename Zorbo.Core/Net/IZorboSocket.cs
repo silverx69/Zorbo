@@ -125,9 +125,20 @@ namespace Zorbo.Net
         public CloseStatus Status { get; private set; } = status;
     }
 
-    public class ExceptionEventArgs(Exception ex) : SocketEventArgs
+    public class ExceptionEventArgs: SocketEventArgs
     {
-        public Exception Exception { get; private set; } = ex;
+        public Exception Exception { get; private set; }
+
+        public EndPoint RemoteEndPoint { get; private set; }
+
+        public ExceptionEventArgs(Exception ex) {
+            Exception = ex;
+        }
+
+        public ExceptionEventArgs(Exception ex, IPEndPoint remoteEp)
+            : this(ex) {
+            RemoteEndPoint = remoteEp;
+        }
     }
 
     public class MessageEventArgs : SocketEventArgs

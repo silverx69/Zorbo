@@ -70,9 +70,11 @@ namespace Zorbo
 
         static async Task Run() {
 
-            //await TestZorboSocketListener();
+            await TestZorboSocketListener();
             await TestZorboChatServer();
-            
+            await TestZorboSocketUDP();
+
+
             Console.Read();
         }
 
@@ -101,8 +103,6 @@ namespace Zorbo
             client.Exception += ChatClient_Exception;
             client.Disconnected += ChatClient_Disconnected;
 
-            // test json transmission
-            client.MessageType = MessageType.Binary;
             client.CertificateCallback = Certificates.SelfSignedValidationCallback;
 
             //client.IsSecureSocket = true;
@@ -199,7 +199,7 @@ namespace Zorbo
 
             await tcpClient.ConnectAsync(IPAddress.IPv6Loopback, listener.LocalEndPoint.Port);
 
-            Console.WriteLine("Client connected successfully.");
+            Console.WriteLine("TcpClient connected successfully.");
 
             Stream stream = tcpClient.GetStream();
 
@@ -247,7 +247,7 @@ namespace Zorbo
             // read payload data
             var message = await converter.ReadAsync(reader, MessageType.Binary);
 
-            Console.WriteLine("Client received message.");
+            Console.WriteLine("TcpClient received message.");
             Console.WriteLine(JsonSerializer.Serialize(message));
 
             ArrayPool<byte>.Shared.Return(buffer);
@@ -264,7 +264,7 @@ namespace Zorbo
 
             await webSocket.ConnectAsync(new($"wss://[::1]:{listener.LocalEndPoint.Port}"), default);
 
-            Console.WriteLine("Client connected successfully.");
+            Console.WriteLine("WebSocket connected successfully.");
 
             var converter = new MessageConverter();
 
@@ -284,7 +284,7 @@ namespace Zorbo
             var message = await converter.ReadAsync(messageReader, (MessageType)result.MessageType);
 
             // print
-            Console.WriteLine("Client received message.\r\n{0}", JsonSerializer.Serialize(message));
+            Console.WriteLine("WebSocket received message.\r\n{0}", JsonSerializer.Serialize(message));
 
             ArrayPool<byte>.Shared.Return(buffer);
         }
@@ -343,7 +343,7 @@ namespace Zorbo
         }
 
         static Task Client_Connected(ZorboSocket sender, ConnectEventArgs e) {
-            Console.WriteLine("Client connected successfully.");
+            Console.WriteLine("ZorboSocket connected successfully.");
             // send from ZorboSocket to ZorboSocket
             sender.Receive();
             sender.Send(OBJ1, MessageType.Text);
@@ -351,24 +351,24 @@ namespace Zorbo
         }
 
         static Task Client_Rejected(ZorboSocket sender, RejectedEventArgs e) {
-            Console.WriteLine("Client connection failed: {0}", e.Exception.Message);
+            Console.WriteLine("ZorboSocket connection failed: {0}", e.Exception.Message);
             return Task.CompletedTask;
         }
 
         static Task Client_Exception(ZorboSocket sender, ExceptionEventArgs e) {
-            Console.WriteLine("Client threw exception: {0}", e.Exception.Message);
+            Console.WriteLine("ZorboSocket threw exception: {0}", e.Exception.Message);
             return Task.CompletedTask;
         }
 
         static async Task Client_Disconnected(ZorboSocket sender, DisconnectEventArgs e) {
-            Console.WriteLine("Client disconnected.");
+            Console.WriteLine("ZorboSocket disconnected.");
             await sender.DisposeAsync();
         }
 
         static async Task Client_Received(ZorboSocket sender, MessageEventArgs e) {
             // read echo from ZorboSocket
             // print
-            Console.WriteLine("Client received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
+            Console.WriteLine("ZorboSocket received message.\r\n{0}", JsonSerializer.Serialize(e.Message));
 
             // Test: disconnect, wait 5 seconds and connect again
             // validates reuse and exposes exceptions caused during close/dispose
@@ -382,6 +382,54 @@ namespace Zorbo
             // resubscribe to disconnect event, in case we disconnect for some other reason
             sender.Disconnected += Client_Disconnected;
             sender.Connect(new IPEndPoint(IPAddress.IPv6Loopback, listener.LocalEndPoint.Port));
+        }
+
+        static async Task TestZorboSocketUDP() {
+
+            var clientA = new ZorboSocket(SocketProtocol.Udp);
+
+            clientA.Bind(new(IPAddress.IPv6Any, 0));
+            clientA.Received += UdpClient_Received;
+            clientA.Exception += UdpClient_Exception;
+            clientA.Receive();
+
+            var clientB = new ZorboSocket(SocketProtocol.Udp);
+
+            clientB.Bind(new(IPAddress.IPv6Any, 0));
+            clientB.Received += UdpClient_Received;
+            clientB.Exception += UdpClient_Exception;
+            clientB.Receive();
+
+            var clientC = new ZorboSocket(SocketProtocol.Udp);
+
+            clientC.Bind(new(IPAddress.IPv6Any, 0));
+            clientC.Received += UdpClient_Received;
+            clientC.Exception += UdpClient_Exception;
+            clientC.Receive();
+
+            var testPacket = new ServerPublic() { 
+                Id = 0,
+                Sender = "SilverX",
+                Message = "Testing standard ZorboSocket message conversion over UDP"
+            };
+
+            var endpointA = new IPEndPoint(IPAddress.IPv6Loopback, clientA.LocalEndPoint.Port);
+
+            clientB.Send(testPacket, endpointA);
+            clientC.Send(testPacket, endpointA);
+
+        }
+
+        static async Task UdpClient_Received(ZorboSocket sender, MessageEventArgs e) {
+            Console.WriteLine(
+                "UDP Message from {0}:\r\n{1}{2}", 
+                e.RemoteEndPoint,
+                e.Message.GetType(),
+                JsonSerializer.Serialize(e.Message));
+        }
+
+        static async Task UdpClient_Exception(ZorboSocket sender, ExceptionEventArgs e) {
+            Console.WriteLine("UDP Exception from {0}: {1}", e.RemoteEndPoint, e.Exception.Message);
         }
     }
 }
