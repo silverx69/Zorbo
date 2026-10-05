@@ -36,6 +36,8 @@ namespace Zorbo.Net
         MemoryStream readStream;
         MemoryStream messageStream;
 
+        static readonly IPEndPoint EmptyEndPoint = new(IPAddress.IPv6Any, 0);
+
         protected enum Handshake : byte
         {
             Initial,
@@ -60,6 +62,11 @@ namespace Zorbo.Net
         /// </summary>
         public Socket Socket {
             get { return socket; }
+        }
+
+        public SocketProtocol Protocol {
+            get;
+            protected set;
         }
 
         /// <summary>
@@ -116,24 +123,24 @@ namespace Zorbo.Net
         }
 
         /// <summary>
-        /// The maximum size, in kilobytes, of a frame before messages should be fragmented into multiple frames.
+        /// The maximum size, in bytes, of a frame before messages should be fragmented into multiple frames.
         /// </summary>
-        public long MaxFrameSize { get; set; } = 32 * 1024;
+        public long MaxFrameSize { get; set; } = 32768L; //32KB
 
         /// <summary>
-        /// The maximum size, in kilobytes, of any message (the combined size of all frames). 
+        /// The maximum size, in bytes, of any message (the combined size of all frames). 
         /// </summary>
-        public long MaxMessageSize { get; set; } = 128 * 1024;
+        public long MaxMessageSize { get; set; } = 1048576L; //1MB
 
         /// <summary>
-        /// The maximum size, in kilobytes, of an HTTP request header (includes WebSocket upgrade).
+        /// The maximum size, in bytes, of an HTTP request header (includes WebSocket upgrade).
         /// </summary>
-        public long MaxRequestHeaderSize { get; set; } = 8 * 1024;
+        public long MaxRequestHeaderSize { get; set; } = 8192L; //8KB
 
         /// <summary>
-        /// The maximum size, in kilobytes, of an HTTP request content buffer (default is 2GB).
+        /// The maximum size, in bytes, of an HTTP request content buffer (default is 10MB).
         /// </summary>
-        public long MaxRequestContentSize { get; set; } = 2L * 1024L * 1024L * 1024L;
+        public long MaxRequestContentSize { get; set; } = 10485760L; //10MB
 
 
         public X509Certificate Certificate { get; set; }
@@ -141,11 +148,19 @@ namespace Zorbo.Net
         public RemoteCertificateValidationCallback CertificateCallback { get; set; }
 
 
-        public ZorboSocket() : this(new MessageConverter()) { }
+        public ZorboSocket()
+            : this(new MessageConverter()) { }
 
-        public ZorboSocket(IMessageConverter converter) {
+        public ZorboSocket(SocketProtocol protocol)
+            : this(protocol, new MessageConverter()) { }
+
+        public ZorboSocket(IMessageConverter converter) 
+            : this(SocketProtocol.Tcp, converter) { }
+
+        public ZorboSocket(SocketProtocol protocol, IMessageConverter converter) {
             ArgumentNullException.ThrowIfNull(converter, nameof(converter));
-            this.socket = SocketExtensions.CreateTcp();
+            CreateSocket();
+            this.Protocol = protocol;
             this.Converter = converter;
             this.Monitor = new IOMonitor(true);
         }
@@ -157,17 +172,28 @@ namespace Zorbo.Net
             this.Converter = listener.Converter;
             this.Monitor = listener.Monitor;
             this.isClient = false;
+            this.writeQueue ??= [];
+            this.recvBuffer ??= ArrayPool<byte>.Shared.Rent(8192);
+            this.readStream ??= new MemoryStream();
             this.netStream = new NetworkStream(Socket, false);
-            this.writeQueue = [];
-            this.recvBuffer = ArrayPool<byte>.Shared.Rent(8192);
-            this.readStream = new MemoryStream();
             this.messageStream = new MemoryStream();
             this.sessionGuid = Guid.NewGuid();
+        }
+
+        protected virtual void CreateSocket() {
+            writeQueue ??= [];
+            recvBuffer ??= ArrayPool<byte>.Shared.Rent(8192);
+            readStream ??= new MemoryStream();
+            if (Protocol == SocketProtocol.Udp)
+                socket ??= SocketExtensions.CreateUdp();
+            else
+                socket ??= SocketExtensions.CreateTcp();
         }
 
         #region " Accept "
 
         public virtual void Bind(IPEndPoint endpoint) {
+            CreateSocket();
             Socket.Bind(endpoint);
         }
 
@@ -221,7 +247,7 @@ namespace Zorbo.Net
 
         public virtual void Connect(Uri uri) {
             ArgumentNullException.ThrowIfNull(uri, nameof(uri));
-
+            
             RemoteUri = uri;
             switch (uri.Scheme) {
                 case "tcp":
@@ -273,11 +299,11 @@ namespace Zorbo.Net
         protected virtual async void Connect(EndPoint endpoint) {
             ArgumentNullException.ThrowIfNull(endpoint, nameof(endpoint));
 
-            socket ??= SocketExtensions.CreateTcp();
+            if (Protocol == SocketProtocol.Udp)
+                throw new InvalidOperationException("Operation is not valid on UDP sockets.");
+
+            CreateSocket();
             handshake = Handshake.Initial;
-            writeQueue = [];
-            recvBuffer = ArrayPool<byte>.Shared.Rent(8192);
-            readStream = new MemoryStream();
             messageStream = new MemoryStream();
             sessionGuid = Guid.NewGuid();
 
@@ -308,6 +334,9 @@ namespace Zorbo.Net
         }
 
         public virtual async void Disconnect(CloseStatus status) {
+
+            if (Protocol == SocketProtocol.Udp)
+                throw new InvalidOperationException("Operation is not valid on UDP sockets.");
 
             if (IsConnected && 
                 // network read returned 0
@@ -375,10 +404,27 @@ namespace Zorbo.Net
         #region " Send "
 
         public virtual void Send(object msg) {
-            Send(msg, MessageType);
+            if (Protocol == SocketProtocol.Udp)
+                throw new InvalidOperationException("Operation is not valid on UDP sockets. Use Send(object, EndPoint) instead.");
+
+            Send(msg, null, MessageType);
         }
 
         public virtual async void Send(object msg, MessageType type) {
+            ArgumentNullException.ThrowIfNull(msg, nameof(msg));
+
+            if (Protocol == SocketProtocol.Udp)
+                throw new InvalidOperationException("Operation is not valid on UDP sockets. Use Send(object, EndPoint) instead.");
+
+            Send(msg, null, type);
+        }
+
+        public virtual void Send(object msg, EndPoint endpoint) {
+            ArgumentNullException.ThrowIfNull(msg, nameof(msg));
+            Send(msg, endpoint, MessageType);
+        }
+
+        protected virtual async void Send(object msg, EndPoint endpoint, MessageType type) {
             ArgumentNullException.ThrowIfNull(msg, nameof(msg));
             try {
                 lock (writeLock) {
@@ -390,7 +436,7 @@ namespace Zorbo.Net
                 }
 
                 while (isWriting) {
-                    await Write(msg, type);
+                    await Write(msg, endpoint, type);
 
                     lock (writeLock) {
                         if (writeQueue.TryDequeue(out var queued)) {
@@ -406,40 +452,69 @@ namespace Zorbo.Net
             }
         }
 
-        protected virtual async Task Write(object msg, MessageType type) {
+        protected virtual async Task Write(object msg, EndPoint endpoint, MessageType type) {
             OpCode opCode;
             using var writer = new ZBinaryWriter();
 
-            if (msg is Ping ping) {
-                opCode = OpCode.Ping;
-                await writer.WriteAsync(ping.Data);
-            }
-            else if (msg is Pong pong) {
-                opCode = OpCode.Pong;
-                await writer.WriteAsync(pong.Data);
-            }
-            else if (msg is Raw raw) {
-                var stream = GetSocketStream();
-                if (stream is not null)
-                    await stream.WriteAsync(raw.Data.AsMemory(raw.Index, raw.Count));
-                return;
+            if (Protocol == SocketProtocol.Udp) {
+                if (msg is Raw raw)
+                    await writer.WriteAsync(raw.Data, raw.Index, raw.Count);
+                else {
+                    try {
+                        await Converter.WriteAsync(writer, msg, type);
+                    }
+                    catch (MessageConversionException mex) {
+                        OnException(mex, false);
+                        return;
+                    }
+                    catch (Exception ex) {
+                        OnException(new MessageConversionException(ex), false);
+                        return;
+                    }
+                }
+                await WriteDgram(writer, endpoint);
             }
             else {
-                try {
-                    opCode = (type == MessageType.Binary) ? OpCode.Binary : OpCode.Text;
-                    await Converter.WriteAsync(writer, msg, type);
+                if (msg is Ping ping) {
+                    opCode = OpCode.Ping;
+                    await writer.WriteAsync(ping.Data);
                 }
-                catch (MessageConversionException mex) {
-                    OnException(mex, false);
-                    return;
+                else if (msg is Pong pong) {
+                    opCode = OpCode.Pong;
+                    await writer.WriteAsync(pong.Data);
                 }
-                catch (Exception ex) {
-                    OnException(new MessageConversionException(ex), false);
-                    return;
+                else {
+                    if (msg is Raw raw) {
+                        var stream = GetSocketStream();
+                        if (stream is not null)
+                            await stream.WriteAsync(raw.Data.AsMemory(raw.Index, raw.Count));
+                        return;
+                    }
+                    else {
+                        try {
+                            opCode = (type == MessageType.Binary) ? OpCode.Binary : OpCode.Text;
+                            await Converter.WriteAsync(writer, msg, type);
+                        }
+                        catch (MessageConversionException mex) {
+                            OnException(mex, false);
+                            return;
+                        }
+                        catch (Exception ex) {
+                            OnException(new MessageConversionException(ex), false);
+                            return;
+                        }
+                    }
                 }
+                await WriteFrame(writer, opCode);
             }
+        }
 
-            await WriteFrame(writer, opCode);
+        protected virtual async Task WriteDgram(ZBinaryWriter writer, EndPoint endpoint) {
+            writer.Position = 0;
+
+            await socket.SendToAsync(await writer.ToArrayAsync(), endpoint);
+
+            Monitor.AddOutput(writer.Length);
         }
 
         protected virtual async Task WriteFrame(ZBinaryWriter writer, OpCode opCode) {
@@ -487,10 +562,36 @@ namespace Zorbo.Net
                 return;
             isReading = true;
             try {
-                await ReadFromStream();
+                if (Protocol == SocketProtocol.Udp)
+                    await ReadFromDgram();
+                else
+                    await ReadFromStream();
             }
             catch (Exception ex) {
                 OnException(ex);
+            }
+        }
+
+        protected virtual async Task ReadFromDgram() {
+            while (isReading) {
+                var result = await socket.ReceiveFromAsync(recvBuffer, EmptyEndPoint);
+                int count = result.ReceivedBytes;
+
+                if (count == 0) {
+                    //exception? log?
+                    return;
+                }
+
+                Monitor.AddInput(count);
+
+                await readStream.WriteAsync(recvBuffer.AsMemory(0, count));
+
+                readStream.Position = 0;
+
+                using var reader = new ZBinaryReader(readStream, true);
+                await ReadMessage(reader, result.RemoteEndPoint);
+
+                readStream?.SetLength(0);
             }
         }
 
@@ -552,13 +653,14 @@ namespace Zorbo.Net
                     if (reader.Remaining < 2)
                         return FrameResult.Incomplete;
 
-                    string tmp = (await reader.ReadStringAsync(2)).ToUpper();
+                    ushort tmp = await reader.ReadUInt16Async();
                     reader.Position -= 2;
 
-                    switch (tmp) {
-                        case "GE":
-                        case "HE":
-                        case "PO": return await ReadHttpRequest(reader);
+                    switch(tmp) {
+                        case 17735:
+                        case 17736:
+                        case 20304:
+                            return await ReadHttpRequest(reader);
                     }
                 }
                 else return await ReadWebSocketAccept(reader);
@@ -765,15 +867,15 @@ namespace Zorbo.Net
             return state;
         }
 
-        protected virtual async Task<FrameResult> FinishFrame(byte[] payload) {
-            await messageStream.WriteAsync(payload);
+        protected virtual Task<FrameResult> ReadMessage(ZBinaryReader reader) {
+            return ReadMessage(reader, RemoteEndPoint);
+        }
 
+        protected virtual async Task<FrameResult> ReadMessage(ZBinaryReader reader, EndPoint remoteEp) {
             MessageResult message;
-            using var frameReader = new ZBinaryReader(messageStream, true);
-            
             try {
-                frameReader.Position = 0;
-                message = await Converter.ReadAsync(frameReader, incomingMsgType);
+                reader.Position = 0;
+                message = await Converter.ReadAsync(reader, incomingMsgType);
             }
             catch (MessageConversionException mex) {
                 // assume if the converter throws an exception the data was bad
@@ -786,10 +888,18 @@ namespace Zorbo.Net
                 return FrameResult.Close;
             }
 
-            OnMessageReceived(message);
+            OnMessageReceived(message, remoteEp);
+            return FrameResult.Finished;
+        }
+
+        protected virtual async Task<FrameResult> FinishFrame(byte[] payload) {
+            await messageStream.WriteAsync(payload);
+
+            using var reader = new ZBinaryReader(messageStream, true);
+            var result = await ReadMessage(reader);
 
             messageStream.SetLength(0);
-            return FrameResult.Finished;
+            return result;
         }
 
         #endregion
@@ -830,7 +940,11 @@ namespace Zorbo.Net
         }
 
         protected virtual async void OnMessageReceived(MessageResult result) {
-            await (Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType)) ?? Task.CompletedTask);
+            await (Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType, RemoteEndPoint)) ?? Task.CompletedTask);
+        }
+
+        protected virtual async void OnMessageReceived(MessageResult result, EndPoint remoteEp) {
+            await (Received?.Invoke(this, new(result.Id, result.Message, incomingMsgType, remoteEp)) ?? Task.CompletedTask);
         }
 
         protected virtual async void OnHttpRequestReceived(ZBinaryReader content, RequestMetadata request) {

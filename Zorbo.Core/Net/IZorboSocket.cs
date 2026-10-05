@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -8,6 +7,12 @@ using Zorbo.Net.Messages;
 
 namespace Zorbo.Net
 {
+    public enum SocketProtocol 
+    {
+        Tcp,
+        Udp
+    }
+
     public enum OpCode : byte
     {
         Continuation,
@@ -41,6 +46,7 @@ namespace Zorbo.Net
     public interface IZorboSocket : IDisposable, IAsyncDisposable
     {
         Socket Socket { get; }
+        SocketProtocol Protocol { get; }
 
         Uri RemoteUri { get; }
 
@@ -73,11 +79,9 @@ namespace Zorbo.Net
         void Connect(IPAddress ip, int port);
         void Connect(IPEndPoint endpoint);
 
-        //void Send(byte[] rawbytes);
-        //void Send(byte[] rawbytes, int index, int count);
-
         void Send(object message);
         void Send(object message, MessageType type);
+        void Send(object message, EndPoint endoint);
 
         void Disconnect();
         void Disconnect(CloseStatus status);
@@ -134,12 +138,18 @@ namespace Zorbo.Net
 
         public MessageType MessageType { get; private set; }
 
+        public EndPoint RemoteEndPoint { get; private set; }
+
         public MessageEventArgs() { }
 
-        public MessageEventArgs(ushort id, object message, MessageType msgType) {
+        public MessageEventArgs(ushort id, object message, MessageType msgType) 
+            : this(id, message, msgType, null) { }
+
+        public MessageEventArgs(ushort id, object message, MessageType msgType, EndPoint remoteEp) {
             Id = id;
             Message = message;
             MessageType = msgType;
+            RemoteEndPoint = remoteEp;
         }
 
         /// <summary>
